@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Wisp chat</title>
+    <link rel="stylesheet" href="chat.css" />
+  </head>
+  <body>
+    <div id="panel" data-dock="left" data-align="end">
+      <header>
+        <div class="brand">
+          <p class="name">Wisp</p>
+          <button id="folder" type="button" title="Escolhe a pasta do projeto">
+            <span class="field-label">Projeto</span>
+            <span class="field-value">escolher pasta</span>
+          </button>
+        </div>
+        <div class="tools">
+          <button id="gear" type="button" title="Chave da API do Cursor">Conta</button>
+          <button id="hide" type="button" title="Esconder o painel">Esconder</button>
+        </div>
+      </header>
+      <div class="rail">
+        <div class="field">
+          <p class="field-label" id="mode-label">Modo</p>
+          <div id="modes" class="modes" role="tablist" aria-labelledby="mode-label">
+            <button type="button" data-mode="ask" title="Só responde. Não edita arquivos nem roda comandos.">
+              Perguntar
+            </button>
+            <button type="button" data-mode="plan" title="Monta um plano. Ainda não executa nada.">
+              Plano
+            </button>
+            <button type="button" data-mode="agent" class="on" title="Pode editar arquivos e rodar comandos no projeto.">
+              Agente
+            </button>
+          </div>
+          <p id="mode-hint" class="hint">Pode editar arquivos e rodar comandos no projeto.</p>
+        </div>
+        <div class="field-row">
+          <label class="field grow">
+            <span class="field-label">Modelo</span>
+            <select id="model" disabled>
+              <option value="composer-2.5">composer-2.5</option>
+            </select>
+          </label>
+          <label class="field" id="effort-wrap" hidden>
+            <span class="field-label">Esforço</span>
+            <select id="effort"></select>
+          </label>
+        </div>
+        <div class="field">
+          <span class="field-label" id="chats-label">Conversa</span>
+          <div class="chats-row">
+            <select id="chats" aria-labelledby="chats-label">
+              <option value="">Nova conversa</option>
+            </select>
+            <input id="chat-name" hidden maxlength="42" spellcheck="false" aria-label="Nome da conversa" />
+            <button type="button" id="rename" title="Renomear esta conversa">Renomear</button>
+            <button type="button" id="reset" title="Começar uma conversa nova">Nova</button>
+          </div>
+        </div>
+        <p id="meter">
+          <span class="field-label">Contexto</span>
+          <span id="meter-value">0 / 200k</span>
+        </p>
+      </div>
+      <form id="setup" hidden>
+        <label>
+          Chave da API do Cursor
+          <input id="key" type="password" spellcheck="false" placeholder="cursor_..." />
+        </label>
+        <p id="who" class="hint"></p>
+        <p id="status" class="hint">Dashboard, depois Integrations. Ao colar, testa a chave e busca os modelos.</p>
+        <button type="submit" id="probe">Salvar chave</button>
+        <div id="riv-row">
+          <button id="riv" type="button" title="Usa um .riv no lugar do fantasma SVG">
+            <span class="field-label">Mascote</span>
+            <span class="field-value">SVG padrão</span>
+          </button>
+          <button type="button" id="riv-clear" hidden>Padrão</button>
+        </div>
+      </form>
+      <div id="log">
+        <div class="empty-log">
+          <p class="empty-title">Nenhuma mensagem ainda</p>
+          <p class="empty-copy">Escolhe o modo e o modelo em cima, depois escreve embaixo.</p>
+        </div>
+      </div>
+      <ul id="skill-list" hidden></ul>
+      <form id="composer">
+        <button type="button" id="slash" title="Abrir lista de skills">Skill</button>
+        <textarea
+          id="input"
+          rows="1"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="Escreve aqui, ou / pra uma skill"
+        ></textarea>
+        <button type="submit" id="go">Enviar</button>
+      </form>
+    </div>
+    <script src="lib/models.js"></script>
+    <script src="lib/mode.js"></script>
+    <script src="chat.js"></script>
+  </body>
+</html>

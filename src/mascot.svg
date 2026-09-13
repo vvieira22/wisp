@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140" width="120" height="140">
+  <defs>
+    <radialGradient id="body" cx="50%" cy="38%" r="62%">
+      <stop offset="0%" stop-color="#fff6d8" />
+      <stop offset="55%" stop-color="#f0d7a2" />
+      <stop offset="100%" stop-color="#c9a56a" />
+    </radialGradient>
+    <radialGradient id="flame" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffe9a0" />
+      <stop offset="70%" stop-color="#e8a54b" />
+      <stop offset="100%" stop-color="#c45d2a" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <ellipse id="shadow" cx="60" cy="128" rx="28" ry="6" fill="#12141c" fill-opacity="0.22" />
+  <path
+    id="sheet"
+    fill="url(#body)"
+    stroke="#5a4424"
+    stroke-opacity="0.18"
+    stroke-width="1.2"
+    d="M28 54c0-22 14-40 32-40s32 18 32 40v42c0 2-2 4-5 3-6-2-8 8-13 8s-7-10-14-10-9 10-14 10-7-10-13-8c-3 1-5-1-5-3z"
+  />
+  <circle id="flame" cx="60" cy="62" r="11" fill="url(#flame)" opacity="0.35" />
+  <ellipse id="blushL" cx="38" cy="58" rx="7" ry="4" fill="#e7a08a" opacity="0.45" />
+  <ellipse id="blushR" cx="82" cy="58" rx="7" ry="4" fill="#e7a08a" opacity="0.45" />
+  <ellipse id="eyeL" cx="44" cy="50" rx="7.5" ry="9" fill="#1a1c24" />
+  <circle id="pupilL" cx="45" cy="52" r="3.2" fill="#f7efe0" />
+  <circle id="glintL" cx="47" cy="49" r="1.2" fill="#ffffff" />
+  <ellipse id="eyeR" cx="76" cy="50" rx="7.5" ry="9" fill="#1a1c24" />
+  <circle id="pupilR" cx="77" cy="52" r="3.2" fill="#f7efe0" />
+  <circle id="glintR" cx="79" cy="49" r="1.2" fill="#ffffff" />
+  <path id="mouth" d="M54 66c4 5 8 5 12 0" fill="none" stroke="#5b3f32" stroke-width="2" stroke-linecap="round" />
+</svg>

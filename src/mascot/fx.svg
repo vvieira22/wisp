@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 248 296" width="248" height="296">
+  <ellipse id="shadow" cx="124" cy="272" rx="52" ry="8" fill="#040915" fill-opacity="0.32"/>
+  <rect id="dock" x="50" y="262" width="148" height="22" rx="11" fill="#17243b" stroke="#6c9cf9" stroke-width="1.5"/>
+  <rect id="dockShine" x="58" y="266" width="72" height="6" rx="3" fill="#6c9cf9" fill-opacity="0.18"/>
+  <ellipse id="dockGlow" cx="124" cy="284" rx="64" ry="7" fill="#407efb" fill-opacity="0.28"/>
+  <polygon id="nerv" points="62,273 70,268 78,273 70,278" fill="#f66b71"/>
+  <path id="swirl" d="M118,38c18,2 28,16 22,28c-6,12-22,10-24,-2c-2,-10 10,-14 16,-8" fill="none" stroke="#6c9cf9" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0"/>
+  <path id="swirl2" d="M138,52c8,10 2,22-10,24" fill="none" stroke="#93a4f9" stroke-width="1.5" stroke-linecap="round" opacity="0"/>
+  <rect id="holoL" x="28" y="118" width="36" height="48" rx="6" fill="#2d4b84" fill-opacity="0.45" stroke="#6c9cf9" stroke-width="1.5" opacity="0"/>
+  <rect id="holoR" x="184" y="132" width="32" height="40" rx="6" fill="#2d4b84" fill-opacity="0.4" stroke="#93a4f9" stroke-width="1.5" opacity="0"/>
+  <polygon id="sparkA" points="40,86 42.4,92.2 49,94 42.4,95.8 40,102 37.6,95.8 31,94 37.6,92.2" fill="#fbab2b" opacity="0"/>
+  <polygon id="sparkB" points="208,72 210,76.4 215,78 210,79.6 208,84 206,79.6 201,78 206,76.4" fill="#fbab2b" opacity="0"/>
+  <polygon id="sparkC" points="196,168 197.8,172.2 202,174 197.8,175.8 196,180 194.2,175.8 190,174 194.2,172.2" fill="#fe816a" opacity="0"/>
+  <ellipse id="sweatA" cx="78" cy="96" rx="4" ry="6" fill="#93a4f9" opacity="0"/>
+  <ellipse id="sweatB" cx="70" cy="112" rx="3" ry="5" fill="#6c9cf9" opacity="0"/>
+</svg>
