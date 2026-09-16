@@ -1,23 +1,18 @@
 "use strict";
 
 // .riv contract for the mascot, first match wins:
-// 1. number input state|mood|pet|status (0 idle, 1 thinking, 2 talking, 3 notify, 4 error, 5 listening, 6 reading, 7 sleepy)
+// 1. number input state|mood|pet|status (0 idle, 1 thinking, 2 alert)
 // 2. boolean inputs named after those states
 // 3. trigger inputs named after those states (fired on change)
 // 4. else timeline animations with those names
 // optional lookX/lookY (or eyeX/eyeY, pointerX/pointerY) = -1..1 toward the cursor
 // also tries ViewModel properties with the same names when autoBind is on
 
-const STATES = ["idle", "thinking", "talking", "notify", "error", "listening", "reading", "sleepy"];
+const STATES = ["idle", "thinking", "alert"];
 const STATE_NUM = {
   idle: 0,
   thinking: 1,
-  talking: 2,
-  notify: 3,
-  error: 4,
-  listening: 5,
-  reading: 6,
-  sleepy: 7,
+  alert: 2,
 };
 const STATE_NUM_NAMES = ["state", "mood", "pet", "status"];
 const LOOK_X_NAMES = ["lookx", "eyex", "pointerx"];
@@ -94,8 +89,7 @@ function planRiv(meta, state, look, prev) {
 
   const bools = stateItems(inputs, "boolean");
   if (Object.keys(bools).length) {
-    for (const name of STATES) {
-      if (!bools[name]) continue;
+    for (const name of Object.keys(bools)) {
       plan.sets.push({ name: bools[name].name, value: name === mood });
     }
     return plan;
@@ -118,6 +112,6 @@ function planRiv(meta, state, look, prev) {
   return plan;
 }
 
-const api = { STATES, STATE_NUM, resolveRiv, planRiv, normName, inputKind };
-if (typeof module === "object" && module.exports) module.exports = api;
-if (typeof globalThis === "object") Object.assign(globalThis, api);
+const rivApi = { STATES, STATE_NUM, resolveRiv, planRiv, normName, inputKind };
+if (typeof module === "object" && module.exports) module.exports = rivApi;
+if (typeof globalThis === "object") Object.assign(globalThis, rivApi);

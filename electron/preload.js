@@ -3,6 +3,8 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("wisp", {
+  getEngine: () => ipcRenderer.invoke("engine:get"),
+  setEngine: (engine) => ipcRenderer.invoke("engine:set", engine),
   getConfig: () => ipcRenderer.invoke("config:get"),
   setConfig: (partial) => ipcRenderer.invoke("config:set", partial),
   pickFolder: () => ipcRenderer.invoke("config:pick-folder"),
@@ -14,6 +16,7 @@ contextBridge.exposeInMainWorld("wisp", {
   probe: (apiKey) => ipcRenderer.invoke("account:probe", apiKey),
   hideChat: () => ipcRenderer.send("chat:hide"),
   reset: (payload) => ipcRenderer.invoke("chat:reset", payload),
+  clearChat: () => ipcRenderer.invoke("chat:clear"),
   listChats: () => ipcRenderer.invoke("chats:list"),
   saveChat: (payload) => ipcRenderer.invoke("chats:save", payload),
   openChat: (id, payload) => ipcRenderer.invoke("chats:open", id, payload),
@@ -23,6 +26,7 @@ contextBridge.exposeInMainWorld("wisp", {
   petPointer: (payload) => ipcRenderer.send("pet:pointer", payload),
   petLayout: (payload) => ipcRenderer.send("pet:layout", payload),
   setPetMouse: (ignore) => ipcRenderer.send("pet:mouse", ignore),
+  previewPet: (state) => ipcRenderer.invoke("pet:preview", state),
   onDock: (cb) => {
     const fn = (_event, payload) => cb(payload);
     ipcRenderer.on("chat:dock", fn);
@@ -32,6 +36,16 @@ contextBridge.exposeInMainWorld("wisp", {
     const fn = (_event, state) => cb(state);
     ipcRenderer.on("pet:state", fn);
     return () => ipcRenderer.removeListener("pet:state", fn);
+  },
+  onPetPreview: (cb) => {
+    const fn = (_event, state) => cb(state);
+    ipcRenderer.on("pet:preview", fn);
+    return () => ipcRenderer.removeListener("pet:preview", fn);
+  },
+  onPetFace: (cb) => {
+    const fn = (_event, payload) => cb(payload);
+    ipcRenderer.on("pet:face", fn);
+    return () => ipcRenderer.removeListener("pet:face", fn);
   },
   onChat: (cb) => {
     const fn = (_event, payload) => cb(payload);
@@ -52,5 +66,10 @@ contextBridge.exposeInMainWorld("wisp", {
     const fn = (_event, payload) => cb(payload);
     ipcRenderer.on("pet:mascot", fn);
     return () => ipcRenderer.removeListener("pet:mascot", fn);
+  },
+  onEngine: (cb) => {
+    const fn = (_event, payload) => cb(payload);
+    ipcRenderer.on("engine:changed", fn);
+    return () => ipcRenderer.removeListener("engine:changed", fn);
   },
 });

@@ -1,0 +1,284 @@
+{
+ "artboard": {
+  "name": "thinking",
+  "width": 400,
+  "height": 512
+ },
+ "groups": [
+  {
+   "id": "thinking_solo",
+   "x": 200,
+   "y": 256,
+   "solo": true
+  }
+ ],
+ "shapes": [],
+ "animations": [
+  {
+   "name": "thinking",
+   "fps": 12,
+   "duration": 24,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "thinking_solo",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "25"
+      },
+      {
+       "frame": 1,
+       "ref": "24",
+       "easing": "hold"
+      },
+      {
+       "frame": 2,
+       "ref": "23",
+       "easing": "hold"
+      },
+      {
+       "frame": 3,
+       "ref": "22",
+       "easing": "hold"
+      },
+      {
+       "frame": 4,
+       "ref": "21",
+       "easing": "hold"
+      },
+      {
+       "frame": 5,
+       "ref": "20",
+       "easing": "hold"
+      },
+      {
+       "frame": 6,
+       "ref": "19",
+       "easing": "hold"
+      },
+      {
+       "frame": 7,
+       "ref": "18",
+       "easing": "hold"
+      },
+      {
+       "frame": 8,
+       "ref": "17",
+       "easing": "hold"
+      },
+      {
+       "frame": 9,
+       "ref": "16",
+       "easing": "hold"
+      },
+      {
+       "frame": 10,
+       "ref": "15",
+       "easing": "hold"
+      },
+      {
+       "frame": 11,
+       "ref": "14",
+       "easing": "hold"
+      },
+      {
+       "frame": 12,
+       "ref": "13",
+       "easing": "hold"
+      },
+      {
+       "frame": 13,
+       "ref": "12",
+       "easing": "hold"
+      },
+      {
+       "frame": 14,
+       "ref": "11",
+       "easing": "hold"
+      },
+      {
+       "frame": 15,
+       "ref": "10",
+       "easing": "hold"
+      },
+      {
+       "frame": 16,
+       "ref": "9",
+       "easing": "hold"
+      },
+      {
+       "frame": 17,
+       "ref": "8",
+       "easing": "hold"
+      },
+      {
+       "frame": 18,
+       "ref": "7",
+       "easing": "hold"
+      },
+      {
+       "frame": 19,
+       "ref": "6",
+       "easing": "hold"
+      },
+      {
+       "frame": 20,
+       "ref": "5",
+       "easing": "hold"
+      },
+      {
+       "frame": 21,
+       "ref": "4",
+       "easing": "hold"
+      },
+      {
+       "frame": 22,
+       "ref": "3",
+       "easing": "hold"
+      },
+      {
+       "frame": 23,
+       "ref": "2",
+       "easing": "hold"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "thinking_60fps",
+   "fps": 60,
+   "duration": 120,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "thinking_solo",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "25"
+      },
+      {
+       "frame": 5,
+       "ref": "24",
+       "easing": "hold"
+      },
+      {
+       "frame": 10,
+       "ref": "23",
+       "easing": "hold"
+      },
+      {
+       "frame": 15,
+       "ref": "22",
+       "easing": "hold"
+      },
+      {
+       "frame": 20,
+       "ref": "21",
+       "easing": "hold"
+      },
+      {
+       "frame": 25,
+       "ref": "20",
+       "easing": "hold"
+      },
+      {
+       "frame": 30,
+       "ref": "19",
+       "easing": "hold"
+      },
+      {
+       "frame": 35,
+       "ref": "18",
+       "easing": "hold"
+      },
+      {
+       "frame": 40,
+       "ref": "17",
+       "easing": "hold"
+      },
+      {
+       "frame": 45,
+       "ref": "16",
+       "easing": "hold"
+      },
+      {
+       "frame": 50,
+       "ref": "15",
+       "easing": "hold"
+      },
+      {
+       "frame": 55,
+       "ref": "14",
+       "easing": "hold"
+      },
+      {
+       "frame": 60,
+       "ref": "13",
+       "easing": "hold"
+      },
+      {
+       "frame": 65,
+       "ref": "12",
+       "easing": "hold"
+      },
+      {
+       "frame": 70,
+       "ref": "11",
+       "easing": "hold"
+      },
+      {
+       "frame": 75,
+       "ref": "10",
+       "easing": "hold"
+      },
+      {
+       "frame": 80,
+       "ref": "9",
+       "easing": "hold"
+      },
+      {
+       "frame": 85,
+       "ref": "8",
+       "easing": "hold"
+      },
+      {
+       "frame": 90,
+       "ref": "7",
+       "easing": "hold"
+      },
+      {
+       "frame": 95,
+       "ref": "6",
+       "easing": "hold"
+      },
+      {
+       "frame": 100,
+       "ref": "5",
+       "easing": "hold"
+      },
+      {
+       "frame": 105,
+       "ref": "4",
+       "easing": "hold"
+      },
+      {
+       "frame": 110,
+       "ref": "3",
+       "easing": "hold"
+      },
+      {
+       "frame": 115,
+       "ref": "2",
+       "easing": "hold"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

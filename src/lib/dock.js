@@ -2,6 +2,16 @@
 
 const PET = { w: 148, h: 176, spriteW: 124, spriteH: 148 };
 const GAP = 8;
+// w/h/lift/padX/gap must match #bubble and #stage in pet.css
+const BUBBLE = { w: 280, h: 96, gap: 10, padX: 12, lift: 32 };
+
+function petWindowSize(visible) {
+  if (!visible) return { width: PET.w, height: PET.h };
+  return {
+    width: PET.spriteW + BUBBLE.padX * 2 + BUBBLE.gap + BUBBLE.w,
+    height: Math.max(PET.h, BUBBLE.h + BUBBLE.lift),
+  };
+}
 
 function spriteRect(pet, size = PET) {
   const boxX = pet.x + pet.width - size.w;
@@ -18,6 +28,17 @@ function spriteRect(pet, size = PET) {
 function clamp(n, min, max) {
   if (max < min) return min;
   return Math.max(min, Math.min(max, n));
+}
+
+function clampToArea(rect, area) {
+  const width = Math.min(rect.width, area.width);
+  const height = Math.min(rect.height, area.height);
+  return {
+    x: clamp(rect.x, area.x, area.x + area.width - width),
+    y: clamp(rect.y, area.y, area.y + area.height - height),
+    width,
+    height,
+  };
 }
 
 function overflow(area, x, y, w, h) {
@@ -53,4 +74,4 @@ function dockChat({ ghost, chat, area, gap = GAP }) {
   };
 }
 
-module.exports = { PET, GAP, spriteRect, dockChat };
+module.exports = { PET, GAP, BUBBLE, spriteRect, dockChat, clampToArea, petWindowSize };

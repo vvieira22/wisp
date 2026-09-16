@@ -2,8 +2,8 @@ const stage = document.getElementById("stage");
 const ghost = document.getElementById("ghost");
 const canvas = document.getElementById("canvas");
 const bubble = document.getElementById("bubble");
+const eyebrow = document.getElementById("eyebrow");
 const line = document.getElementById("line");
-const pupils = [...document.querySelectorAll(".pupil")];
 
 let state = "idle";
 let compact = false;
@@ -20,53 +20,34 @@ let wasmReady = false;
 let rivMeta = { inputs: [], animations: [], stateMachines: [] };
 let look = { x: 0, y: 0 };
 let rivState = "";
-let sleepyTimer = 0;
+let flipped = false;
 
-function restState() {
-  return compact ? "listening" : "idle";
-}
-
-function armSleepy() {
-  clearTimeout(sleepyTimer);
-  if (compact || runActive || (state !== "idle" && state !== "listening")) return;
-  sleepyTimer = setTimeout(() => {
-    if (!compact && !runActive && (state === "idle" || state === "listening")) setState("sleepy");
-  }, 25000);
-}
-
-function snippet(text, done) {
-  const clean = String(text || "").replace(/\s+/g, " ").trim();
-  if (clean.length <= 160) return clean;
-  return done ? clean.slice(0, 160) + "…" : "…" + clean.slice(-160);
+function applyStage() {
+  stage.classList.remove("idle", "thinking", "alert", "riv");
+  stage.classList.add(state);
+  if (player) stage.classList.add("riv");
 }
 
 function setState(next) {
-  if (next === "idle") next = restState();
-  state = next || restState();
-  stage.className = state + (player ? " riv" : "");
+  state = next || "idle";
+  applyStage();
   driveRiv();
   paint();
-  armSleepy();
 }
 
-function toAB(data) {
-  if (!data) return null;
-  if (data instanceof ArrayBuffer) return data;
-  if (ArrayBuffer.isView(data)) return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
-  return Uint8Array.from(data).buffer;
-}
-
-function showSvg() {
-  if (player) {
-    try {
-      player.cleanup();
-    } catch {
-      /* already gone */
-    }
-    player = null;
+async function ensureRiveRuntime() {
+  if (!window.rive) return false;
+  if (!wasmReady) {
+    window.rive.RuntimeLoader.setWasmUrl("../node_modules/@rive-app/canvas/rive.wasm");
+    wasmReady = true;
   }
-  canvas.hidden = true;
-  stage.classList.remove("riv");
+  try {
+    await window.rive.RuntimeLoader.awaitInstance();
+    return true;
+  } catch (err) {
+    console.error("rive wasm failed", err);
+    return false;
+  }
 }
 
 function bindInputs(inputs) {
@@ -78,103 +59,112 @@ function bindInputs(inputs) {
 function driveRiv(nextLook) {
   if (nextLook) look = nextLook;
   if (!player) return;
-  const plan = planRiv(rivMeta, state, look, rivState);
-  rivState = state;
+  const prev = rivState;
+  const plan = planRiv(rivMeta, state, look, prev);
+  const moodChanged = state !== prev;
   const sm = rivMeta.stateMachines[0] || "";
   const byName = bindInputs(sm && player.stateMachineInputs ? player.stateMachineInputs(sm) : []);
-  for (const set of plan.sets.concat(plan.look)) {
+  // ponytail: re-firing SM booleans every pointermove restarts the timeline (= "pular")
+  if (moodChanged) {
+    for (const set of plan.sets) {
+      if (byName[set.name]) byName[set.name].value = set.value;
+    }
+    for (const name of plan.fires) {
+      if (byName[name] && byName[name].fire) byName[name].fire();
+    }
+    if (plan.play && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      player.stop();
+      player.play(plan.play);
+    }
+    rivState = state;
+  }
+  for (const set of plan.look) {
     if (byName[set.name]) byName[set.name].value = set.value;
   }
-  for (const name of plan.fires) {
-    if (byName[name] && byName[name].fire) byName[name].fire();
-  }
-  if (plan.play && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    player.stop();
-    player.play(plan.play);
-  }
-  const vmi = player.viewModelInstance;
-  if (!vmi) return;
-  const num = vmi.number("state") || vmi.number("mood") || vmi.number("pet") || vmi.number("status");
-  if (num) num.value = STATE_NUM[state] || 0;
-  const en = vmi.enum && (vmi.enum("state") || vmi.enum("mood"));
-  if (en) en.value = state;
-  const str = vmi.string && (vmi.string("state") || vmi.string("mood"));
-  if (str) str.value = state;
-  for (const name of STATES) {
-    const flag = vmi.boolean && vmi.boolean(name);
-    if (flag) flag.value = name === state;
-  }
-  const lookX = vmi.number("lookX") || vmi.number("lookx");
-  const lookY = vmi.number("lookY") || vmi.number("looky");
-  if (lookX) lookX.value = look.x;
-  if (lookY) lookY.value = look.y;
 }
 
-function startRive(buffer) {
+function startRive(src) {
   const Rive = window.rive && window.rive.Rive;
-  if (!Rive) return showSvg();
-  showSvg();
+  if (!Rive || !src) return;
+  if (player) {
+    try {
+      player.cleanup();
+    } catch {
+      /* already gone */
+    }
+    player = null;
+  }
   canvas.hidden = false;
   stage.classList.add("riv");
   const quiet = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let loaded = false;
+  const fail = (err, tag) => {
+    if (loaded) return;
+    loaded = true;
+    console.error(tag, err);
+  };
+  const timer = setTimeout(() => fail(new Error("timeout"), "rive load timeout"), 15000);
   try {
     player = new Rive({
-    buffer,
-    canvas,
-    autoplay: false,
-    autoBind: true,
-    onLoad() {
-      player.resizeDrawingSurfaceToCanvas();
-      rivMeta = {
-        inputs: [],
-        animations: player.animationNames || [],
-        stateMachines: player.stateMachineNames || [],
-      };
-      const sm = rivMeta.stateMachines[0];
-      if (sm) {
-        if (!quiet) player.play(sm);
+      src,
+      canvas,
+      stateMachine: "Pet",
+      autoplay: !quiet,
+      autoBind: false,
+      onLoad() {
+        loaded = true;
+        clearTimeout(timer);
+        player.resizeDrawingSurfaceToCanvas();
+        rivMeta = {
+          inputs: [],
+          animations: player.animationNames || [],
+          stateMachines: player.stateMachineNames || [],
+        };
+        const sm = rivMeta.stateMachines[0] || "Pet";
         rivMeta.inputs = (player.stateMachineInputs(sm) || []).map((input) => ({
           name: input.name,
           type: input.type,
         }));
-      }
-      rivState = "";
-      stage.className = state + " riv";
-      driveRiv();
-      if (quiet) player.pause();
-    },
-    onLoadError() {
-      showSvg();
-    },
+        rivState = "";
+        applyStage();
+        driveRiv();
+        if (quiet) player.pause();
+      },
+      onLoadError(err) {
+        clearTimeout(timer);
+        fail(err, "rive load failed");
+      },
     });
-  } catch {
-    showSvg();
+  } catch (err) {
+    clearTimeout(timer);
+    fail(err, "rive init failed");
   }
 }
 
-async function bootMascot(payload) {
-  const data = payload === undefined ? await window.wisp.loadMascot() : payload;
-  if (!data || !data.riv) return showSvg();
-  if (!window.rive) return showSvg();
-  if (!wasmReady && data.wasm) {
-    window.rive.RuntimeLoader.setWasmBinary(toAB(data.wasm));
-    wasmReady = true;
-  }
-  startRive(toAB(data.riv));
+async function bootMascot() {
+  const data = await window.wisp.loadMascot();
+  if (!data || !data.src) return;
+  if (!(await ensureRiveRuntime())) return;
+  startRive(data.src);
 }
 
 function paint() {
-  const show = !compact && (runActive || (unread && (state === "notify" || state === "error")));
+  const show = !compact && (runActive || (unread && state === "alert"));
   bubble.hidden = !show;
   if (show) {
-    if (live) line.textContent = snippet(live, !runActive);
-    else if (tool) line.textContent = "⚙ " + tool;
-    else line.textContent = "trabalhando…";
+    const copy = bubbleCopy({ live, tool, runActive });
+    eyebrow.textContent = copy.eyebrow;
+    line.textContent = copy.line;
+    line.hidden = !copy.line;
+    bubble.classList.toggle("working", copy.kind === "working");
+    bubble.classList.toggle("tool", copy.kind === "tool");
+    bubble.classList.toggle("live", copy.kind === "live");
+    bubble.classList.toggle("done", copy.kind === "done");
+    bubble.classList.toggle("compact", !copy.line);
   }
-  if (show !== lastBubble) {
-    lastBubble = show;
-    window.wisp.petLayout({ bubble: show });
-  }
+  if (show === lastBubble) return;
+  lastBubble = show;
+  window.wisp.petLayout({ bubble: show });
 }
 
 function ackSeen() {
@@ -182,18 +172,29 @@ function ackSeen() {
   if (!runActive) {
     live = "";
     tool = "";
-    if (state === "notify" || state === "error") setState("idle");
+    if (state === "alert") setState("idle");
     else paint();
     return;
   }
   paint();
 }
 
+function setFace(payload) {
+  const side = payload && payload.side;
+  const flip = side === "right";
+  const bubbleRight = !!payload && !!payload.bubble && flip;
+  if (flip === flipped && bubbleRight === stage.classList.contains("bubble-right")) return;
+  flipped = flip;
+  stage.classList.toggle("flip", flip);
+  stage.classList.toggle("bubble-right", bubbleRight);
+}
+
 window.wisp.onPetState(setState);
+window.wisp.onPetPreview(setState);
+window.wisp.onPetFace(setFace);
 window.wisp.onCompact((open) => {
   compact = !!open;
   if (compact) ackSeen();
-  if (!runActive && (state === "idle" || state === "listening" || state === "sleepy")) setState(restState());
   else paint();
 });
 
@@ -240,13 +241,12 @@ window.wisp.onChat((event) => {
   }
 });
 
-window.wisp.onMascot(bootMascot);
-window.wisp.getConfig().then(() => {
+window.wisp.onMascot(() => bootMascot());
+window.wisp.getConfig().then(async () => {
+  await bootMascot();
   setState("idle");
-  bootMascot();
 });
 
-const sheet = document.querySelector(".sheet");
 let ignoreMouse = true;
 
 function setIgnore(next) {
@@ -258,7 +258,7 @@ function setIgnore(next) {
 function petHit(el) {
   if (!el) return false;
   if (el.id === "canvas" || el.id === "bubble") return true;
-  if (el.classList && (el.classList.contains("sheet") || el.classList.contains("hit"))) return true;
+  if (el.classList && el.classList.contains("hit")) return true;
   return typeof el.closest === "function" && !!(el.closest("#bubble") || el.closest("#canvas"));
 }
 
@@ -271,6 +271,18 @@ function beginDrag(event) {
   setIgnore(false);
 }
 
+let pending = { x: 0, y: 0 };
+let moveRaf = 0;
+
+function flushMove() {
+  moveRaf = 0;
+  if (!pending.x && !pending.y) return;
+  const dx = pending.x;
+  const dy = pending.y;
+  pending = { x: 0, y: 0 };
+  window.wisp.petPointer({ type: "move", dx, dy });
+}
+
 window.addEventListener("pointermove", (event) => {
   const el = document.elementFromPoint(event.clientX, event.clientY);
   setIgnore(!(dragging || petHit(el)));
@@ -279,29 +291,41 @@ window.addEventListener("pointermove", (event) => {
   const cy = rect.top + rect.height * 0.38;
   const dx = Math.max(-1, Math.min(1, (event.clientX - cx) / 40));
   const dy = Math.max(-1, Math.min(1, (event.clientY - cy) / 40));
-  for (const pupil of pupils) {
-    pupil.style.transform = `translate(${dx * 2.4}px, ${dy * 2.4}px)`;
-  }
-  if (state === "sleepy") setState("idle");
-  if (player) driveRiv({ x: dx, y: dy });
+  if (player) driveRiv({ x: flipped ? -dx : dx, y: dy });
   if (!dragging) return;
   const moveX = Math.round(event.screenX - last.x);
   const moveY = Math.round(event.screenY - last.y);
-  if (Math.abs(moveX) + Math.abs(moveY) > 4) moved = true;
+  if (Math.abs(moveX) + Math.abs(moveY) > 3) moved = true;
   last = { x: event.screenX, y: event.screenY };
-  if (moved) window.wisp.petPointer({ type: "move", dx: moveX, dy: moveY });
+  if (!moved) return;
+  pending.x += moveX;
+  pending.y += moveY;
+  if (!moveRaf) moveRaf = requestAnimationFrame(flushMove);
 });
 
-window.addEventListener("pointerup", () => {
+function endDrag(click) {
   if (!dragging) return;
   dragging = false;
-  if (!moved) window.wisp.petPointer({ type: "click" });
-});
+  if (moveRaf) {
+    cancelAnimationFrame(moveRaf);
+    moveRaf = 0;
+  }
+  if (moved) {
+    flushMove();
+    window.wisp.petPointer({ type: "drop" });
+  } else if (click) {
+    window.wisp.petPointer({ type: "click" });
+  } else {
+    pending = { x: 0, y: 0 };
+  }
+}
+
+window.addEventListener("pointerup", () => endDrag(true));
+window.addEventListener("pointercancel", () => endDrag(false));
 
 document.addEventListener("pointerleave", () => {
   if (!dragging) setIgnore(true);
 });
 
-sheet.addEventListener("pointerdown", beginDrag);
 canvas.addEventListener("pointerdown", beginDrag);
 bubble.addEventListener("pointerdown", beginDrag);

@@ -1,0 +1,841 @@
+{
+ "artboard": {
+  "name": "Ikari",
+  "width": 248,
+  "height": 296
+ },
+ "groups": [
+  {
+   "id": "rig",
+   "x": 124,
+   "y": 148
+  },
+  {
+   "id": "poses",
+   "x": 0,
+   "y": 0,
+   "parent": "rig",
+   "solo": true
+  }
+ ],
+ "shapes": [
+  {
+   "id": "__background",
+   "type": "rect",
+   "x": 124,
+   "y": 148,
+   "z": 99979,
+   "width": 248,
+   "height": 296,
+   "fill": {
+    "color": "#00000000"
+   }
+  }
+ ],
+ "animations": [
+  {
+   "name": "idle",
+   "fps": 60,
+   "duration": 210,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "poses",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "20"
+      },
+      {
+       "frame": 100,
+       "ref": "8",
+       "easing": "hold"
+      },
+      {
+       "frame": 108,
+       "ref": "20",
+       "easing": "hold"
+      },
+      {
+       "frame": 170,
+       "ref": "7",
+       "easing": "hold"
+      },
+      {
+       "frame": 178,
+       "ref": "20",
+       "easing": "hold"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "y",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 148
+      },
+      {
+       "frame": 105,
+       "value": 144.39999389648438,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 210,
+       "value": 148,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "rotation",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": -0.6750000081114157
+      },
+      {
+       "frame": 63,
+       "value": 0.6750000081114157,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 158,
+       "value": -0.4500000231945614,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 210,
+       "value": -0.6750000081114157,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "scaleY",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 1
+      },
+      {
+       "frame": 147,
+       "value": 1.0053999423980713,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 210,
+       "value": 1,
+       "easing": "ease-in-out"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "thinking",
+   "fps": 60,
+   "duration": 308,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "poses",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "14"
+      },
+      {
+       "frame": 28,
+       "ref": "13",
+       "easing": "hold"
+      },
+      {
+       "frame": 50,
+       "ref": "12",
+       "easing": "hold"
+      },
+      {
+       "frame": 82,
+       "ref": "11",
+       "easing": "hold"
+      },
+      {
+       "frame": 106,
+       "ref": "10",
+       "easing": "hold"
+      },
+      {
+       "frame": 142,
+       "ref": "9",
+       "easing": "hold"
+      },
+      {
+       "frame": 170,
+       "ref": "12",
+       "easing": "hold"
+      },
+      {
+       "frame": 190,
+       "ref": "11",
+       "easing": "hold"
+      },
+      {
+       "frame": 214,
+       "ref": "10",
+       "easing": "hold"
+      },
+      {
+       "frame": 244,
+       "ref": "13",
+       "easing": "hold"
+      },
+      {
+       "frame": 262,
+       "ref": "9",
+       "easing": "hold"
+      },
+      {
+       "frame": 288,
+       "ref": "14",
+       "easing": "hold"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "y",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 148
+      },
+      {
+       "frame": 154,
+       "value": 145.60000610351562,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 308,
+       "value": 148,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "rotation",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": -0.4500000231945614
+      },
+      {
+       "frame": 92,
+       "value": 0.4500000231945614,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 231,
+       "value": -0.29999999767609,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 308,
+       "value": -0.4500000231945614,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "scaleY",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 1
+      },
+      {
+       "frame": 216,
+       "value": 1.003600001335144,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 308,
+       "value": 1,
+       "easing": "ease-in-out"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "talking",
+   "fps": 60,
+   "duration": 190,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "poses",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "20"
+      },
+      {
+       "frame": 14,
+       "ref": "19",
+       "easing": "hold"
+      },
+      {
+       "frame": 26,
+       "ref": "18",
+       "easing": "hold"
+      },
+      {
+       "frame": 40,
+       "ref": "17",
+       "easing": "hold"
+      },
+      {
+       "frame": 52,
+       "ref": "16",
+       "easing": "hold"
+      },
+      {
+       "frame": 62,
+       "ref": "15",
+       "easing": "hold"
+      },
+      {
+       "frame": 76,
+       "ref": "20",
+       "easing": "hold"
+      },
+      {
+       "frame": 86,
+       "ref": "8",
+       "easing": "hold"
+      },
+      {
+       "frame": 94,
+       "ref": "18",
+       "easing": "hold"
+      },
+      {
+       "frame": 106,
+       "ref": "7",
+       "easing": "hold"
+      },
+      {
+       "frame": 114,
+       "ref": "17",
+       "easing": "hold"
+      },
+      {
+       "frame": 126,
+       "ref": "6",
+       "easing": "hold"
+      },
+      {
+       "frame": 134,
+       "ref": "16",
+       "easing": "hold"
+      },
+      {
+       "frame": 144,
+       "ref": "5",
+       "easing": "hold"
+      },
+      {
+       "frame": 152,
+       "ref": "15",
+       "easing": "hold"
+      },
+      {
+       "frame": 164,
+       "ref": "4",
+       "easing": "hold"
+      },
+      {
+       "frame": 172,
+       "ref": "19",
+       "easing": "hold"
+      },
+      {
+       "frame": 182,
+       "ref": "3",
+       "easing": "hold"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "y",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 148
+      },
+      {
+       "frame": 95,
+       "value": 145.1999969482422,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 190,
+       "value": 148,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "rotation",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": -0.5249999825929442
+      },
+      {
+       "frame": 57,
+       "value": 0.5249999825929442,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 143,
+       "value": -0.3499999972887716,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 190,
+       "value": -0.5249999825929442,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "scaleY",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 1
+      },
+      {
+       "frame": 133,
+       "value": 1.0041999816894531,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 190,
+       "value": 1,
+       "easing": "ease-in-out"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "reading",
+   "fps": 60,
+   "duration": 166,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "poses",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "12"
+      },
+      {
+       "frame": 30,
+       "ref": "11",
+       "easing": "hold"
+      },
+      {
+       "frame": 54,
+       "ref": "10",
+       "easing": "hold"
+      },
+      {
+       "frame": 90,
+       "ref": "13",
+       "easing": "hold"
+      },
+      {
+       "frame": 112,
+       "ref": "14",
+       "easing": "hold"
+      },
+      {
+       "frame": 138,
+       "ref": "11",
+       "easing": "hold"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "notify",
+   "fps": 60,
+   "duration": 90,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "poses",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "20"
+      },
+      {
+       "frame": 18,
+       "ref": "4",
+       "easing": "hold"
+      },
+      {
+       "frame": 48,
+       "ref": "20",
+       "easing": "hold"
+      },
+      {
+       "frame": 70,
+       "ref": "3",
+       "easing": "hold"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "scaleX",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 1
+      },
+      {
+       "frame": 4,
+       "value": 0.8799999952316284,
+       "easing": "ease-in"
+      },
+      {
+       "frame": 13,
+       "value": 1.1260000467300415,
+       "easing": "elastic-out"
+      },
+      {
+       "frame": 28,
+       "value": 1,
+       "easing": "smooth"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "scaleY",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 1
+      },
+      {
+       "frame": 4,
+       "value": 1.100000023841858,
+       "easing": "ease-in"
+      },
+      {
+       "frame": 13,
+       "value": 1.1260000467300415,
+       "easing": "elastic-out"
+      },
+      {
+       "frame": 28,
+       "value": 1,
+       "easing": "smooth"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "rotation",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 0
+      },
+      {
+       "frame": 16,
+       "value": 4.199999860743554,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 20,
+       "value": -2.520000001823497,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 25,
+       "value": 1.2600000009117485,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 28,
+       "value": 0,
+       "easing": "ease-out"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "error",
+   "fps": 60,
+   "duration": 150,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "poses",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "10"
+      },
+      {
+       "frame": 40,
+       "ref": "9",
+       "easing": "hold"
+      },
+      {
+       "frame": 70,
+       "ref": "10",
+       "easing": "hold"
+      },
+      {
+       "frame": 110,
+       "ref": "11",
+       "easing": "hold"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "x",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 124
+      },
+      {
+       "frame": 5,
+       "value": 130.3000030517578,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 11,
+       "value": 118.95999908447266,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 16,
+       "value": 127.46499633789062,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 22,
+       "value": 121.79499816894531,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 27,
+       "value": 125.13400268554688,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 36,
+       "value": 124,
+       "easing": "ease-out"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "listening",
+   "fps": 60,
+   "duration": 180,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "poses",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "20"
+      },
+      {
+       "frame": 90,
+       "ref": "18",
+       "easing": "hold"
+      },
+      {
+       "frame": 140,
+       "ref": "8",
+       "easing": "hold"
+      },
+      {
+       "frame": 148,
+       "ref": "20",
+       "easing": "hold"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "y",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 148
+      },
+      {
+       "frame": 90,
+       "value": 144.8000030517578,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 180,
+       "value": 148,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "rotation",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": -0.59999999535218
+      },
+      {
+       "frame": 54,
+       "value": 0.59999999535218,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 135,
+       "value": -0.3999999969014533,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 180,
+       "value": -0.59999999535218,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "scaleY",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 1
+      },
+      {
+       "frame": 126,
+       "value": 1.0047999620437622,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 180,
+       "value": 1,
+       "easing": "ease-in-out"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "sleepy",
+   "fps": 60,
+   "duration": 240,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "poses",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "9"
+      },
+      {
+       "frame": 80,
+       "ref": "10",
+       "easing": "hold"
+      },
+      {
+       "frame": 160,
+       "ref": "9",
+       "easing": "hold"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "scaleY",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 1
+      },
+      {
+       "frame": 120,
+       "value": 1.0069999694824219,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 240,
+       "value": 1,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "scaleX",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 1
+      },
+      {
+       "frame": 120,
+       "value": 0.9972000122070312,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 240,
+       "value": 1,
+       "easing": "ease-in-out"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

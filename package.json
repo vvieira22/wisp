@@ -3,14 +3,81 @@
   "version": "0.1.0",
   "private": true,
   "description": "Desktop ghost that talks to a local Cursor agent.",
+  "author": "vvieira22",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vvieira22/wisp.git"
+  },
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
-    "check": "node src/lib/pet-state.check.js"
+    "check": "node src/lib/usage.check.js && node src/lib/pet-state.check.js && node src/lib/markdown.check.js && node src/lib/opencode-providers.check.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux"
   },
   "dependencies": {
     "@cursor/sdk": "^1.0.31",
-    "@rive-app/canvas": "^2.42.1",
-    "electron": "^44.3.0"
+    "@rive-app/canvas": "^2.42.1"
+  },
+  "devDependencies": {
+    "electron": "^44.3.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "wisp.ghost",
+    "productName": "Wisp",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!src/mascot/**",
+      "!**/__pycache__/**",
+      "!**/*.pyc",
+      "!src/mascot.preview.gif",
+      "!src/mascot.gif"
+    ],
+    "asarUnpack": [
+      "node_modules/@cursor/sdk-*/**"
+    ],
+    "win": {
+      "icon": "src/icon.png",
+      "target": ["nsis", "portable"],
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Wisp"
+    },
+    "mac": {
+      "icon": "src/icon.png",
+      "target": ["dmg"],
+      "category": "public.app-category.developer-tools",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "linux": {
+      "icon": "src/icon.png",
+      "target": ["AppImage"],
+      "category": "Development",
+      "artifactName": "${productName}-${version}.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "vvieira22",
+        "repo": "wisp",
+        "releaseType": "release"
+      }
+    ]
   }
 }
