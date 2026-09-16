@@ -3,6 +3,47 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
+// ponytail: Electron can run execFile from inside app.asar (it extracts to temp),
+// but spawn cannot. Point the SDK at the real unpacked files instead.
+function unpacked(file) {
+  const marker = `${path.sep}app.asar${path.sep}`;
+  if (!file.includes(marker)) return file;
+  const alt = file.replace(marker, `${path.sep}app.asar.unpacked${path.sep}`);
+  return fs.existsSync(alt) ? alt : file;
+}
+
+function ensureRipgrep() {
+  const bin = process.platform === "win32" ? "rg.exe" : "rg";
+  const arch = process.arch === "arm64" ? "arm64" : "x64";
+  const candidates = [
+    path.join(__dirname, `../node_modules/@cursor/sdk-${process.platform}-${arch}/bin/${bin}`),
+    path.join(__dirname, `node_modules/@cursor/sdk-${process.platform}-${arch}/bin/${bin}`),
+    path.join(process.cwd(), `node_modules/@cursor/sdk-${process.platform}-${arch}/bin/${bin}`),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) {
+      const resolvedBin = unpacked(path.resolve(c));
+      const binDir = path.dirname(resolvedBin);
+      process.env.CURSOR_RIPGREP_PATH = resolvedBin;
+      const vendorDir = unpacked(path.join(binDir, "..", "vendor"));
+      if (fs.existsSync(vendorDir)) process.env.CURSOR_TREE_SITTER_VENDOR_DIR = vendorDir;
+      const delimiter = path.delimiter;
+      const currPath = process.env.PATH || "";
+      if (!currPath.split(delimiter).includes(binDir)) {
+        process.env.PATH = `${binDir}${delimiter}${currPath}`;
+      }
+      if (process.platform === "win32") {
+        const currWinPath = process.env.Path || "";
+        if (!currWinPath.split(delimiter).includes(binDir)) {
+          process.env.Path = `${binDir}${delimiter}${currWinPath}`;
+        }
+      }
+      break;
+    }
+  }
+}
+ensureRipgrep();
+
 function loadConfig(file) {
   try {
     return JSON.parse(fs.readFileSync(file, "utf8"));
@@ -25,21 +66,40 @@ function contentText(node) {
     .join("");
 }
 
+function toolLabel(event) {
+  const name = String(event.name || "tool");
+  const args = event.args && typeof event.args === "object" ? event.args : {};
+  const file = args.path || args.filePath || args.targetFile || args.file || "";
+  const base = String(file).replace(/\\/g, "/").split("/").pop();
+  if (base) return `${name} ${base}`;
+  if (args.command) {
+    const cmd = String(args.command).trim();
+    return cmd ? `${name}: ${cmd.slice(0, 30)}` : name;
+  }
+  if (args.pattern || args.query) {
+    const q = String(args.pattern || args.query).trim();
+    return q ? `${name} "${q.slice(0, 24)}"` : name;
+  }
+  return name;
+}
+
 function simplifyEvent(event) {
   if (!event || typeof event !== "object") return { kind: "unknown", text: "" };
   const type = String(event.type || "");
   if (type === "assistant") return { kind: "assistant", text: contentText(event) };
-  if (type === "usage") return { kind: "usage", usage: slimUsage(event.usage || event) };
+  if (type === "usage") return { kind: "usage", usage: slimUsage(event) };
+  if (type === "thinking") return { kind: "thinking", text: String(event.text || "") };
   if (type === "tool_call") {
     if (event.status && event.status !== "running") return { kind: "skip", text: "" };
-    return { kind: "tool", text: String(event.name || "tool") };
+    return { kind: "tool", text: toolLabel(event) };
   }
   return { kind: "skip", text: "" };
 }
 
-const { slimModel, collapseModels, pickDefault, effortChoices } = require("../src/lib/models");
+const { slimModel, collapseModels, pickDefault, resolveModel, effortChoices } = require("../src/lib/models");
 const { mergeStream } = require("../src/lib/text");
 const { normalizeMode, sdkMode, agentOpts } = require("../src/lib/mode");
+const { slimUsage, mergeUsage, formatUsage, contextLimit, formatTokens, formatCents, formatElapsed, formatMeter, formatTurn, meterTitle, spendFrom } = require("../src/lib/usage");
 
 function paramsEqual(a, b) {
   return JSON.stringify(a || []) === JSON.stringify(b || []);
@@ -77,39 +137,87 @@ function resolveCwd(cwd) {
   return resolved;
 }
 
-function workspacePrompt(cwd, text) {
-  return `Pasta de trabalho (única): ${cwd}\nFica dentro desta pasta. Não listes, não leias e não procures ficheiros fora dela.\n\n${text}`;
+function workspacePrompt(_cwd, text) {
+  return String(text || "");
 }
 
-function slimUsage(raw) {
-  if (!raw) return null;
-  const u = raw.usage && (typeof raw.usage.inputTokens === "number" || typeof raw.usage.totalTokens === "number") ? raw.usage : raw;
-  if (typeof u.inputTokens !== "number" && typeof u.totalTokens !== "number") return null;
+function isAgentBusy(err) {
+  if (!err) return false;
+  if (err.name === "AgentBusyError" || err.errorName === "AgentBusyError") return true;
+  const msg = err.message ? String(err.message) : String(err);
+  return /already has (an )?active run/i.test(msg);
+}
+
+function sendOpts(mode, force, extra) {
+  const opts = Object.assign({ mode: sdkMode(mode) }, extra || {});
+  if (force) opts.local = Object.assign({}, opts.local, { force: true });
+  return opts;
+}
+
+async function startRun(agent, prompt, mode, extra) {
+  try {
+    return await agent.send(prompt, sendOpts(mode, false, extra));
+  } catch (err) {
+    if (!isAgentBusy(err)) throw err;
+    return await agent.send(prompt, sendOpts(mode, true, extra));
+  }
+}
+
+function withTimeout(promise, ms, message) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([Promise.resolve(promise), timeout]).finally(() => clearTimeout(timer));
+}
+
+function localOpts(cwd) {
   return {
-    inputTokens: u.inputTokens || 0,
-    outputTokens: u.outputTokens || 0,
-    totalTokens: u.totalTokens || (u.inputTokens || 0) + (u.outputTokens || 0),
-    chargedCents: (raw.cost && Number(raw.cost.chargedCents)) || 0,
+    cwd,
+    settingSources: ["project"],
+    workspaceScanCacheTtlMs: 600000,
   };
 }
 
-function contextLimit(modelId) {
-  const id = String(modelId || "").toLowerCase();
-  if (id.includes("gpt-5")) return 272000;
-  if (id.includes("gemini")) return 1048576;
-  return 200000;
+let prewarmRelease = null;
+let prewarmKey = "";
+
+async function dropPrewarm() {
+  const rel = prewarmRelease;
+  prewarmRelease = null;
+  prewarmKey = "";
+  if (typeof rel !== "function") return;
+  try {
+    await rel();
+  } catch {
+    /* already gone */
+  }
 }
 
-function formatTokens(n) {
-  const x = Number(n) || 0;
-  if (x >= 1000000) return `${(x / 1000000).toFixed(1).replace(/\.0$/, "")}M`;
-  if (x >= 1000) return `${(x / 1000).toFixed(x >= 10000 ? 0 : 1).replace(/\.0$/, "")}k`;
-  return String(Math.round(x));
-}
-
-function formatUsage(usage, modelId) {
-  const used = usage && typeof usage.inputTokens === "number" ? usage.inputTokens : 0;
-  return `${formatTokens(used)} / ${formatTokens(contextLimit(modelId))}`;
+async function prewarmWorkspace(cfg) {
+  const key = ((cfg && cfg.apiKey) || "").trim();
+  let cwd = "";
+  try {
+    cwd = resolveCwd(cfg && cfg.cwd);
+  } catch {
+    return;
+  }
+  if (!key || !cwd) return;
+  const stamp = key + "\0" + cwd;
+  if (stamp === prewarmKey && prewarmRelease) return;
+  await dropPrewarm();
+  try {
+    const { createAgentPlatform } = require("@cursor/sdk");
+    const platform = await createAgentPlatform();
+    prewarmRelease = await platform.prewarmLocalWorkspace({
+      apiKey: key,
+      model: { id: resolveModel(cfg.model) },
+      local: localOpts(cwd),
+    });
+    prewarmKey = stamp;
+  } catch (err) {
+    console.error("[wisp prewarm]", err && err.message ? err.message : err);
+  }
 }
 
 class WispAgent {
@@ -136,7 +244,10 @@ class WispAgent {
   }
 
   bind(agentId, messages) {
-    this.resumeId = agentId || "";
+    const hasAssistant = (messages || []).some((m) => m.role === "assistant" && m.text);
+    // ponytail: agentId leftover from a hung first turn has no transcript. Resume
+    // of that run stalls forever. Fresh create until a real reply exists.
+    this.resumeId = hasAssistant ? agentId || "" : "";
     this.remember(messages);
   }
 
@@ -169,7 +280,7 @@ class WispAgent {
   async ensure(cfg) {
     const key = (cfg.apiKey || process.env.CURSOR_API_KEY || "").trim();
     const cwd = resolveCwd(cfg.cwd);
-    const model = (cfg.model || "composer-2.5").trim();
+    const model = resolveModel(cfg.model);
     const params = Array.isArray(cfg.params) ? cfg.params : [];
     const mode = normalizeMode(cfg.mode);
     if (!key) throw new Error("Falta a chave da API do Cursor.");
@@ -192,23 +303,23 @@ class WispAgent {
         apiKey: key,
         model: params.length ? { id: model, params } : { id: model },
         name: path.basename(cwd) || "wisp",
-        local: { cwd, settingSources: ["project", "user"] },
+        local: localOpts(cwd),
       },
       agentOpts(mode),
     );
     if (wantId) {
       try {
-        this.agent = await Agent.resume(wantId, opts);
+        this.agent = await withTimeout(Agent.resume(wantId, opts), 12000, "O resume do agente travou.");
         if (!(await this.workspaceOk(cwd))) {
           await this.dropAgent();
-          this.agent = await Agent.create(opts);
+          this.agent = await withTimeout(Agent.create(opts), 40000, "O agente não arrancou.");
         }
       } catch {
         await this.dropAgent();
-        this.agent = await Agent.create(opts);
+        this.agent = await withTimeout(Agent.create(opts), 40000, "O agente não arrancou.");
       }
     } else {
-      this.agent = await Agent.create(opts);
+      this.agent = await withTimeout(Agent.create(opts), 40000, "O agente não arrancou.");
     }
     this.agentId = this.agent.agentId || "";
     this.resumeId = this.agentId;
@@ -226,44 +337,45 @@ class WispAgent {
     if (!prompt) return;
     this.busy = true;
     this.cancelling = false;
+    const started = Date.now();
+    const msOf = () => Date.now() - started;
     try {
+      onEvent({ type: "run-start", at: started });
       const agent = await this.ensure(cfg);
       if (this.cancelling) {
-        onEvent({ type: "run-cancel" });
+        onEvent({ type: "run-cancel", ms: msOf() });
         return;
       }
-      onEvent({ type: "run-start" });
-      const run = await agent.send(workspacePrompt(this.cwd, prompt), { mode: sdkMode(cfg.mode) });
-      this.run = run;
-      if (this.cancelling) await this.stopRun(run);
       let sawText = false;
       let turnUsage = null;
       let turnText = "";
+      let thinkingText = "";
+      const run = await withTimeout(
+        startRun(agent, prompt, cfg.mode),
+        45000,
+        "O agente não arrancou.",
+      );
+      this.run = run;
+      if (this.cancelling) await this.stopRun(run);
       if (!this.cancelling && typeof run.stream === "function") {
         for await (const event of run.stream()) {
           if (this.cancelling) break;
           const simple = simplifyEvent(event);
           if (simple.kind === "assistant" && simple.text) {
-            let chunk = simple.text;
-            if (this.seen.has(chunk)) continue;
-            for (const old of [...this.seen].sort((a, b) => b.length - a.length)) {
-              if (old.length > 12 && chunk.startsWith(old)) {
-                chunk = chunk.slice(old.length).replace(/^\s+/, "");
-                break;
-              }
-            }
-            if (!chunk) continue;
-            const merged = mergeStream(turnText, chunk);
-            if (merged === turnText) continue;
-            turnText = merged;
+            turnText += simple.text;
             sawText = true;
             onEvent({ type: "assistant-text", text: turnText });
           } else if (simple.kind === "tool") {
-            if (turnText) this.seen.add(turnText);
             turnText = "";
+            thinkingText = "";
             onEvent({ type: "tool", text: simple.text });
+          } else if (simple.kind === "thinking") {
+            if (simple.text) {
+              thinkingText += simple.text;
+              onEvent({ type: "thinking", text: thinkingText });
+            }
           } else if (simple.kind === "usage" && simple.usage) {
-            turnUsage = simple.usage;
+            turnUsage = turnUsage ? mergeUsage(turnUsage, simple.usage) : simple.usage;
             onEvent({ type: "usage", usage: turnUsage });
           }
         }
@@ -272,30 +384,41 @@ class WispAgent {
       const result = await run.wait();
       if (this.cancelling || (result && result.status === "cancelled")) {
         if (turnText) this.seen.add(turnText);
-        onEvent({ type: "run-cancel" });
+        onEvent({ type: "run-cancel", ms: msOf() });
         return;
       }
       if (result && result.status === "error") {
-        onEvent({ type: "run-error", text: result.result || (result.error && result.error.message) || "O run falhou." });
+        onEvent({ type: "run-error", text: result.result || (result.error && result.error.message) || "O run falhou.", ms: msOf() });
         return;
       }
       if (!sawText && result && typeof result.result === "string" && result.result) {
-        if (!this.seen.has(result.result)) {
-          turnText = result.result;
-          onEvent({ type: "assistant-text", text: result.result });
-        }
+        turnText = result.result;
+        onEvent({ type: "assistant-text", text: turnText });
       }
       if (turnText) this.seen.add(turnText);
       const usage = turnUsage || slimUsage(result && result.usage) || slimUsage(run.usage);
       this.lastUsage = usage;
-      onEvent({ type: "run-end", status: result && result.status, usage });
+      onEvent({ type: "run-end", status: result && result.status, usage, ms: msOf() });
     } catch (err) {
+      const run = this.run;
+      if (run) {
+        await this.stopRun(run);
+        try {
+          await withTimeout(run.wait(), 4000, "wait");
+        } catch {
+          /* leftover run must not block the next send */
+        }
+      }
+      this.resumeId = "";
+      this.agentId = "";
+      await this.dropAgent();
       if (this.cancelling) {
-        onEvent({ type: "run-cancel" });
+        onEvent({ type: "run-cancel", ms: msOf() });
         return;
       }
       const message = err && err.message ? err.message : String(err);
-      onEvent({ type: "run-error", text: message });
+      console.error("[wisp send]", message);
+      onEvent({ type: "run-error", text: message, ms: msOf() });
     } finally {
       this.run = null;
       this.cancelling = false;
@@ -374,14 +497,27 @@ module.exports = {
   simplifyEvent,
   slimModel,
   pickDefault,
+  resolveModel,
   slimUsage,
   formatUsage,
   contextLimit,
+  formatTokens,
+  formatCents,
+  formatElapsed,
+  formatMeter,
+  formatTurn,
+  meterTitle,
+  spendFrom,
   effortChoices,
   paramsEqual,
   sameCwd,
   resolveCwd,
   workspacePrompt,
+  isAgentBusy,
+  sendOpts,
+  startRun,
+  prewarmWorkspace,
+  dropPrewarm,
   normalizeMode,
   sdkMode,
   agentOpts,

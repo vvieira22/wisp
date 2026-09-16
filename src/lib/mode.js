@@ -23,6 +23,6 @@ function agentOpts(mode) {
   return opts;
 }
 
-const api = { MODES, ASK_DISALLOWED, normalizeMode, sdkMode, disallowedTools, agentOpts };
-if (typeof module === "object" && module.exports) module.exports = api;
-if (typeof globalThis === "object") Object.assign(globalThis, api);
+const modeApi = { MODES, ASK_DISALLOWED, normalizeMode, sdkMode, disallowedTools, agentOpts };
+if (typeof module === "object" && module.exports) module.exports = modeApi;
+if (typeof document === "object") Object.assign(globalThis, modeApi);
