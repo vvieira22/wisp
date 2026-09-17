@@ -258,7 +258,9 @@ function finishTurn(chat, event) {
 }
 
 function applyRunEvent(store, chatId, event) {
-  const chat = findChat(store, chatId);
+  // ponytail: unknown chatId must not fall back to current() — switching engine
+  // mid-run would otherwise write the old stream into the other engine's chat.
+  const chat = chatId ? store.items.find((item) => item.id === chatId) : current(store);
   if (!chat || !event) return chat;
   const type = event.type;
   if (type === "run-start") {
@@ -271,11 +273,13 @@ function applyRunEvent(store, chatId, event) {
   } else if (type === "tool") {
     sealLive(chat.messages);
     chat.messages.push({ role: "tool", text: "⚙ " + (event.text || "tool") });
+  } else if (type === "thinking") {
+    return chat;
+  } else if (type === "session-gap") {
+    const text = String(event.text || "").trim();
+    if (text) chat.messages.push({ role: "notice", text });
   } else if (type === "usage") {
-    if (event.usage) {
-      chat.usage = clipUsage(event.usage) || chat.usage;
-      stampUsage(chat.messages, event.usage, chat.turnAt ? Date.now() - chat.turnAt : 0);
-    }
+    if (event.usage) chat.usage = clipUsage(event.usage) || chat.usage;
   } else if (type === "run-error") {
     sealLive(chat.messages);
     chat.messages.push({ role: "error", text: event.text || "falhou" });

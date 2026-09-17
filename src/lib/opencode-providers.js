@@ -9,41 +9,11 @@ const THINKING_PARAM = {
   ],
 };
 
-function withThinking(models) {
-  return models.map((m) => Object.assign({}, m, { parameters: [THINKING_PARAM] }));
-}
-
 const OPENCODE_PROVIDERS = [
-  {
-    id: "deepseek",
-    label: "DeepSeek",
-    env: "DEEPSEEK_API_KEY",
-    models: withThinking([
-      { id: "deepseek/deepseek-v4-flash", displayName: "DeepSeek V4 Flash" },
-      { id: "deepseek/deepseek-v4-pro", displayName: "DeepSeek V4 Pro" },
-    ]),
-  },
-  {
-    id: "zai",
-    label: "GLM",
-    env: "ZAI_API_KEY",
-    models: withThinking([
-      { id: "zai/glm-4.7", displayName: "GLM-4.7" },
-      { id: "zai/glm-4.6", displayName: "GLM-4.6" },
-    ]),
-  },
-  {
-    id: "moonshotai",
-    label: "Kimi",
-    env: "MOONSHOT_API_KEY",
-    models: [
-      { id: "moonshotai/kimi-k2", displayName: "Kimi K2" },
-      { id: "moonshotai/kimi-k2-thinking", displayName: "Kimi K2 Thinking" },
-    ],
-  },
+  { id: "deepseek", label: "DeepSeek", env: "DEEPSEEK_API_KEY", thinking: true },
+  { id: "zai", label: "GLM", env: "ZAI_API_KEY", thinking: true },
+  { id: "moonshotai", label: "Kimi", env: "MOONSHOT_API_KEY", thinking: false },
 ];
-
-const DEFAULT_OPENCODE_MODELS = OPENCODE_PROVIDERS.flatMap((p) => p.models);
 
 function providerById(id) {
   return OPENCODE_PROVIDERS.find((p) => p.id === id) || OPENCODE_PROVIDERS[0];
@@ -54,13 +24,30 @@ function normalizeProvider(id) {
   return OPENCODE_PROVIDERS.some((p) => p.id === raw) ? raw : "deepseek";
 }
 
-function modelsForProvider(id) {
-  return providerById(normalizeProvider(id)).models.slice();
+function providerHasThinking(id) {
+  return !!providerById(normalizeProvider(id)).thinking;
 }
 
-function defaultModelForProvider(id) {
-  const models = modelsForProvider(id);
-  return models[0] ? models[0].id : "deepseek/deepseek-v4-flash";
+function prettyModelName(id) {
+  const slug = String(id || "")
+    .split("/")
+    .pop() || String(id || "");
+  return slug.replace(/^deepseek-/i, "").replace(/-/g, " ").replace(/\b[a-z]/g, (c) => c.toUpperCase());
+}
+
+function parseOpenCodeModels(cliText, providerId) {
+  const provider = normalizeProvider(providerId);
+  const thinking = providerHasThinking(provider) ? [THINKING_PARAM] : [];
+  const seen = new Set();
+  const out = [];
+  for (const line of String(cliText || "").split(/\r?\n/)) {
+    const id = line.trim().split(/\s+/)[0] || "";
+    if (!id.startsWith(provider + "/")) continue;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push({ id, displayName: prettyModelName(id), parameters: thinking.slice() });
+  }
+  return out;
 }
 
 function providerFromModel(modelId) {
@@ -73,13 +60,16 @@ function providerFromModel(modelId) {
   return "deepseek";
 }
 
-function resolveOpenCodeModel(modelId, providerId) {
+function resolveOpenCodeModel(modelId, providerId, models) {
   const provider = normalizeProvider(providerId || providerFromModel(modelId));
-  const models = modelsForProvider(provider);
-  const ids = models.map((m) => m.id);
+  const list = Array.isArray(models) ? models : [];
+  const ids = list.map((m) => m && m.id).filter(Boolean);
   const raw = String(modelId || "").trim();
   if (raw && ids.includes(raw)) return raw;
-  return defaultModelForProvider(provider);
+  if (ids.length) return ids[0];
+  // ponytail: no live CLI list yet — keep last provider/id, never invent a slug.
+  if (raw.startsWith(provider + "/")) return raw;
+  return "";
 }
 
 function emptyKeys() {
@@ -235,11 +225,11 @@ function mapOpenCodeJsonl(lines) {
 
 const opencodeApi = {
   OPENCODE_PROVIDERS,
-  DEFAULT_OPENCODE_MODELS,
   providerById,
   normalizeProvider,
-  modelsForProvider,
-  defaultModelForProvider,
+  providerHasThinking,
+  prettyModelName,
+  parseOpenCodeModels,
   providerFromModel,
   resolveOpenCodeModel,
   emptyKeys,

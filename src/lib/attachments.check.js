@@ -1,0 +1,52 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const { parseAttachment, formatAttachmentReference } = require("./attachments");
+
+const winFile = parseAttachment("C:\\Users\\Vitor\\Desktop\\projects\\wisp\\src\\chat.js");
+assert.deepEqual(winFile, {
+  name: "chat.js",
+  path: "C:\\Users\\Vitor\\Desktop\\projects\\wisp\\src\\chat.js",
+  dir: "C:\\Users\\Vitor\\Desktop\\projects\\wisp\\src",
+});
+
+const winDir = parseAttachment("C:\\Users\\Vitor\\Desktop\\projects\\wisp");
+assert.deepEqual(winDir, {
+  name: "wisp",
+  path: "C:\\Users\\Vitor\\Desktop\\projects\\wisp",
+  dir: "C:\\Users\\Vitor\\Desktop\\projects",
+});
+
+const winSlash = parseAttachment("C:\\Users\\Vitor\\Desktop\\projects\\wisp\\");
+assert.deepEqual(winSlash, {
+  name: "wisp",
+  path: "C:\\Users\\Vitor\\Desktop\\projects\\wisp",
+  dir: "C:\\Users\\Vitor\\Desktop\\projects",
+});
+
+const unixFile = parseAttachment("/home/vitor/projects/wisp/src/chat.js");
+assert.deepEqual(unixFile, {
+  name: "chat.js",
+  path: "/home/vitor/projects/wisp/src/chat.js",
+  dir: "/home/vitor/projects/wisp/src",
+});
+
+assert.equal(parseAttachment(""), null);
+assert.equal(parseAttachment(null), null);
+
+const formattedWithText = formatAttachmentReference([winFile], "Explique este arquivo.");
+assert.equal(
+  formattedWithText,
+  `[Arquivos referenciados:\n- chat.js (C:\\Users\\Vitor\\Desktop\\projects\\wisp\\src\\chat.js) [diretório: C:\\Users\\Vitor\\Desktop\\projects\\wisp\\src]\n]\n\nExplique este arquivo.`
+);
+
+const formattedNoText = formatAttachmentReference([winFile]);
+assert.equal(
+  formattedNoText,
+  `[Arquivos referenciados:\n- chat.js (C:\\Users\\Vitor\\Desktop\\projects\\wisp\\src\\chat.js) [diretório: C:\\Users\\Vitor\\Desktop\\projects\\wisp\\src]\n]`
+);
+
+assert.equal(formatAttachmentReference([], "Olá"), "Olá");
+assert.equal(formatAttachmentReference(null, "Olá"), "Olá");
+
+console.log("attachments check ok");

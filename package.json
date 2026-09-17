@@ -11,7 +11,7 @@
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
-    "check": "node src/lib/usage.check.js && node src/lib/pet-state.check.js && node src/lib/markdown.check.js && node src/lib/opencode-providers.check.js",
+    "check": "node src/lib/usage.check.js && node src/lib/pet-state.check.js && node src/lib/markdown.check.js && node src/lib/opencode-providers.check.js && node src/lib/attachments.check.js",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
     "dist:win": "electron-builder --win",

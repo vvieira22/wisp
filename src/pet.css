@@ -1,10 +1,15 @@
 :root {
-  --ink: #1c1810;
+  --night: #16141c;
+  --glass: rgba(22, 20, 28, 0.94);
   --paper: #f3e6c4;
-  --ember: #e8a54b;
-  --sage: #6f9b6f;
+  --ember: #d89a4a;
+  --mist: #b4ab97;
+  --line: rgba(243, 230, 196, 0.14);
+  --sage: #9ec7a0;
+  --ink: #16141c;
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
   --ui: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --mono: "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
   --display: Georgia, "Palatino Linotype", serif;
 }
 
@@ -41,14 +46,53 @@ body {
   height: 96px;
   pointer-events: auto;
   margin: 0 0 32px;
-  padding: 3px;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.07);
+  padding: 0;
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 80% at 12% -10%, rgba(216, 154, 74, 0.16), transparent 45%),
+    var(--glass);
+  border: 1px solid var(--line);
   box-shadow:
-    0 0 0 1px rgba(243, 230, 196, 0.14),
-    0 10px 24px rgba(8, 8, 12, 0.28);
+    0 12px 28px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(243, 230, 196, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   transform-origin: 100% 80%;
-  animation: bubble-in 0.55s var(--ease) both;
+  animation: bubble-in 0.45s var(--ease) both;
+  transition:
+    border-color 0.2s var(--ease),
+    box-shadow 0.2s var(--ease),
+    transform 0.2s var(--ease);
+}
+
+#bubble:hover {
+  border-color: rgba(216, 154, 74, 0.35);
+  box-shadow:
+    0 14px 32px rgba(0, 0, 0, 0.5),
+    0 0 16px rgba(216, 154, 74, 0.14),
+    inset 0 1px 0 rgba(243, 230, 196, 0.18);
+  cursor: pointer;
+}
+
+#bubble::before {
+  content: "";
+  position: absolute;
+  right: -5px;
+  bottom: 26px;
+  width: 10px;
+  height: 10px;
+  background: #18151f;
+  border-top: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  transform: rotate(45deg);
+  pointer-events: none;
+  z-index: 2;
+  transition: border-color 0.2s var(--ease);
+}
+
+#bubble:hover::before {
+  border-color: rgba(216, 154, 74, 0.35);
 }
 
 #bubble[hidden] {
@@ -56,17 +100,19 @@ body {
 }
 
 #bubble .core {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 10px;
   width: 100%;
   height: 100%;
   min-width: 0;
-  padding: 10px 14px 10px 12px;
-  border-radius: 19px;
-  background: linear-gradient(180deg, #faf4e4, var(--paper));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
-  color: var(--ink);
+  padding: 12px 14px 11px;
+  border-radius: 15px;
+  background: transparent;
+  color: var(--paper);
+  overflow: hidden;
+  z-index: 1;
 }
 
 #bubble.compact .core {
@@ -78,9 +124,14 @@ body {
   flex: 0 0 auto;
   width: 7px;
   height: 7px;
-  margin-top: 5px;
+  margin-top: 4px;
   border-radius: 50%;
-  background: var(--sage);
+  background: var(--ember);
+  box-shadow: 0 0 8px rgba(216, 154, 74, 0.6);
+  transition:
+    background-color 0.25s var(--ease),
+    box-shadow 0.25s var(--ease),
+    margin-top 0.2s var(--ease);
 }
 
 #bubble.compact .led {
@@ -90,10 +141,17 @@ body {
 #bubble.working .led,
 #bubble.tool .led {
   background: var(--ember);
+  box-shadow: 0 0 8px rgba(216, 154, 74, 0.7);
+}
+
+#bubble.live .led {
+  background: var(--ember);
+  box-shadow: 0 0 10px rgba(216, 154, 74, 0.9);
 }
 
 #bubble.done .led {
   background: var(--sage);
+  box-shadow: 0 0 8px rgba(158, 199, 160, 0.7);
 }
 
 #bubble.working .led::after,
@@ -101,47 +159,118 @@ body {
 #bubble.live .led::after {
   content: "";
   position: absolute;
-  inset: -5px;
+  inset: -4px;
   border-radius: 50%;
-  background: rgba(232, 165, 75, 0.4);
-  animation: led-breathe 1.6s var(--ease) infinite;
+  background: rgba(216, 154, 74, 0.35);
+  animation: led-breathe 1.5s var(--ease) infinite;
 }
 
-#bubble.live .led::after {
-  background: rgba(111, 155, 111, 0.4);
+#bubble.done .led::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: rgba(158, 199, 160, 0.3);
+  animation: led-breathe 2.2s var(--ease) infinite;
 }
 
 .copy {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  flex: 1;
 }
 
 #eyebrow {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--ui);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(28, 24, 16, 0.48);
+  color: var(--mist);
   line-height: 1.2;
+  transition: color 0.2s var(--ease);
+}
+
+#bubble.working #eyebrow,
+#bubble.tool #eyebrow,
+#bubble.live #eyebrow {
+  color: var(--ember);
+}
+
+#bubble.done #eyebrow {
+  color: var(--sage);
+}
+
+#bubble.working #eyebrow::after,
+#bubble.live #eyebrow::after {
+  content: "···";
+  letter-spacing: 2px;
+  font-weight: 900;
+  color: var(--ember);
+  animation: dots-pulse 1.4s ease-in-out infinite alternate;
+  opacity: 0.85;
 }
 
 #line {
-  margin: 5px 0 0;
-  font-family: var(--display);
-  font-size: 13px;
-  line-height: 1.35;
-  color: var(--ink);
+  margin: 6px 0 0;
+  font-family: var(--ui);
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--paper);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  max-height: calc(13px * 1.35 * 3);
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  -webkit-mask-image: linear-gradient(#000 0 2.7em, transparent 4.05em);
-  mask-image: linear-gradient(#000 0 2.7em, transparent 4.05em);
+  max-height: calc(12.5px * 1.4 * 3);
+}
+
+#bubble.tool #line {
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--mist);
+  background: rgba(8, 7, 12, 0.45);
+  border: 1px solid var(--line);
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-top: 5px;
+  -webkit-line-clamp: 2;
+  max-height: calc(11px * 1.35 * 2 + 10px);
+}
+
+#bubble.live #line::after {
+  content: "▋";
+  display: inline-block;
+  margin-left: 2px;
+  color: var(--ember);
+  font-size: 10px;
+  line-height: 1;
+  vertical-align: 0;
+  animation: cursor-blink 0.75s ease-in-out infinite;
 }
 
 #line[hidden] {
   display: none;
+}
+
+#bubble.working.compact .copy::after {
+  content: "";
+  display: block;
+  width: 50px;
+  height: 3px;
+  margin-top: 8px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--ember), transparent);
+  background-size: 200% 100%;
+  animation: thinking-shimmer 1.4s ease-in-out infinite;
 }
 
 #ghost {
@@ -175,6 +304,15 @@ body {
   transform-origin: 0% 80%;
 }
 
+#stage.bubble-right #bubble::before {
+  right: auto;
+  left: -5px;
+  border-top: none;
+  border-right: none;
+  border-bottom: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
 #canvas {
   width: 124px;
   height: 148px;
@@ -199,7 +337,7 @@ body {
 @keyframes bubble-in {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.96);
+    transform: translateY(8px) scale(0.96);
   }
   to {
     opacity: 1;
@@ -210,12 +348,45 @@ body {
 @keyframes led-breathe {
   0%,
   100% {
-    transform: scale(0.55);
-    opacity: 0.5;
+    transform: scale(0.6);
+    opacity: 0.6;
   }
   50% {
-    transform: scale(1);
+    transform: scale(1.4);
     opacity: 0;
+  }
+}
+
+@keyframes dots-pulse {
+  0% {
+    opacity: 0.2;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes cursor-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes thinking-shimmer {
+  0% {
+    background-position: 100% 0;
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    background-position: -100% 0;
+    opacity: 0.4;
   }
 }
 
@@ -225,7 +396,12 @@ body {
   }
   #bubble.working .led::after,
   #bubble.tool .led::after,
-  #bubble.live .led::after {
+  #bubble.live .led::after,
+  #bubble.done .led::after,
+  #bubble.working #eyebrow::after,
+  #bubble.live #eyebrow::after,
+  #bubble.live #line::after,
+  #bubble.working.compact .copy::after {
     animation: none;
     opacity: 0;
   }

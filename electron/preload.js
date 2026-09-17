@@ -1,8 +1,16 @@
 "use strict";
 
-const { contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
 contextBridge.exposeInMainWorld("wisp", {
+  getPathForFile: (file) => {
+    try {
+      if (webUtils && typeof webUtils.getPathForFile === "function") {
+        return webUtils.getPathForFile(file);
+      }
+    } catch {}
+    return (file && file.path) || "";
+  },
   getEngine: () => ipcRenderer.invoke("engine:get"),
   setEngine: (engine) => ipcRenderer.invoke("engine:set", engine),
   getConfig: () => ipcRenderer.invoke("config:get"),

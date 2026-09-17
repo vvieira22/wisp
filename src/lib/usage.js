@@ -28,6 +28,7 @@ function readTokenFields(raw) {
   const reasoningTokens = num(
     u.reasoningTokens ??
       u.reasoning_tokens ??
+      u.thinking_tokens ??
       tokens.reasoning ??
       u.thoughtsTokenCount ??
       u.thoughts_tokens,
@@ -95,6 +96,7 @@ function contextLimit(modelId) {
   const id = String(modelId || "").toLowerCase();
   if (id.includes("gpt-5")) return 272000;
   if (id.includes("gemini")) return 1048576;
+  if (id.includes("v4.1") || id.includes("deepseek-flash")) return 1048576;
   if (id.includes("deepseek")) return 128000;
   if (id.includes("claude")) return 200000;
   return 200000;
@@ -247,7 +249,9 @@ function stampUsage(messages, usage, ms) {
   if (u && t) u.ms = t;
   if (!u && t == null) return;
   const apply = (msg) => {
-    if (u) msg.usage = mergeUsage(msg.usage, u) || u;
+    // ponytail: stream usage is a snapshot of the turn, not a delta. Merging
+    // successive events (and then run-end) double-counts spendFrom.
+    if (u) msg.usage = t != null ? Object.assign({}, u, { ms: t }) : Object.assign({}, u);
     else if (t != null) msg.usage = Object.assign({}, msg.usage || {}, { ms: t });
     if (t != null) msg.ms = t;
   };

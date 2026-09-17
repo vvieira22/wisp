@@ -1,7 +1,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
-const { mapOpenCodeJsonl, normalizeProvider, resolveOpenCodeModel, mergeKeys, modelsForProvider, openCodeRunOpts, thinkingOn } = require("./opencode-providers.js");
+const { mapOpenCodeJsonl, normalizeProvider, resolveOpenCodeModel, mergeKeys, parseOpenCodeModels, openCodeRunOpts, thinkingOn } = require("./opencode-providers.js");
 
 const fixture = [
   '{"type":"step_start","timestamp":1000,"sessionID":"ses_abc","part":{"type":"step-start"}}',
@@ -45,7 +45,17 @@ assert.match(err.events[1].text, /rate limit/);
 
 assert.equal(normalizeProvider("nope"), "deepseek");
 assert.equal(resolveOpenCodeModel("deepseek/deepseek-v4-pro", "deepseek"), "deepseek/deepseek-v4-pro");
-assert.equal(resolveOpenCodeModel("composer-2.5", "deepseek"), "deepseek/deepseek-v4-flash");
+assert.equal(resolveOpenCodeModel("deepseek/deepseek-v4.1-flash", "deepseek"), "deepseek/deepseek-v4.1-flash");
+assert.equal(resolveOpenCodeModel("deepseek/deepseek-v4.5-flash", "deepseek"), "deepseek/deepseek-v4.5-flash");
+assert.equal(resolveOpenCodeModel("composer-2.5", "deepseek"), "");
+assert.equal(
+  resolveOpenCodeModel("composer-2.5", "deepseek", [{ id: "deepseek/deepseek-v4.5-flash" }]),
+  "deepseek/deepseek-v4.5-flash",
+);
+assert.equal(
+  resolveOpenCodeModel("deepseek/gone", "deepseek", [{ id: "deepseek/deepseek-v4.5-flash" }]),
+  "deepseek/deepseek-v4.5-flash",
+);
 assert.deepEqual(mergeKeys({ deepseek: "sk-1", extra: "x" }), {
   deepseek: "sk-1",
   zai: "",
@@ -53,13 +63,28 @@ assert.deepEqual(mergeKeys({ deepseek: "sk-1", extra: "x" }), {
 });
 
 const { effortChoices } = require("./models.js");
-const flash = modelsForProvider("deepseek")[0];
-assert.equal(flash.parameters[0].id, "thinking");
-const thinkToggle = effortChoices(flash);
+const listed = parseOpenCodeModels(
+  "deepseek/deepseek-v4.5-flash\ndeepseek/deepseek-v4-flash\ncomposer-2.5\n",
+  "deepseek",
+);
+assert.deepEqual(
+  listed.map((m) => m.id),
+  ["deepseek/deepseek-v4.5-flash", "deepseek/deepseek-v4-flash"],
+);
+assert.equal(listed[0].displayName, "V4.5 Flash");
+assert.equal(listed[0].parameters[0].id, "thinking");
+assert.ok(!listed.some((m) => m.id === "deepseek/deepseek-v4-pro"));
+assert.equal(parseOpenCodeModels("", "deepseek").length, 0);
+const thinkToggle = effortChoices(listed[0]);
 assert.equal(thinkToggle.kind, "toggle");
 assert.equal(thinkToggle.paramId, "thinking");
 assert.equal(thinkToggle.onValue, "true");
 assert.equal(thinkToggle.offValue, "false");
+const { agentForMode } = require("../../electron/agent-opencode.js");
+assert.equal(agentForMode("ask"), "plan");
+assert.equal(agentForMode("plan"), "plan");
+assert.equal(agentForMode("agent"), "build");
+
 assert.equal(thinkingOn([]), false);
 assert.equal(thinkingOn([{ id: "thinking", value: "true" }]), true);
 assert.deepEqual(openCodeRunOpts("deepseek/deepseek-v4-flash", []), { thinking: false, variant: "none" });
@@ -68,7 +93,8 @@ assert.deepEqual(openCodeRunOpts("deepseek/deepseek-v4-flash", [{ id: "thinking"
   variant: "",
 });
 assert.deepEqual(openCodeRunOpts("zai/glm-4.7", []), { thinking: false, variant: "" });
-assert.equal(effortChoices(modelsForProvider("moonshotai")[0]).kind, "none");
+assert.equal(effortChoices(parseOpenCodeModels("moonshotai/kimi-k2\n", "moonshotai")[0]).kind, "none");
+assert.equal(parseOpenCodeModels("zai/glm-4.7\n", "zai")[0].parameters[0].id, "thinking");
 
 const { Script } = require("node:vm");
 const fs = require("node:fs");

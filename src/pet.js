@@ -9,6 +9,7 @@ let state = "idle";
 let compact = false;
 let runActive = false;
 let unread = false;
+let hasError = false;
 let live = "";
 let tool = "";
 let dragging = false;
@@ -153,13 +154,14 @@ function paint() {
   bubble.hidden = !show;
   if (show) {
     const copy = bubbleCopy({ live, tool, runActive });
-    eyebrow.textContent = copy.eyebrow;
+    eyebrow.textContent = hasError ? "Erro" : copy.eyebrow;
     line.textContent = copy.line;
     line.hidden = !copy.line;
-    bubble.classList.toggle("working", copy.kind === "working");
-    bubble.classList.toggle("tool", copy.kind === "tool");
-    bubble.classList.toggle("live", copy.kind === "live");
-    bubble.classList.toggle("done", copy.kind === "done");
+    bubble.classList.toggle("working", copy.kind === "working" && !hasError);
+    bubble.classList.toggle("tool", copy.kind === "tool" && !hasError);
+    bubble.classList.toggle("live", copy.kind === "live" && !hasError);
+    bubble.classList.toggle("done", copy.kind === "done" && !hasError);
+    bubble.classList.toggle("error", hasError);
     bubble.classList.toggle("compact", !copy.line);
   }
   if (show === lastBubble) return;
@@ -169,6 +171,7 @@ function paint() {
 
 function ackSeen() {
   unread = false;
+  hasError = false;
   if (!runActive) {
     live = "";
     tool = "";
@@ -204,6 +207,7 @@ window.wisp.onChat((event) => {
     live = event.type === "session-reset" || !runActive ? "" : live;
     tool = event.type === "session-reset" ? "" : tool;
     unread = false;
+    hasError = false;
     if (!runActive) setState("idle");
     else paint();
     return;
@@ -211,6 +215,7 @@ window.wisp.onChat((event) => {
   if (event.type === "run-start") {
     runActive = true;
     unread = !compact;
+    hasError = false;
     live = "";
     tool = "";
     paint();
@@ -227,6 +232,7 @@ window.wisp.onChat((event) => {
   if (event.type === "run-error") {
     runActive = false;
     live = event.text || "falhou";
+    hasError = true;
     unread = !compact;
     paint();
   }

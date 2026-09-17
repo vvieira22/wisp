@@ -31,6 +31,7 @@ const fastLabel = document.getElementById("fast-label");
 const whoEl = document.getElementById("who");
 const statusEl = document.getElementById("status");
 const composer = document.getElementById("composer");
+const attachmentsEl = document.getElementById("attachments");
 const probeBtn = document.getElementById("probe");
 const chatsSelect = document.getElementById("chats");
 const poseSelect = document.getElementById("pose");
@@ -76,7 +77,7 @@ let tickId = 0;
 let tickAt = 0;
 let cursorModels = (typeof DEFAULT_CURSOR_MODELS !== "undefined" ? DEFAULT_CURSOR_MODELS : []).slice();
 let antigravityModels = (typeof DEFAULT_ANTIGRAVITY_MODELS !== "undefined" ? DEFAULT_ANTIGRAVITY_MODELS : []).slice();
-let opencodeModels = (typeof DEFAULT_OPENCODE_MODELS !== "undefined" ? DEFAULT_OPENCODE_MODELS : []).slice();
+let opencodeModels = [];
 let models = cursorModels;
 let currentEngine = "cursor";
 let activeProvider = "cli";
@@ -87,6 +88,7 @@ let view = { mode: "ask", model: "composer-2.5", params: [], busy: false };
 const queues = new Map();
 let queueDraft = "";
 let holdDrain = 0;
+let attachments = [];
 
 function engineLabel(engine) {
   if (engine === "antigravity") return "Antigravity";
@@ -453,6 +455,10 @@ function paintMode() {
 function fillModels(list, selected) {
   const fallback = typeof defaultModelsForEngine === "function" ? defaultModelsForEngine(currentEngine) : [];
   models = collapseModels(list && list.length ? list : fallback);
+  if (!models.length && currentEngine === "opencode" && selected && String(selected).includes("/")) {
+    const name = typeof prettyModelName === "function" ? prettyModelName(selected) : selected;
+    models = [{ id: String(selected), displayName: name }];
+  }
   setModelsForEngine(currentEngine, models);
 
   const counts = {};
@@ -758,6 +764,73 @@ function paintQueue() {
   });
 }
 
+function clearAttachments() {
+  attachments = [];
+  paintAttachments();
+}
+
+function removeAttachment(index) {
+  if (index < 0 || index >= attachments.length) return;
+  attachments.splice(index, 1);
+  paintAttachments();
+}
+
+function addAttachment(fullPath) {
+  const att = typeof parseAttachment === "function" ? parseAttachment(fullPath) : null;
+  if (!att) return;
+  if (attachments.some((a) => a.path.toLowerCase() === att.path.toLowerCase())) return;
+  attachments.push(att);
+  paintAttachments();
+}
+
+function paintAttachments() {
+  if (!attachmentsEl) return;
+  if (!attachments.length) {
+    attachmentsEl.hidden = true;
+    attachmentsEl.replaceChildren();
+    return;
+  }
+  attachmentsEl.hidden = false;
+  attachmentsEl.replaceChildren();
+  attachments.forEach((att, index) => {
+    const chip = document.createElement("div");
+    chip.className = "attachment-chip";
+    chip.title = att.dir ? `${att.path}\nDiretório: ${att.dir}` : att.path;
+
+    const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    icon.setAttribute("class", "attachment-icon");
+    icon.setAttribute("viewBox", "0 0 24 24");
+    icon.setAttribute("aria-hidden", "true");
+    const pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    pathEl.setAttribute("d", "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8");
+    pathEl.setAttribute("fill", "none");
+    pathEl.setAttribute("stroke", "currentColor");
+    pathEl.setAttribute("stroke-width", "1.8");
+    pathEl.setAttribute("stroke-linecap", "round");
+    pathEl.setAttribute("stroke-linejoin", "round");
+    icon.appendChild(pathEl);
+
+    const label = document.createElement("span");
+    label.className = "attachment-name";
+    label.textContent = att.name;
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "attachment-remove";
+    btn.setAttribute("aria-label", `Remover ${att.name}`);
+    btn.title = "Remover anexo";
+    btn.textContent = "×";
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      removeAttachment(index);
+    });
+
+    chip.append(icon, label, btn);
+    attachmentsEl.appendChild(chip);
+  });
+}
+
 function hideQueueAsk() {
   if (queueAsk) queueAsk.hidden = true;
   queueDraft = "";
@@ -813,6 +886,7 @@ async function drainQueue(chatId) {
 async function cancelAndSend(text) {
   hideQueueAsk();
   input.value = "";
+  clearAttachments();
   growInput();
   holdDrain += 1;
   try {
@@ -831,6 +905,7 @@ function applyState(state) {
   if (!state || !state.current) return;
   hideClearAsk();
   hideQueueAsk();
+  clearAttachments();
   if (!chatName.hidden) stopRename(false);
   viewId = state.currentId;
   const targetModels = modelsForEngine(currentEngine);
@@ -983,11 +1058,7 @@ async function probeAccount(targetPayload) {
       }
       config = result.config || config;
       opencodeProvider = typeof normalizeProvider === "function" ? normalizeProvider(result.provider || prov) : prov;
-      if (result.models && result.models.length) {
-        opencodeModels = collapseModels(result.models);
-      } else if (typeof modelsForProvider === "function") {
-        opencodeModels = collapseModels(modelsForProvider(opencodeProvider));
-      }
+      opencodeModels = collapseModels(result.models || []);
       fillModels(opencodeModels, view.model || config.model);
       if (result.usageLabel) usageLabel = result.usageLabel;
       if (result.usageTitle) usageTitle = result.usageTitle;
@@ -1316,10 +1387,9 @@ opencodeProviderBtns.forEach((btn) => {
     if (opencodeKeyInput) opencodeKeyInput.value = "";
     paintOpenCodeProvider();
     paintOpenCodeSetup(null);
-    if (typeof modelsForProvider === "function") {
-      opencodeModels = collapseModels(modelsForProvider(opencodeProvider));
-      fillModels(opencodeModels, typeof defaultModelForProvider === "function" ? defaultModelForProvider(opencodeProvider) : "");
-    }
+    opencodeModels = [];
+    fillModels([], "");
+    if (opencodeKeyFor(opencodeProvider)) probeAccount();
   });
 });
 
@@ -1407,9 +1477,7 @@ function handleEngineChanged(payload) {
     opencodeProvider = typeof normalizeProvider === "function"
       ? normalizeProvider(config.provider)
       : (config.provider || "deepseek");
-    if (typeof modelsForProvider === "function") {
-      opencodeModels = collapseModels(modelsForProvider(opencodeProvider));
-    }
+    opencodeModels = [];
   }
   paintEngineTabs();
   paintAccountFields();
@@ -1450,6 +1518,7 @@ document.getElementById("queue-yes").onclick = () => {
   if (!queueDraft) return hideQueueAsk();
   queueFor(viewId).push(queueDraft);
   input.value = "";
+  clearAttachments();
   growInput();
   hideQueueAsk();
   paintQueue();
@@ -1465,9 +1534,9 @@ document.getElementById("queue-no").onclick = hideQueueAsk;
 composer.addEventListener("submit", async (event) => {
   event.preventDefault();
   hideSkills();
-  const text = input.value.trim();
+  const rawText = input.value.trim();
   if (running) {
-    if (!text) {
+    if (!rawText && !attachments.length) {
       try {
         await window.wisp.cancel(viewId);
       } catch (err) {
@@ -1475,13 +1544,23 @@ composer.addEventListener("submit", async (event) => {
       }
       return;
     }
-    showQueueAsk(text);
+    const queuedText = typeof formatAttachmentReference === "function"
+      ? formatAttachmentReference(attachments, rawText)
+      : rawText;
+    clearAttachments();
+    input.value = "";
+    growInput();
+    showQueueAsk(queuedText);
     return;
   }
-  if (!text) return;
+  if (!rawText && !attachments.length) return;
+  const prompt = typeof formatAttachmentReference === "function"
+    ? formatAttachmentReference(attachments, rawText)
+    : rawText;
   input.value = "";
+  clearAttachments();
   growInput();
-  await sendNow(text, viewId);
+  await sendNow(prompt, viewId);
 });
 
 input.addEventListener("input", () => {
@@ -1586,6 +1665,11 @@ window.wisp.onChat((event) => {
     setThinking(true);
     startTick(event.at);
   }
+  if (event.type === "session-gap") {
+    const el = addMsg("notice", event.text || "Não retomei a sessão anterior. Esta resposta começa do zero.");
+    const think = log.querySelector(".msg.thinking");
+    if (think) log.insertBefore(el, think);
+  }
   if (event.type === "tool") {
     setThinking(false);
     lastAssistant = null;
@@ -1652,6 +1736,96 @@ window.wisp.onDock((info) => {
   panel.dataset.dock = info.side || "left";
   panel.dataset.align = info.align || "end";
 });
+
+let dragCounter = 0;
+
+window.addEventListener("dragenter", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  dragCounter++;
+  if (panel) panel.classList.add("drag-over");
+});
+
+window.addEventListener("dragover", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+  if (panel && !panel.classList.contains("drag-over")) {
+    panel.classList.add("drag-over");
+  }
+});
+
+window.addEventListener("dragleave", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  dragCounter--;
+  if (dragCounter <= 0) {
+    dragCounter = 0;
+    if (panel) panel.classList.remove("drag-over");
+  }
+});
+
+window.addEventListener("drop", async (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  dragCounter = 0;
+  if (panel) {
+    panel.classList.remove("drag-over");
+    if (panel.dataset.page === "account") setPage("chat");
+  }
+
+  const files = Array.from((event.dataTransfer && event.dataTransfer.files) || []);
+  if (!files.length) return;
+
+  for (const file of files) {
+    let fullPath = "";
+    if (window.wisp && typeof window.wisp.getPathForFile === "function") {
+      fullPath = window.wisp.getPathForFile(file);
+    }
+    if (!fullPath && file.path) fullPath = file.path;
+    if (fullPath) {
+      addAttachment(fullPath);
+      if (!config.cwd && window.wisp && typeof window.wisp.setConfig === "function") {
+        const att = typeof parseAttachment === "function" ? parseAttachment(fullPath) : null;
+        const targetDir = (att && att.dir) || fullPath;
+        if (targetDir) {
+          config = await window.wisp.setConfig({ cwd: targetDir });
+          paintFolder();
+          paintRiv();
+          warned = false;
+          loadSkills();
+        }
+      }
+    }
+  }
+});
+
+if (folderBtn) {
+  folderBtn.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+  });
+
+  folderBtn.addEventListener("drop", async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+    if (!file) return;
+    let fullPath = "";
+    if (window.wisp && typeof window.wisp.getPathForFile === "function") {
+      fullPath = window.wisp.getPathForFile(file);
+    }
+    if (!fullPath && file.path) fullPath = file.path;
+    if (fullPath && window.wisp && typeof window.wisp.setConfig === "function") {
+      config = await window.wisp.setConfig({ cwd: fullPath });
+      paintFolder();
+      paintRiv();
+      warned = false;
+      loadSkills();
+    }
+  });
+}
 
 refresh();
 growInput();

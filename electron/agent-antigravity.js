@@ -32,6 +32,30 @@ function findAgyBin() {
   return "";
 }
 
+function geminiContents(messages, prompt) {
+  const prior = [];
+  for (const m of messages || []) {
+    if (!m || (m.role !== "user" && m.role !== "assistant")) continue;
+    const text = String(m.text || "").trim();
+    if (!text) continue;
+    prior.push({ role: m.role === "assistant" ? "model" : "user", text });
+  }
+  // last user is this turn; `prompt` may be the skill-expanded body
+  if (prior.length && prior[prior.length - 1].role === "user") prior.pop();
+  const turns = [];
+  for (const p of prior) {
+    const last = turns[turns.length - 1];
+    if (last && last.role === p.role) last.parts[0].text += "\n\n" + p.text;
+    else turns.push({ role: p.role, parts: [{ text: p.text }] });
+  }
+  const q = String(prompt || "").trim();
+  if (!q) return turns;
+  const last = turns[turns.length - 1];
+  if (last && last.role === "user") last.parts[0].text += "\n\n" + q;
+  else turns.push({ role: "user", parts: [{ text: q }] });
+  return turns;
+}
+
 function parseAgyModels(stdout) {
   const models = [];
   const lines = stdout.split(/\r?\n/);
@@ -63,6 +87,106 @@ const DEFAULT_GEMINI_MODELS = [
   { id: "gemini-3.1-pro-high", displayName: "Gemini 3.1 Pro (High)" },
 ];
 
+const SESSION_GAP = "Não retomei a sessão anterior. Esta resposta começa do zero.";
+const PRINT_TIMEOUT = "60m";
+const HUNG_RUN = "O Antigravity parou no meio da resposta.";
+
+function agyModel(cfg) {
+  const model = cfg && cfg.model;
+  return model && !String(model).startsWith("composer") && model !== "auto"
+    ? String(model)
+    : "gemini-3.8-flash-high";
+}
+
+function agyPrintArgs(cfg, resumeId, prompt) {
+  const args = [
+    "--dangerously-skip-permissions",
+    "--output-format",
+    "stream-json",
+    "--print-timeout",
+    PRINT_TIMEOUT,
+    "--model",
+    agyModel(cfg),
+  ];
+  if (resumeId) args.push("--conversation", String(resumeId));
+  args.push("--print", String(prompt || ""));
+  return args;
+}
+
+function emptyAgyAcc(wantId) {
+  return {
+    wantId: String(wantId || ""),
+    conversationId: "",
+    turnText: "",
+    usage: null,
+    finished: false,
+    gapEmitted: false,
+    status: "",
+    error: "",
+  };
+}
+
+function conversationIdOf(ev) {
+  if (!ev || typeof ev !== "object") return "";
+  if (ev.conversation_id) return String(ev.conversation_id);
+  if (ev.step_update && ev.step_update.conversation_id) return String(ev.step_update.conversation_id);
+  if (ev.result && ev.result.conversation_id) return String(ev.result.conversation_id);
+  return "";
+}
+
+function toolLabel(su) {
+  const info = (su && su.tool_info) || {};
+  const name = (su && su.tool_name) || info.name || "tool";
+  const p = info.parameters || {};
+  const target = p.AbsolutePath || p.Pattern || p.CommandLine || p.TargetFile || "";
+  const base = target ? path.basename(String(target).replace(/\\/g, "/")) : "";
+  return base ? `${name} ${base}` : name;
+}
+
+function mapAgyEvent(ev, acc) {
+  const out = [];
+  if (!ev || typeof ev !== "object" || !acc) return out;
+  const id = conversationIdOf(ev);
+  if (id) {
+    if (acc.wantId && id !== acc.wantId && !acc.gapEmitted) {
+      acc.gapEmitted = true;
+      out.push({ type: "session-gap", text: SESSION_GAP });
+    }
+    acc.conversationId = id;
+  }
+
+  if (ev.event === "step_update" && ev.step_update) {
+    const su = ev.step_update;
+    if (su.step_type === "agent_response" && su.text_delta) {
+      acc.turnText += su.text_delta;
+      out.push({ type: "assistant-text", text: acc.turnText });
+    } else if (su.step_type === "tool" && su.state === "ACTIVE") {
+      out.push({ type: "tool", text: toolLabel(su) });
+    }
+    return out;
+  }
+
+  if (ev.event === "result" && ev.result) {
+    acc.finished = true;
+    const r = ev.result;
+    if (!acc.turnText && r.response) {
+      acc.turnText = r.response;
+      out.push({ type: "assistant-text", text: acc.turnText });
+    }
+    const usage = r.usage ? slimUsage(r.usage) : null;
+    if (usage) {
+      acc.usage = usage;
+      out.push({ type: "usage", usage });
+    }
+    const status = String(r.status || "SUCCESS").toUpperCase();
+    acc.status = status;
+    acc.error = r.error ? String(r.error) : "";
+    if (status === "SUCCESS") out.push({ type: "run-end", status: "finished", usage: acc.usage });
+    else out.push({ type: "run-error", text: acc.error || HUNG_RUN });
+  }
+  return out;
+}
+
 class AntigravityAgent {
   constructor() {
     this.proc = null;
@@ -71,11 +195,15 @@ class AntigravityAgent {
     this.resumeId = "";
     this.lastUsage = null;
     this.cancelling = false;
+    this.transcript = [];
   }
 
   bind(agentId, messages) {
-    const hasAssistant = (messages || []).some((m) => m.role === "assistant" && m.text);
-    this.resumeId = hasAssistant ? agentId || "" : "";
+    // ponytail: agy keeps tool-only turns on conversation_id. Cursor's
+    // "no assistant → don't resume" guard starts a blank session and the
+    // model says it never saw the work. Stale id → mapAgyEvent SESSION_GAP.
+    this.resumeId = agentId || "";
+    this.transcript = Array.isArray(messages) ? messages : [];
   }
 
   async probe(cfg) {
@@ -182,11 +310,8 @@ class AntigravityAgent {
     const bin = findAgyBin();
     if (!bin) throw new Error("Antigravity CLI (agy.exe) não foi encontrado.");
 
-    const args = ["--dangerously-skip-permissions", "--output-format", "stream-json"];
-    const model = cfg.model && !cfg.model.startsWith("composer") && cfg.model !== "auto" ? cfg.model : "gemini-3.8-flash-high";
-    args.push("--model", model);
-    if (this.resumeId) args.push("--conversation", this.resumeId);
-    args.push("--print", prompt);
+    const args = agyPrintArgs(cfg, this.resumeId, prompt);
+    const acc = emptyAgyAcc(this.resumeId);
 
     return new Promise((resolve, reject) => {
       const proc = spawn(bin, args, {
@@ -196,68 +321,37 @@ class AntigravityAgent {
       });
       this.proc = proc;
 
-      let turnText = "";
       let lineBuf = "";
-      let finished = false;
+      let errOut = "";
+
+      const emitLine = (line) => {
+        const trimmed = String(line || "").trim();
+        if (!trimmed) return;
+        let ev;
+        try {
+          ev = JSON.parse(trimmed);
+        } catch {
+          return;
+        }
+        for (const event of mapAgyEvent(ev, acc)) {
+          if (this.cancelling && (event.type === "run-end" || event.type === "run-error")) continue;
+          if (event.type === "run-end" || event.type === "run-error") event.ms = msOf();
+          if (event.type === "usage" || event.type === "run-end") this.lastUsage = event.usage || this.lastUsage;
+          onEvent(event);
+        }
+        if (acc.conversationId) {
+          this.agentId = acc.conversationId;
+          this.resumeId = acc.conversationId;
+        }
+      };
 
       proc.stdout.on("data", (chunk) => {
         lineBuf += chunk.toString("utf8");
         const lines = lineBuf.split(/\r?\n/);
-        lineBuf = lines.pop(); // keep remainder
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed) continue;
-          try {
-            const ev = JSON.parse(trimmed);
-            if (ev.event === "init") {
-              if (ev.conversation_id) {
-                this.agentId = ev.conversation_id;
-                this.resumeId = ev.conversation_id;
-              }
-            } else if (ev.event === "step_update" && ev.step_update) {
-              const su = ev.step_update;
-              if (su.conversation_id) {
-                this.agentId = su.conversation_id;
-                this.resumeId = su.conversation_id;
-              }
-              if (su.step_type === "agent_response") {
-                if (su.text_delta) {
-                  turnText += su.text_delta;
-                  onEvent({ type: "assistant-text", text: turnText });
-                }
-              } else if (su.step_type === "tool" && su.state === "ACTIVE") {
-                const info = su.tool_info || {};
-                const name = su.tool_name || info.name || "tool";
-                const p = info.parameters || {};
-                const target = p.AbsolutePath || p.Pattern || p.CommandLine || p.TargetFile || "";
-                const base = target ? path.basename(String(target).replace(/\\/g, "/")) : "";
-                const label = base ? `${name} ${base}` : name;
-                onEvent({ type: "tool", text: label });
-              }
-            } else if (ev.event === "result" && ev.result) {
-              finished = true;
-              const r = ev.result;
-              if (r.conversation_id) {
-                this.agentId = r.conversation_id;
-                this.resumeId = r.conversation_id;
-              }
-              if (!turnText && r.response) {
-                turnText = r.response;
-                onEvent({ type: "assistant-text", text: turnText });
-              }
-              const usage = r.usage ? slimUsage(r.usage) : null;
-              this.lastUsage = usage;
-              if (usage) onEvent({ type: "usage", usage });
-              onEvent({ type: "run-end", status: "finished", usage, ms: msOf() });
-            }
-          } catch {
-            // raw text line
-          }
-        }
+        lineBuf = lines.pop();
+        for (const line of lines) emitLine(line);
       });
 
-      let errOut = "";
       proc.stderr.on("data", (chunk) => {
         errOut += chunk.toString("utf8");
       });
@@ -267,20 +361,16 @@ class AntigravityAgent {
         reject(err);
       });
 
-      proc.on("close", (code) => {
+      proc.on("close", () => {
         this.proc = null;
+        emitLine(lineBuf);
+        lineBuf = "";
         if (this.cancelling) {
           onEvent({ type: "run-cancel", ms: msOf() });
           resolve();
           return;
         }
-        if (code !== 0 && !turnText) {
-          reject(new Error(errOut.trim() || `agy saiu com código ${code}`));
-          return;
-        }
-        if (!finished) {
-          onEvent({ type: "run-end", status: "finished", usage: this.lastUsage, ms: msOf() });
-        }
+        if (!acc.finished) onEvent({ type: "run-error", text: errOut.trim() || HUNG_RUN, ms: msOf() });
         resolve();
       });
     });
@@ -293,7 +383,7 @@ class AntigravityAgent {
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?key=${encodeURIComponent(key)}&alt=sse`;
 
-    const contents = [{ role: "user", parts: [{ text: prompt }] }];
+    const contents = geminiContents(this.transcript, prompt);
 
     const res = await fetch(url, {
       method: "POST",
@@ -376,6 +466,7 @@ class AntigravityAgent {
     this.agentId = "";
     this.resumeId = "";
     this.lastUsage = null;
+    this.transcript = [];
   }
 }
 
@@ -383,5 +474,12 @@ module.exports = {
   AntigravityAgent,
   findAgyBin,
   parseAgyModels,
+  geminiContents,
   DEFAULT_GEMINI_MODELS,
+  SESSION_GAP,
+  PRINT_TIMEOUT,
+  HUNG_RUN,
+  agyPrintArgs,
+  emptyAgyAcc,
+  mapAgyEvent,
 };
