@@ -57,19 +57,13 @@ const DEFAULT_ANTIGRAVITY_MODELS = [
 
 function defaultModelForEngine(engine) {
   if (engine === "antigravity") return "gemini-3.8-flash-high";
-  if (engine === "opencode") return "deepseek/deepseek-v4-flash";
+  if (engine === "opencode") return "";
   return "composer-2.5";
 }
 
 function defaultModelsForEngine(engine) {
   if (engine === "antigravity") return DEFAULT_ANTIGRAVITY_MODELS;
-  if (engine === "opencode") {
-    try {
-      return require("./opencode-providers").DEFAULT_OPENCODE_MODELS;
-    } catch {
-      return [{ id: "deepseek/deepseek-v4-flash", displayName: "DeepSeek V4 Flash" }];
-    }
-  }
+  if (engine === "opencode") return [];
   return DEFAULT_CURSOR_MODELS;
 }
 
@@ -97,7 +91,10 @@ function resolveModel(id, models, engine) {
   }
 
   if (raw && raw !== "default" && ids.includes(raw)) return raw;
-  if (ids.includes(def)) return def;
+  if (isOc && raw.includes("/") && !raw.startsWith("composer") && !raw.startsWith("gemini")) {
+    return ids.length ? ids[0] : raw;
+  }
+  if (def && ids.includes(def)) return def;
   if (!isAg && !isOc && ids.includes("auto")) return "auto";
   return ids[0] || def;
 }

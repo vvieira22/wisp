@@ -72,6 +72,19 @@ assert.equal(pickDefault([{ id: "auto" }, { id: "composer-2.5" }]), "composer-2.
 assert.equal(pickDefault([{ id: "grok" }], "grok"), "grok");
 assert.equal(pickDefault([{ id: "default" }, { id: "composer-2.5" }], "default"), "composer-2.5");
 assert.equal(require("./models.js").resolveModel("default"), "composer-2.5");
+assert.equal(require("./models.js").resolveModel("deepseek/deepseek-v4.5-flash", null, "opencode"), "deepseek/deepseek-v4.5-flash");
+assert.equal(
+  require("./models.js").resolveModel(
+    "deepseek/deepseek-v4.5-flash",
+    [{ id: "deepseek/a" }, { id: "deepseek/deepseek-v4.5-flash" }],
+    "opencode",
+  ),
+  "deepseek/deepseek-v4.5-flash",
+);
+assert.equal(
+  require("./models.js").resolveModel("deepseek/gone", [{ id: "deepseek/live" }], "opencode"),
+  "deepseek/live",
+);
 assert.equal(require("./models.js").collapseModels([{ id: "default" }, { id: "composer-2.5" }]).length, 1);
 assert.equal(formatUsage(null), "0 / 200k");
 assert.equal(formatUsage({ inputTokens: 3200 }, "composer-2.5"), "3.2k / 200k");
@@ -140,6 +153,13 @@ const slim = dockChat({
   area: { x: 0, y: 0, width: 200, height: 1040 },
 });
 assert.equal(slim.side, "top");
+
+const slimTop = dockChat({
+  ghost: spriteRect({ x: 26, y: 16, width: PET.w, height: PET.h }),
+  chat,
+  area: { x: 0, y: 0, width: 200, height: 1040 },
+});
+assert.equal(slimTop.side, "bottom");
 
 const other = { x: 1920, y: 0, width: 1440, height: 900 };
 const g2 = spriteRect({ x: 1920 + 16, y: 900 - 16 - PET.h, width: PET.w, height: PET.h });
@@ -363,6 +383,51 @@ assert.equal(chats.current(keptUsage).messages[1].ms, 4200);
 chats.clearCurrent(keptUsage);
 assert.equal(chats.current(keptUsage).usage, null);
 
+const turn = chats.emptyStore();
+chats.appendUser(turn, "oi");
+chats.applyRunEvent(turn, turn.currentId, { type: "run-start", at: 1 });
+chats.applyRunEvent(turn, turn.currentId, {
+  type: "usage",
+  usage: { inputTokens: 100, outputTokens: 10, totalTokens: 110 },
+});
+chats.applyRunEvent(turn, turn.currentId, { type: "thinking", text: "cadeia secreta de raciocínio" });
+chats.applyRunEvent(turn, turn.currentId, { type: "tool", text: "read pet.js" });
+chats.applyRunEvent(turn, turn.currentId, { type: "assistant-text", text: "hey" });
+chats.applyRunEvent(turn, turn.currentId, {
+  type: "usage",
+  usage: { inputTokens: 200, outputTokens: 40, totalTokens: 240, chargedCents: 9 },
+});
+chats.applyRunEvent(turn, turn.currentId, {
+  type: "run-end",
+  usage: { inputTokens: 200, outputTokens: 40, totalTokens: 240, chargedCents: 9 },
+  ms: 1200,
+});
+const turnMsgs = chats.current(turn).messages;
+assert.equal(turnMsgs.some((m) => /secreta/.test(m.text || "")), false);
+assert.equal(turnMsgs.some((m) => m.role === "thinking" || m.role === "system"), false);
+assert.equal(turnMsgs.map((m) => m.role).join(","), "user,tool,assistant");
+assert.equal(turnMsgs[2].usage.inputTokens, 200);
+assert.equal(turnMsgs[2].usage.outputTokens, 40);
+assert.equal(turnMsgs[0].usage, undefined);
+assert.equal(require("./usage.js").spendFrom(turnMsgs).turns, 1);
+assert.equal(require("./usage.js").spendFrom(turnMsgs).inputTokens, 200);
+assert.equal(chats.current(turn).usage.inputTokens, 200);
+
+const isolated = chats.emptyStore();
+chats.appendUser(isolated, "keep");
+chats.applyRunEvent(isolated, "c-other-engine", { type: "assistant-text", text: "leak" });
+assert.equal(chats.current(isolated).messages.some((m) => m.text === "leak"), false);
+assert.equal(chats.current(isolated).messages[0].text, "keep");
+
+const clipped = chats.clipMessages([
+  { role: "system", text: "pensando…" },
+  { role: "user", text: "oi" },
+  { role: "tool", text: "⚙ read pet.js" },
+  { role: "assistant", text: "hey" },
+]);
+assert.equal(clipped.map((m) => m.role).join(","), "user,tool,assistant");
+assert.equal(clipped.some((m) => m.role === "system"), false);
+
 const old = chats.normalize({
   currentId: "1",
   items: [{ id: "1", cwd: "/proj", agentId: "ag1", messages: [] }],
@@ -391,7 +456,7 @@ const kept = chats.normalize({
 assert.equal(chats.current(kept).cwd, "/proj");
 assert.equal(chats.current(kept).agentId, "ag1");
 
-const { sameCwd, workspacePrompt, resolveCwd, isAgentBusy, sendOpts, startRun, WispAgent } = require("../../electron/agent.js");
+const { sameCwd, workspacePrompt, resolveCwd, isAgentBusy, sendOpts, startRun, WispAgent, SESSION_GAP } = require("../../electron/agent.js");
 assert.equal(isAgentBusy({ name: "AgentBusyError" }), true);
 assert.equal(isAgentBusy(new Error("Agent agent-x already has active run")), true);
 assert.equal(isAgentBusy(new Error("falhou")), false);
@@ -421,6 +486,84 @@ assert.equal(sameCwd(__dirname, __dirname + "-nope"), false);
 assert.equal(sameCwd("", __dirname), false);
 assert.equal(resolveCwd(__dirname), require("node:fs").realpathSync(__dirname));
 assert.equal(workspacePrompt(__dirname, "oi"), "oi");
+assert.ok(SESSION_GAP);
+
+const {
+  geminiContents,
+  AntigravityAgent,
+  agyPrintArgs,
+  emptyAgyAcc,
+  mapAgyEvent,
+  PRINT_TIMEOUT,
+  HUNG_RUN,
+  SESSION_GAP: AGY_GAP,
+} = require("../../electron/agent-antigravity.js");
+assert.deepEqual(geminiContents([], "oi"), [{ role: "user", parts: [{ text: "oi" }] }]);
+assert.deepEqual(
+  geminiContents(
+    [
+      { role: "user", text: "a" },
+      { role: "assistant", text: "b" },
+      { role: "tool", text: "⚙ read pet.js" },
+      { role: "user", text: "c" },
+    ],
+    "c com skill",
+  ),
+  [
+    { role: "user", parts: [{ text: "a" }] },
+    { role: "model", parts: [{ text: "b" }] },
+    { role: "user", parts: [{ text: "c com skill" }] },
+  ],
+);
+assert.equal(
+  geminiContents(
+    [
+      { role: "user", text: "a" },
+      { role: "assistant", text: "b" },
+    ],
+    "c",
+  ).length,
+  3,
+);
+assert.ok(!JSON.stringify(geminiContents([{ role: "tool", text: "read" }, { role: "user", text: "x" }], "x")).includes("read"));
+{
+  const sess = new AntigravityAgent();
+  sess.bind("conv-1", [{ role: "user", text: "oi" }, { role: "tool", text: "⚙ read" }]);
+  assert.equal(sess.resumeId, "conv-1");
+  const args = agyPrintArgs({ model: "gemini-3.8-flash-high" }, "conv-1", "oi");
+  assert.equal(PRINT_TIMEOUT, "60m");
+  assert.ok(args.includes("--print-timeout") && args.includes("60m"));
+  assert.ok(args.includes("--conversation") && args.includes("conv-1"));
+  const gapAcc = emptyAgyAcc("old");
+  const gapEvents = mapAgyEvent({ event: "init", conversation_id: "new" }, gapAcc);
+  assert.equal(gapEvents[0].type, "session-gap");
+  assert.equal(gapEvents[0].text, AGY_GAP);
+  assert.equal(gapAcc.conversationId, "new");
+  const hung = emptyAgyAcc("same");
+  mapAgyEvent({ event: "init", conversation_id: "same" }, hung);
+  mapAgyEvent(
+    {
+      event: "step_update",
+      step_update: { conversation_id: "same", step_type: "tool", state: "ACTIVE", tool_name: "view_file" },
+    },
+    hung,
+  );
+  const ended = mapAgyEvent(
+    { event: "result", result: { conversation_id: "same", status: "INTERRUPTED", response: "", error: "" } },
+    hung,
+  );
+  assert.equal(ended[0].type, "run-error");
+  assert.equal(ended[0].text, HUNG_RUN);
+  assert.equal(hung.finished, true);
+}
+
+const gap = chats.emptyStore();
+chats.appendUser(gap, "oi");
+chats.applyRunEvent(gap, gap.currentId, { type: "session-gap", text: SESSION_GAP });
+chats.applyRunEvent(gap, gap.currentId, { type: "assistant-text", text: "hey" });
+assert.equal(chats.current(gap).messages[1].role, "notice");
+assert.equal(chats.current(gap).messages[1].text, SESSION_GAP);
+assert.equal(chats.clipMessages(chats.current(gap).messages).some((m) => m.role === "notice"), true);
 
 const fs = require("node:fs");
 const os = require("node:os");

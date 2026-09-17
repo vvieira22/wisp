@@ -7,12 +7,11 @@ const { spawn } = require("node:child_process");
 const {
   OPENCODE_PROVIDERS,
   normalizeProvider,
-  modelsForProvider,
-  defaultModelForProvider,
   resolveOpenCodeModel,
   mergeKeys,
   mapOpenCodeJson,
   openCodeRunOpts,
+  parseOpenCodeModels,
 } = require("../src/lib/opencode-providers");
 
 function preferExe(found) {
@@ -84,25 +83,19 @@ function listModels(bin, provider, env) {
       stdio: ["ignore", "pipe", "pipe"],
     });
     let out = "";
+    let err = "";
     p.stdout.on("data", (d) => (out += d.toString()));
-    p.on("error", () => resolve([]));
+    p.stderr.on("data", (d) => (err += d.toString()));
+    p.on("error", () => resolve({ models: [], error: "falha ao chamar o OpenCode" }));
     p.on("close", () => {
-      const catalog = modelsForProvider(provider);
-      const byId = new Map(catalog.map((m) => [m.id, m]));
-      const models = [];
-      for (const line of out.split(/\r?\n/)) {
-        const id = line.trim().split(/\s+/)[0] || "";
-        if (!id || !id.includes("/")) continue;
-        if (byId.size && !byId.has(id)) continue;
-        if (models.some((m) => m.id === id)) continue;
-        const hit = byId.get(id);
-        models.push({
-          id,
-          displayName: (hit && hit.displayName) || id.split("/").pop() || id,
-          parameters: (hit && hit.parameters) || [],
-        });
-      }
-      resolve(models.length ? models : modelsForProvider(provider));
+      const models = parseOpenCodeModels(out, provider);
+      if (models.length) return resolve({ models });
+      const hint = String(err || out)
+        .trim()
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .pop();
+      resolve({ models: [], error: hint || `opencode models ${provider} não listou nada` });
     });
   });
 }
@@ -143,13 +136,21 @@ class OpenCodeAgent {
       };
     }
     const env = Object.assign({}, process.env, { [envName(provider)]: key });
-    const models = await listModels(bin, provider, env);
-    const model = resolveOpenCodeModel(cfg && cfg.model, provider);
+    const listed = await listModels(bin, provider, env);
+    if (!listed.models.length) {
+      return {
+        ok: false,
+        error: listed.error || "O OpenCode não devolveu modelos pra esse provedor.",
+        provider,
+        cliPath: bin,
+      };
+    }
+    const model = resolveOpenCodeModel(cfg && cfg.model, provider, listed.models);
     return {
       ok: true,
       provider,
       cliPath: bin,
-      models,
+      models: listed.models,
       model,
       me: {
         name: "OpenCode",
@@ -323,8 +324,6 @@ module.exports = {
   findOpenCodeBin,
   agentForMode,
   OPENCODE_PROVIDERS,
-  defaultModelForProvider,
-  modelsForProvider,
   normalizeProvider,
   mergeKeys,
   resolveOpenCodeModel,

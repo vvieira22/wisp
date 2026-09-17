@@ -49,13 +49,7 @@ const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage, screen, pr
 const { WispAgent, loadConfig, saveConfig, pickDefault, resolveModel, formatMeter, meterTitle, resolveCwd, sameCwd, prewarmWorkspace, dropPrewarm } = require("./agent");
 const { AntigravityAgent, findAgyBin, DEFAULT_GEMINI_MODELS } = require("./agent-antigravity");
 const { OpenCodeAgent } = require("./agent-opencode");
-const {
-  normalizeProvider,
-  mergeKeys,
-  resolveOpenCodeModel,
-  defaultModelForProvider,
-  modelsForProvider,
-} = require("../src/lib/opencode-providers");
+const { normalizeProvider, mergeKeys, resolveOpenCodeModel } = require("../src/lib/opencode-providers");
 const { reducePet, forcePet, STATES } = require("../src/lib/pet-state");
 const { PET, spriteRect, dockChat, clampToArea, petWindowSize } = require("../src/lib/dock");
 const { resolveRiv } = require("../src/lib/riv");
@@ -290,7 +284,7 @@ function rawCfg() {
       cwd: cursorCfg.cwd || "",
       provider: "deepseek",
       keys: mergeKeys(null),
-      model: defaultModelForProvider("deepseek"),
+      model: "",
       params: [],
     },
     opencodeRaw,
@@ -608,6 +602,13 @@ function petMascotRect(bounds, side) {
   return { x: right - w, y: bounds.y + bounds.height - h, w, h };
 }
 
+function petCenterSide() {
+  const bounds = petWin.getBounds();
+  const area = screen.getDisplayMatching(bounds).workArea;
+  const ghost = spriteRect(bounds);
+  return ghost.x + ghost.w / 2 >= area.x + area.width / 2 ? "left" : "right";
+}
+
 function tellPetFace() {
   if (!petWin || petWin.isDestroyed()) return;
   let side = "";
@@ -617,10 +618,9 @@ function tellPetFace() {
     side = bubbleSide;
     bubble = true;
   }
-  // ponytail: no attached panel -> keep the mascot as-is (don't unflip just
-  // because the chat was minimized). Only turn it back when a panel really
-  // sits on the other side.
-  if (!side) return;
+  // ponytail: minimized (no attached panel) -> mirror on which half of the
+  // screen the mascot sits on.
+  else side = petCenterSide();
   const key = side + ":" + (bubble ? 1 : 0);
   if (key === faceKey) return;
   faceKey = key;
@@ -868,7 +868,7 @@ ipcMain.handle("account:probe", async (_event, payload) => {
       model: c.model,
     });
     if (!result.ok) return result;
-    const model = resolveOpenCodeModel(result.model || c.model, provider);
+    const model = resolveOpenCodeModel(result.model || c.model, provider, result.models);
     writeCfg({ provider, keys, model });
     const chat = current(chats);
     if (!chat.model) {
@@ -1030,12 +1030,14 @@ ipcMain.on("pet:pointer", (_event, payload) => {
     const [x, y] = petWin.getPosition();
     petWin.setPosition(asInt(x + dx), asInt(y + dy));
     if (chatOpen) placeChat();
+    else tellPetFace();
   }
   if (payload.type === "drop") {
     petDragging = false;
     if (bubbleVisible) positionPet(true);
     else keepOnWorkArea(petWin, true);
     if (chatOpen) placeChat();
+    else tellPetFace();
   }
   if (payload.type === "click") {
     if (petState === "alert") applyEvent(current(chats).id, { type: "ack" });

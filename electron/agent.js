@@ -163,6 +163,8 @@ async function startRun(agent, prompt, mode, extra) {
   }
 }
 
+const SESSION_GAP = "Não retomei a sessão anterior. Esta resposta começa do zero.";
+
 function withTimeout(promise, ms, message) {
   let timer;
   const timeout = new Promise((_, reject) => {
@@ -235,6 +237,7 @@ class WispAgent {
     this.run = null;
     this.cancelling = false;
     this.mode = "agent";
+    this.sessionGap = false;
   }
 
   remember(messages) {
@@ -284,6 +287,7 @@ class WispAgent {
     const params = Array.isArray(cfg.params) ? cfg.params : [];
     const mode = normalizeMode(cfg.mode);
     if (!key) throw new Error("Falta a chave da API do Cursor.");
+    this.sessionGap = false;
     const wantId = this.resumeId || "";
     if (
       this.agent &&
@@ -313,10 +317,12 @@ class WispAgent {
         if (!(await this.workspaceOk(cwd))) {
           await this.dropAgent();
           this.agent = await withTimeout(Agent.create(opts), 40000, "O agente não arrancou.");
+          this.sessionGap = true;
         }
       } catch {
         await this.dropAgent();
         this.agent = await withTimeout(Agent.create(opts), 40000, "O agente não arrancou.");
+        this.sessionGap = true;
       }
     } else {
       this.agent = await withTimeout(Agent.create(opts), 40000, "O agente não arrancou.");
@@ -342,6 +348,7 @@ class WispAgent {
     try {
       onEvent({ type: "run-start", at: started });
       const agent = await this.ensure(cfg);
+      if (this.sessionGap) onEvent({ type: "session-gap", text: SESSION_GAP });
       if (this.cancelling) {
         onEvent({ type: "run-cancel", ms: msOf() });
         return;
@@ -491,6 +498,7 @@ class WispAgent {
 }
 
 module.exports = {
+  SESSION_GAP,
   WispAgent,
   loadConfig,
   saveConfig,
