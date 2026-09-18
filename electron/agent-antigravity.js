@@ -5,6 +5,8 @@ const path = require("node:path");
 const os = require("node:os");
 const { spawn } = require("node:child_process");
 const { slimUsage } = require("../src/lib/usage");
+const { permissionRequest } = require("../src/lib/permission");
+const { globalLogger: logger } = require("../src/lib/logs");
 
 function findAgyBin() {
   if (process.env.AGY_BIN_PATH && fs.existsSync(process.env.AGY_BIN_PATH)) {
@@ -162,7 +164,33 @@ function mapAgyEvent(ev, acc) {
       out.push({ type: "assistant-text", text: acc.turnText });
     } else if (su.step_type === "tool" && su.state === "ACTIVE") {
       out.push({ type: "tool", text: toolLabel(su) });
+    } else if (su.step_type === "permission" || su.step_type === "approval" || su.needs_approval) {
+      out.push(
+        permissionRequest({
+          engine: "antigravity",
+          permissionId: su.permission_id || su.id || su.tool_id || "",
+          sessionId: acc.conversationId,
+          kind: su.permission || su.tool_name || "tool",
+          detail: toolLabel(su),
+        }),
+      );
     }
+    return out;
+  }
+
+  if (ev.event === "permission" || ev.event === "approval_request") {
+    const body = ev.permission || ev.approval_request || ev;
+    const id = body.id || body.permission_id || "";
+    if (!id) return out;
+    out.push(
+      permissionRequest({
+        engine: "antigravity",
+        permissionId: id,
+        sessionId: acc.conversationId || conversationIdOf(ev),
+        kind: body.kind || body.permission || "tool",
+        detail: body.detail || body.path || body.command || "",
+      }),
+    );
     return out;
   }
 
@@ -358,19 +386,28 @@ class AntigravityAgent {
 
       proc.on("error", (err) => {
         this.proc = null;
+        logger.error("antigravity", `Falha ao iniciar processo agy: ${err.message}`, { code: err.code, stack: err.stack });
         reject(err);
       });
 
-      proc.on("close", () => {
+      proc.on("close", (code, signal) => {
         this.proc = null;
         emitLine(lineBuf);
         lineBuf = "";
         if (this.cancelling) {
+          logger.warn("antigravity", "Processo agy cancelado pelo usuário.");
           onEvent({ type: "run-cancel", ms: msOf() });
           resolve();
           return;
         }
-        if (!acc.finished) onEvent({ type: "run-error", text: errOut.trim() || HUNG_RUN, ms: msOf() });
+        if (code !== 0 && code !== null) {
+          logger.error("antigravity", `Processo agy saiu com código de erro ${code}${signal ? " (" + signal + ")" : ""}.`, { stderr: errOut.trim() });
+        }
+        if (!acc.finished) {
+          const errText = errOut.trim() || HUNG_RUN;
+          logger.error("antigravity", "O modelo parou inesperadamente sem concluir a resposta.", { exitCode: code, stderr: errOut.trim(), receivedChars: (acc.turnText || "").length });
+          onEvent({ type: "run-error", text: errText, ms: msOf() });
+        }
         resolve();
       });
     });
@@ -378,21 +415,31 @@ class AntigravityAgent {
 
   async _sendApi(cfg, prompt, onEvent, msOf) {
     const key = String(cfg.geminiApiKey || "").trim();
-    if (!key) throw new Error("Chave da API do Gemini não configurada.");
+    if (!key) {
+      logger.error("gemini", "Chave da API do Gemini não configurada.");
+      throw new Error("Chave da API do Gemini não configurada.");
+    }
     const model = cfg.model && !cfg.model.startsWith("composer") && cfg.model !== "auto" ? cfg.model : "gemini-2.5-flash";
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?key=${encodeURIComponent(key)}&alt=sse`;
 
     const contents = geminiContents(this.transcript, prompt);
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents }),
-    });
+    let res;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents }),
+      });
+    } catch (err) {
+      logger.error("gemini", `Falha de rede ao conectar à API Gemini: ${err.message}`, { stack: err.stack });
+      throw err;
+    }
 
     if (!res.ok) {
       const errText = await res.text();
+      logger.error("gemini", `API Gemini retornou erro HTTP ${res.status}: ${errText.slice(0, 300)}`, { status: res.status, body: errText });
       throw new Error(`Erro API Gemini (${res.status}): ${errText.slice(0, 150)}`);
     }
 
@@ -446,6 +493,15 @@ class AntigravityAgent {
     } finally {
       reader.releaseLock();
     }
+  }
+
+  async respondPermission(payload) {
+    const reply = String((payload && payload.response) || "");
+    if (reply === "reject") {
+      await this.cancel();
+      return true;
+    }
+    return false;
   }
 
   async cancel() {

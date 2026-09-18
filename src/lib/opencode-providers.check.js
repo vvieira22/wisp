@@ -1,7 +1,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
-const { mapOpenCodeJsonl, normalizeProvider, resolveOpenCodeModel, mergeKeys, parseOpenCodeModels, openCodeRunOpts, thinkingOn } = require("./opencode-providers.js");
+const { mapOpenCodeJsonl, mapOpenCodeJson, mapOpenCodeBus, normalizeProvider, resolveOpenCodeModel, mergeKeys, parseOpenCodeModels, openCodeRunOpts, thinkingOn } = require("./opencode-providers.js");
 
 const fixture = [
   '{"type":"step_start","timestamp":1000,"sessionID":"ses_abc","part":{"type":"step-start"}}',
@@ -80,10 +80,40 @@ assert.equal(thinkToggle.kind, "toggle");
 assert.equal(thinkToggle.paramId, "thinking");
 assert.equal(thinkToggle.onValue, "true");
 assert.equal(thinkToggle.offValue, "false");
-const { agentForMode } = require("../../electron/agent-opencode.js");
+const { agentForMode, OpenCodeAgent } = require("../../electron/agent-opencode.js");
 assert.equal(agentForMode("ask"), "plan");
 assert.equal(agentForMode("plan"), "plan");
 assert.equal(agentForMode("agent"), "build");
+{
+  const oc = new OpenCodeAgent();
+  oc.bind("ses_x", [{ role: "user", text: "oi" }, { role: "tool", text: "⚙ bash" }]);
+  assert.equal(oc.resumeId, "ses_x");
+}
+
+const asked = mapOpenCodeJson(
+  {
+    type: "permission.asked",
+    properties: {
+      id: "per_1",
+      sessionID: "ses_abc",
+      permission: "external_directory",
+      patterns: ["C:\\\\Users\\\\vitor\\\\.config\\\\opencode\\\\*"],
+    },
+  },
+  { sessionId: "", pendingPermission: null },
+);
+assert.equal(asked[0].type, "permission-request");
+assert.equal(asked[0].permissionId, "per_1");
+assert.match(asked[0].title, /external directory/i);
+
+const bus = mapOpenCodeBus(
+  {
+    type: "permission.asked",
+    properties: { id: "per_2", sessionID: "ses_z", permission: "read", patterns: ["opencode.jsonc"] },
+  },
+  { sessionId: "" },
+);
+assert.equal(bus[0].permissionId, "per_2");
 
 assert.equal(thinkingOn([]), false);
 assert.equal(thinkingOn([{ id: "thinking", value: "true" }]), true);
@@ -100,7 +130,7 @@ const { Script } = require("node:vm");
 const fs = require("node:fs");
 const path = require("node:path");
 new Script(
-  ["models.js", "usage.js", "opencode-providers.js", "mode.js", "markdown.js"]
+  ["models.js", "usage.js", "permission.js", "opencode-providers.js", "mode.js", "markdown.js"]
     .map((f) => fs.readFileSync(path.join(__dirname, f), "utf8"))
     .join("\n"),
 );

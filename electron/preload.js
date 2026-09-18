@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld("wisp", {
   loadMascot: () => ipcRenderer.invoke("mascot:get"),
   send: (text, chatId) => ipcRenderer.invoke("chat:send", text, chatId),
   cancel: (chatId) => ipcRenderer.invoke("chat:cancel", chatId),
+  respondPermission: (payload, chatId) => ipcRenderer.invoke("chat:permission:respond", payload, chatId),
   probe: (apiKey) => ipcRenderer.invoke("account:probe", apiKey),
   hideChat: () => ipcRenderer.send("chat:hide"),
   reset: (payload) => ipcRenderer.invoke("chat:reset", payload),
@@ -79,5 +80,13 @@ contextBridge.exposeInMainWorld("wisp", {
     const fn = (_event, payload) => cb(payload);
     ipcRenderer.on("engine:changed", fn);
     return () => ipcRenderer.removeListener("engine:changed", fn);
+  },
+  getLogs: (filter) => ipcRenderer.invoke("logs:get", filter),
+  clearLogs: () => ipcRenderer.invoke("logs:clear"),
+  addLog: (entry) => ipcRenderer.invoke("logs:add", entry),
+  onLog: (cb) => {
+    const fn = (_event, entry) => cb(entry);
+    ipcRenderer.on("logs:entry", fn);
+    return () => ipcRenderer.removeListener("logs:entry", fn);
   },
 });

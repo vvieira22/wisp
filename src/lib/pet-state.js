@@ -4,7 +4,7 @@ const PET_STATES = ["idle", "thinking", "alert"];
 
 function reducePet(state, event) {
   const type = event && event.type;
-  if (type === "run-start" || type === "tool" || type === "assistant-text") return "thinking";
+  if (type === "run-start" || type === "tool" || type === "assistant-text" || type === "permission-request") return "thinking";
   if (type === "run-end") return "alert";
   if (type === "run-cancel" || type === "run-error" || type === "ack" || type === "session-reset") return "idle";
   return PET_STATES.includes(state) ? state : "idle";

@@ -11,7 +11,7 @@
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
-    "check": "node src/lib/usage.check.js && node src/lib/pet-state.check.js && node src/lib/markdown.check.js && node src/lib/opencode-providers.check.js && node src/lib/attachments.check.js",
+    "check": "node src/lib/usage.check.js && node src/lib/pet-state.check.js && node src/lib/markdown.check.js && node src/lib/opencode-providers.check.js && node src/lib/attachments.check.js && node src/lib/logs.check.js",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
     "dist:win": "electron-builder --win",
@@ -25,6 +25,11 @@
   "devDependencies": {
     "electron": "^44.3.0",
     "electron-builder": "^26.15.3"
+  },
+  "overrides": {
+    "@connectrpc/connect-node": {
+      "undici": "^6.28.1"
+    }
   },
   "build": {
     "appId": "wisp.ghost",
