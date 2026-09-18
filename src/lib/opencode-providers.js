@@ -123,6 +123,12 @@ function toolLabel(part) {
   return name;
 }
 
+function loadPermission() {
+  if (typeof fromOpenCode === "function") return { fromOpenCode };
+  if (typeof module === "object" && module.exports) return require("./permission");
+  return {};
+}
+
 function loadUsage() {
   if (typeof slimUsage === "function" && typeof mergeUsage === "function") {
     return { slimUsage, mergeUsage };
@@ -149,6 +155,28 @@ function mapOpenCodeJson(ev, acc) {
   const part = ev.part && typeof ev.part === "object" ? ev.part : {};
   const sessionId = ev.sessionID || ev.sessionId || part.sessionID || "";
   if (sessionId) acc.sessionId = String(sessionId);
+
+  if (type === "permission.asked" || type === "permission") {
+    const { fromOpenCode: fromOc } = loadPermission();
+    const req = fromOc ? fromOc(ev) : null;
+    if (req && req.permissionId) {
+      if (req.sessionId) acc.sessionId = req.sessionId;
+      acc.pendingPermission = req;
+      out.push(req);
+    }
+    return out;
+  }
+
+  if (type === "permission.replied") {
+    const props = ev.properties && typeof ev.properties === "object" ? ev.properties : ev;
+    acc.pendingPermission = null;
+    out.push({
+      type: "permission-resolved",
+      permissionId: String(props.requestID || props.id || ""),
+      response: String(props.reply || props.response || ""),
+    });
+    return out;
+  }
 
   if (type === "step_start" || type === "step-start") {
     if (!acc.started) {
@@ -206,6 +234,28 @@ function mapOpenCodeJson(ev, acc) {
   return out;
 }
 
+function mapOpenCodeBus(ev, acc) {
+  if (!ev || typeof ev !== "object") return [];
+  const type = String(ev.type || "");
+  if (type === "message.part.updated" && ev.properties && ev.properties.part) {
+    const part = ev.properties.part;
+    return mapOpenCodeJson(
+      {
+        type: part.type,
+        part,
+        sessionID: ev.properties.sessionID || part.sessionID,
+        timestamp: ev.timestamp,
+      },
+      acc,
+    );
+  }
+  if (type.indexOf("permission.") === 0) return mapOpenCodeJson(ev, acc);
+  if (ev.part || type === "text" || type === "tool_use" || type === "step_start" || type === "step_finish") {
+    return mapOpenCodeJson(ev, acc);
+  }
+  return [];
+}
+
 function mapOpenCodeJsonl(lines) {
   const acc = { started: false, turnText: "", thinkingText: "", usage: null, finished: false, sessionId: "" };
   const events = [];
@@ -239,6 +289,7 @@ const opencodeApi = {
   toolLabel,
   usageFromPart,
   mapOpenCodeJson,
+  mapOpenCodeBus,
   mapOpenCodeJsonl,
 };
 

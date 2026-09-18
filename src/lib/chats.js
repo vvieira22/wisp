@@ -275,6 +275,22 @@ function applyRunEvent(store, chatId, event) {
     chat.messages.push({ role: "tool", text: "⚙ " + (event.text || "tool") });
   } else if (type === "thinking") {
     return chat;
+  } else if (type === "permission-request") {
+    sealLive(chat.messages);
+    chat.messages.push({
+      role: "permission",
+      text: String(event.title || event.detail || "Permissão pendente"),
+      permissionId: String(event.permissionId || ""),
+      live: true,
+    });
+  } else if (type === "permission-resolved") {
+    const id = String(event.permissionId || "");
+    const reply = String(event.response || "");
+    const last = [...(chat.messages || [])].reverse().find((m) => m.role === "permission" && m.live && (!id || m.permissionId === id));
+    if (last) {
+      delete last.live;
+      if (reply) last.text = `${last.text} → ${reply}`;
+    }
   } else if (type === "session-gap") {
     const text = String(event.text || "").trim();
     if (text) chat.messages.push({ role: "notice", text });

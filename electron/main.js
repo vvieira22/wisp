@@ -69,6 +69,7 @@ const {
   applyRunEvent,
 } = require("../src/lib/chats");
 const { listSkills, attachSkill } = require("../src/lib/skills");
+const { globalLogger: logger } = require("../src/lib/logs");
 
 if (process.platform === "win32") {
   // ponytail: Chromium 139+ keeps DirectComposition in "software" mode, so transparent
@@ -405,6 +406,17 @@ function applyEvent(chatId, event) {
     chat.usageLabel = tagged.usageLabel;
   }
   const focused = id === current(chats).id;
+  if (event.type === "run-start") {
+    logger.info(currentEngine, `Iniciou resposta (modelo: ${(chat && chat.model) || cfg().model})`, { chatId: id });
+  } else if (event.type === "run-error") {
+    logger.error(currentEngine, `Modelo parou com erro: ${event.text || "falhou"}`, { chatId: id, model: chat && chat.model, error: event.text });
+  } else if (event.type === "run-cancel") {
+    logger.warn(currentEngine, "Resposta cancelada pelo usuário", { chatId: id });
+  } else if (event.type === "run-end") {
+    logger.info(currentEngine, `Resposta finalizada com sucesso (${event.ms ? event.ms + "ms" : ""})`, { chatId: id, usage: event.usage });
+  } else if (event.type === "session-gap") {
+    logger.warn(currentEngine, `Aviso de sessão: ${event.text}`);
+  }
   if (focused) {
     let next = reducePet(petState, event);
     if (event.type === "run-end" && chatOpen) next = "idle";
@@ -417,7 +429,7 @@ function applyEvent(chatId, event) {
       tellUsage(chat, event.usage || (getSessions().get(id) && getSessions().get(id).lastUsage));
     }
   }
-  if (event.type === "run-end" || event.type === "run-error" || event.type === "run-cancel" || event.type === "run-start") {
+  if (event.type === "run-end" || event.type === "run-error" || event.type === "run-cancel" || event.type === "run-start" || event.type === "permission-request" || event.type === "permission-resolved") {
     saveChats();
   }
 }
@@ -445,17 +457,24 @@ function attachDebug(win, name) {
     const message = event.message;
     if (level < 2 && name !== "chat") return;
     const where = event.sourceId ? ` ${event.sourceId}:${event.lineNumber}` : "";
-    if (level >= 2) console.error(`[${name}] ${message}${where}`);
-    else console.log(`[${name}] ${message}${where}`);
+    if (level >= 2) {
+      console.error(`[${name}] ${message}${where}`);
+      logger.error(name, `Console error: ${message}${where}`);
+    } else {
+      console.log(`[${name}] ${message}${where}`);
+    }
   });
   win.webContents.on("did-fail-load", (_event, code, desc, url) => {
     console.error(`[${name} load] ${code} ${desc} ${url}`);
+    logger.error(name, `Falha ao carregar [${code}]: ${desc} (${url})`);
   });
   win.webContents.on("render-process-gone", (_event, details) => {
     console.error(`[${name} crash]`, details);
+    logger.error(name, `Crash no processo: ${details ? details.reason : "desconhecido"}`, details);
   });
   win.webContents.on("preload-error", (_event, file, err) => {
     console.error(`[${name} preload]`, file, err);
+    logger.error(name, `Erro no preload (${file}): ${err}`);
   });
 }
 
@@ -486,8 +505,21 @@ async function nativeDialog(opts) {
   }
 }
 
+logger.onEntry((entry) => {
+  if (chatWin && !chatWin.isDestroyed()) {
+    chatWin.webContents.send("logs:entry", entry);
+  }
+});
+
 process.on("uncaughtException", (err) => {
   console.error(err);
+  logger.error("system", `Exceção não tratada: ${err.message}`, { stack: err.stack });
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error(reason);
+  const msg = reason && reason.message ? reason.message : String(reason);
+  logger.error("system", `Rejeição não tratada: ${msg}`, { stack: reason && reason.stack });
 });
 
 function createPet() {
@@ -833,7 +865,11 @@ ipcMain.handle("account:probe", async (_event, payload) => {
       provider,
       geminiApiKey: geminiKey,
     });
-    if (!result.ok) return result;
+    if (!result.ok) {
+      logger.error("antigravity", `Teste de conexão Antigravity falhou: ${result.error || "erro desconhecido"}`);
+      return result;
+    }
+    logger.info("antigravity", `Conexão Antigravity testada com sucesso (${(result.models || []).length} modelos)`);
     const partial = {
       provider,
       model: result.models[0] ? result.models[0].id : "gemini-3.8-flash-high",
@@ -867,7 +903,11 @@ ipcMain.handle("account:probe", async (_event, payload) => {
       keys,
       model: c.model,
     });
-    if (!result.ok) return result;
+    if (!result.ok) {
+      logger.error("opencode", `Teste de conexão OpenCode falhou: ${result.error || "erro desconhecido"}`);
+      return result;
+    }
+    logger.info("opencode", `Conexão OpenCode testada com sucesso (${(result.models || []).length} modelos)`);
     const model = resolveOpenCodeModel(result.model || c.model, provider, result.models);
     writeCfg({ provider, keys, model });
     const chat = current(chats);
@@ -882,6 +922,7 @@ ipcMain.handle("account:probe", async (_event, payload) => {
   const key = typed && !typed.startsWith("•") ? typed : cfg().apiKey;
   try {
     const result = await new WispAgent().probe(key);
+    logger.info("cursor", `Conexão Cursor testada com sucesso (${(result.models || []).length} modelos)`);
     const next = { apiKey: key, model: pickDefault(result.models, cfg().model) };
     writeCfg(next);
     const chat = current(chats);
@@ -891,7 +932,9 @@ ipcMain.handle("account:probe", async (_event, payload) => {
     }
     return Object.assign({ config: cfg() }, usageView(chat), result);
   } catch (err) {
-    return { ok: false, error: err && err.message ? err.message : String(err) };
+    const msg = err && err.message ? err.message : String(err);
+    logger.error("cursor", `Teste de conexão Cursor falhou: ${msg}`);
+    return { ok: false, error: msg };
   }
 });
 
@@ -931,6 +974,45 @@ ipcMain.handle("chat:cancel", async (_event, chatId) => {
   if (sess) await sess.cancel();
 });
 
+ipcMain.handle("chat:permission:respond", async (_event, payload, chatId) => {
+  const id = chatId || current(chats).id;
+  const sess = getSessions().get(id);
+  const body = payload && typeof payload === "object" ? payload : {};
+  if (sess && typeof sess.respondPermission === "function") {
+    try {
+      const ok = await sess.respondPermission(body);
+      applyEvent(id, {
+        type: "permission-resolved",
+        permissionId: body.permissionId || "",
+        response: body.response || "",
+      });
+      if (ok === false) {
+        applyEvent(id, {
+          type: "session-gap",
+          text: "Este provedor não aceita aprovação interativa. Nega ou espera o turno acabar.",
+        });
+      }
+      return ok !== false;
+    } catch (err) {
+      applyEvent(id, {
+        type: "session-gap",
+        text: (err && err.message) || "Não deu pra responder a permissão.",
+      });
+      return false;
+    }
+  }
+  applyEvent(id, {
+    type: "permission-resolved",
+    permissionId: body.permissionId || "",
+    response: body.response || "",
+  });
+  applyEvent(id, {
+    type: "session-gap",
+    text: "Este provedor não aceita aprovação interativa. Nega ou espera o turno acabar.",
+  });
+  return false;
+});
+
 ipcMain.handle("chat:send", async (_event, text, chatId) => {
   const c = cfg();
   const cwd = resolveCwd(c.cwd);
@@ -955,14 +1037,38 @@ ipcMain.handle("chat:send", async (_event, text, chatId) => {
     params: chat.params,
     mode: chat.mode,
   });
-  await sess.send(
-    runCfg,
-    prompt,
-    (event) => applyEvent(chat.id, event),
-  );
+  logger.info(currentEngine, `Enviando mensagem para o modelo ${chat.model}`, { chatId: chat.id, cwd });
+  try {
+    await sess.send(
+      runCfg,
+      prompt,
+      (event) => applyEvent(chat.id, event),
+    );
+  } catch (err) {
+    const msg = err && err.message ? err.message : String(err);
+    logger.error(currentEngine, `Falha durante execução do modelo: ${msg}`, { stack: err && err.stack, model: chat.model });
+    applyEvent(chat.id, { type: "run-error", text: msg });
+    throw err;
+  }
   chat.agentId = sess.agentId || "";
   chat.cwd = sess.cwd || cwd;
   saveChats();
+});
+
+ipcMain.handle("logs:get", (_event, filter) => {
+  return {
+    logs: filter ? logger.filter(filter) : logger.getAll(),
+    summary: logger.summary(),
+  };
+});
+
+ipcMain.handle("logs:clear", () => {
+  logger.clear();
+  return { logs: [], summary: logger.summary() };
+});
+
+ipcMain.handle("logs:add", (_event, entry) => {
+  return logger.add(entry);
 });
 
 ipcMain.handle("skills:list", () => publicSkills());

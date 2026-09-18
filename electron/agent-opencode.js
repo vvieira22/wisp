@@ -3,6 +3,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
+const net = require("node:net");
 const { spawn } = require("node:child_process");
 const {
   OPENCODE_PROVIDERS,
@@ -13,12 +14,13 @@ const {
   openCodeRunOpts,
   parseOpenCodeModels,
 } = require("../src/lib/opencode-providers");
+const { normalizeReply } = require("../src/lib/permission");
+const { globalLogger: logger } = require("../src/lib/logs");
 
 function preferExe(found) {
   const hit = path.resolve(found);
   if (process.platform !== "win32") return hit;
   if (hit.toLowerCase().endsWith(".exe")) return hit;
-  // npm global shim → real binary
   const fromShim = path.join(path.dirname(hit), "node_modules", "opencode-ai", "bin", "opencode.exe");
   if (fs.existsSync(fromShim)) return path.resolve(fromShim);
   return hit;
@@ -30,10 +32,7 @@ function findOpenCodeBin() {
   }
   const home = os.homedir();
   const npmGlobal = path.join(home, "AppData", "Roaming", "npm");
-  const names =
-    process.platform === "win32"
-      ? ["opencode.exe", "opencode.cmd", "opencode"]
-      : ["opencode"];
+  const names = process.platform === "win32" ? ["opencode.exe", "opencode.cmd", "opencode"] : ["opencode"];
   const candidates = [
     path.join(home, "AppData", "Local", "opencode", "bin", "opencode.exe"),
     path.join(npmGlobal, "node_modules", "opencode-ai", "bin", "opencode.exe"),
@@ -76,6 +75,18 @@ function spawnOpenCode(bin, args, opts) {
   return spawn(bin, args, Object.assign({ windowsHide: true, shell: isCmd }, opts));
 }
 
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.listen(0, "127.0.0.1", () => {
+      const addr = server.address();
+      const port = addr && addr.port;
+      server.close((err) => (err ? reject(err) : resolve(port)));
+    });
+    server.on("error", reject);
+  });
+}
+
 function listModels(bin, provider, env) {
   return new Promise((resolve) => {
     const p = spawnOpenCode(bin, ["models", provider], {
@@ -109,11 +120,15 @@ class OpenCodeAgent {
     this.cwd = "";
     this.lastUsage = null;
     this.cancelling = false;
+    this.autoApprove = false;
+    this.localUrl = "";
+    this.pendingPermission = null;
   }
 
-  bind(agentId, messages) {
-    const hasAssistant = (messages || []).some((m) => m.role === "assistant" && m.text);
-    this.resumeId = hasAssistant ? agentId || "" : "";
+  bind(agentId) {
+    // ponytail: tool-only turns still have a session. Requiring assistant text
+    // started a blank session and the model said it never saw the question.
+    this.resumeId = agentId || "";
   }
 
   async probe(cfg) {
@@ -167,6 +182,7 @@ class OpenCodeAgent {
 
     this.busy = true;
     this.cancelling = false;
+    this.pendingPermission = null;
     const started = Date.now();
     const msOf = () => Date.now() - started;
 
@@ -185,6 +201,8 @@ class OpenCodeAgent {
       this.busy = false;
       this.cancelling = false;
       this.proc = null;
+      this.localUrl = "";
+      this.pendingPermission = null;
     }
   }
 
@@ -202,12 +220,16 @@ class OpenCodeAgent {
     this.cwd = cwd;
 
     const agent = agentForMode(cfg && cfg.mode);
+    this.autoApprove = agent === "build";
     const opts = openCodeRunOpts(model, cfg && cfg.params);
-    // ponytail: flags mirror `opencode run --help`.
-    const args = ["run", "--format", "json", "--dir", cwd, "--model", model, "--agent", agent];
+    const port = await freePort();
+    this.localUrl = `http://127.0.0.1:${port}`;
+    // ponytail: `run` already boots a local server. `--port` is only so
+    // Wisp can POST a permission reply to that same process.
+    const args = ["run", "--format", "json", "--dir", cwd, "--port", String(port), "--model", model, "--agent", agent];
     if (opts.thinking) args.push("--thinking");
     if (opts.variant) args.push("--variant", opts.variant);
-    if (agent === "build") args.push("--auto");
+    if (this.autoApprove) args.push("--auto");
     if (this.resumeId) args.push("--session", this.resumeId);
     args.push(prompt);
 
@@ -228,6 +250,7 @@ class OpenCodeAgent {
         usage: null,
         finished: false,
         sessionId: this.resumeId || "",
+        pendingPermission: null,
       };
       let lineBuf = "";
       let errOut = "";
@@ -235,6 +258,19 @@ class OpenCodeAgent {
       const emitMapped = (ev) => {
         for (const event of mapOpenCodeJson(ev, acc)) {
           if (event.type === "run-start") continue;
+          if (event.type === "permission-request") {
+            if (this.autoApprove) {
+              this.respondPermission({
+                permissionId: event.permissionId,
+                sessionId: event.sessionId || acc.sessionId,
+                response: "once",
+              }).catch(() => {});
+              continue;
+            }
+            if (this.pendingPermission && this.pendingPermission.permissionId === event.permissionId) continue;
+            this.pendingPermission = event;
+          }
+          if (event.type === "permission-resolved") this.pendingPermission = null;
           if (event.type === "run-end" || event.type === "run-error") event.ms = msOf();
           if (event.type === "usage" || event.type === "run-end") {
             this.lastUsage = event.usage || this.lastUsage;
@@ -268,6 +304,7 @@ class OpenCodeAgent {
 
       proc.on("error", (err) => {
         this.proc = null;
+        logger.error("opencode", `Falha ao iniciar processo opencode: ${err.message}`, { code: err.code, stack: err.stack });
         reject(err);
       });
 
@@ -281,20 +318,52 @@ class OpenCodeAgent {
           }
         }
         if (this.cancelling) {
+          logger.warn("opencode", "Processo opencode cancelado pelo usuário.");
           onEvent({ type: "run-cancel", ms: msOf() });
           resolve();
           return;
         }
         if (code !== 0 && !acc.turnText && !acc.finished) {
-          reject(new Error(errOut.trim() || `opencode saiu com código ${code}`));
+          const errText = errOut.trim() || `opencode saiu com código ${code}`;
+          logger.error("opencode", `OpenCode encerrou com erro (código ${code}): ${errText}`, { stderr: errOut.trim() });
+          reject(new Error(errText));
           return;
         }
         if (!acc.finished) {
-          onEvent({ type: "run-end", status: "finished", usage: this.lastUsage, ms: msOf() });
+          if (this.pendingPermission || acc.pendingPermission) {
+            logger.warn("opencode", "OpenCode parou esperando permissão.");
+            onEvent({ type: "run-error", text: "O OpenCode parou esperando permissão.", ms: msOf() });
+          } else {
+            logger.error("opencode", `OpenCode parou inesperadamente sem concluir a resposta (código ${code}).`, { stderr: errOut.trim() });
+            onEvent({ type: "run-end", status: "finished", usage: this.lastUsage, ms: msOf() });
+          }
         }
         resolve();
       });
     });
+  }
+
+  async respondPermission(payload) {
+    const url = this.localUrl;
+    if (!url) return false;
+    const reply = normalizeReply(payload && payload.response);
+    const permissionId = String((payload && payload.permissionId) || "");
+    const sessionId = String((payload && payload.sessionId) || this.agentId || "");
+    if (!permissionId || !sessionId) return false;
+    const res = await fetch(
+      `${url}/session/${encodeURIComponent(sessionId)}/permissions/${encodeURIComponent(permissionId)}`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ response: reply, remember: reply === "always" }),
+      },
+    );
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(text.trim() || `permissão recusada pelo OpenCode (${res.status})`);
+    }
+    this.pendingPermission = null;
+    return true;
   }
 
   async cancel() {
@@ -316,6 +385,8 @@ class OpenCodeAgent {
     this.resumeId = "";
     this.cwd = "";
     this.lastUsage = null;
+    this.localUrl = "";
+    this.pendingPermission = null;
   }
 }
 

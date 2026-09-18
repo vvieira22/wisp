@@ -6,6 +6,7 @@ const { reducePet, forcePet, snippet, bubbleCopy } = require("./pet-state.js");
 assert.equal(reducePet("idle", { type: "run-start" }), "thinking");
 assert.equal(reducePet("thinking", { type: "tool" }), "thinking");
 assert.equal(reducePet("thinking", { type: "assistant-text" }), "thinking");
+assert.equal(reducePet("thinking", { type: "permission-request" }), "thinking");
 assert.equal(reducePet("thinking", { type: "run-end" }), "alert");
 assert.equal(reducePet("thinking", { type: "run-cancel" }), "idle");
 assert.equal(reducePet("alert", { type: "ack" }), "idle");
@@ -66,6 +67,8 @@ assert.equal(simplifyEvent({ type: "tool_call", name: "Shell", status: "running"
 assert.equal(simplifyEvent({ type: "tool_call", name: "read", status: "running", args: { path: "src/pet.js" } }).text, "read pet.js");
 assert.equal(simplifyEvent({ type: "tool_call", name: "Shell", status: "completed" }).kind, "skip");
 assert.equal(simplifyEvent({ type: "thinking", text: "hmm" }).kind, "thinking");
+assert.equal(simplifyEvent({ type: "request", request_id: "req_1" }).kind, "request");
+assert.equal(simplifyEvent({ type: "request", request_id: "req_1" }).requestId, "req_1");
 
 const { pickDefault, formatUsage, slimUsage, effortChoices, formatTurn, formatMeter, formatCents, formatElapsed, spendFrom } = require("../../electron/agent.js");
 assert.equal(pickDefault([{ id: "auto" }, { id: "composer-2.5" }]), "composer-2.5");
@@ -564,6 +567,34 @@ chats.applyRunEvent(gap, gap.currentId, { type: "assistant-text", text: "hey" })
 assert.equal(chats.current(gap).messages[1].role, "notice");
 assert.equal(chats.current(gap).messages[1].text, SESSION_GAP);
 assert.equal(chats.clipMessages(chats.current(gap).messages).some((m) => m.role === "notice"), true);
+
+{
+  const perm = chats.emptyStore();
+  chats.appendUser(perm, "oi");
+  chats.applyRunEvent(perm, perm.currentId, { type: "run-start", at: 10 });
+  chats.applyRunEvent(perm, perm.currentId, {
+    type: "permission-request",
+    permissionId: "per_1",
+    title: "Permitir read: opencode.jsonc",
+  });
+  assert.equal(chats.current(perm).messages[1].role, "permission");
+  assert.equal(chats.current(perm).messages[1].live, true);
+  assert.equal(chats.current(perm).turnAt, 10);
+  chats.applyRunEvent(perm, perm.currentId, { type: "permission-resolved", permissionId: "per_1", response: "once" });
+  assert.equal(chats.current(perm).messages[1].live, undefined);
+  assert.match(chats.current(perm).messages[1].text, /once/);
+  assert.equal(chats.current(perm).turnAt, 10);
+}
+
+{
+  const hung = emptyAgyAcc("");
+  const perms = mapAgyEvent(
+    { event: "permission", permission: { id: "p1", kind: "read", path: "C:\\\\tmp\\\\x" } },
+    hung,
+  );
+  assert.equal(perms[0].type, "permission-request");
+  assert.equal(perms[0].permissionId, "p1");
+}
 
 const fs = require("node:fs");
 const os = require("node:os");

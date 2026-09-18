@@ -55,6 +55,30 @@ const opencodeProviderBtns = document.querySelectorAll("[data-oc-provider]");
 const opencodeSetupStatus = document.getElementById("opencode-setup-status");
 const opencodeCheckBtn = document.getElementById("opencode-check");
 
+const tabBtnGeneral = document.getElementById("tab-btn-general");
+const tabBtnLogs = document.getElementById("tab-btn-logs");
+const settingsViewGeneral = document.getElementById("settings-view-general");
+const settingsViewLogs = document.getElementById("settings-view-logs");
+const logsBadge = document.getElementById("logs-badge");
+const logsStatusDot = document.getElementById("logs-status-dot");
+const logsStatusText = document.getElementById("logs-status-text");
+const logsCountTotal = document.getElementById("logs-count-total");
+const logsCountErrors = document.getElementById("logs-count-errors");
+const logsCountWarns = document.getElementById("logs-count-warns");
+const logsLastErrorBox = document.getElementById("logs-last-error-box");
+const logsLastErrorContent = document.getElementById("logs-last-error-content");
+const logFilterBtns = document.querySelectorAll(".log-filter-btn");
+const logSearchInput = document.getElementById("log-search");
+const logFilterSource = document.getElementById("log-filter-source");
+const logsCopyBtn = document.getElementById("logs-copy");
+const logsClearBtn = document.getElementById("logs-clear");
+const logsList = document.getElementById("logs-list");
+
+let currentSettingsTab = "general";
+let unreadLogErrors = 0;
+let currentLogFilter = { level: "all", source: "all", query: "" };
+let cachedLogs = [];
+
 const engineAsk = document.getElementById("engine-ask");
 const engineAskTitle = document.getElementById("engine-ask-title");
 const engineAskDesc = document.getElementById("engine-ask-desc");
@@ -64,12 +88,15 @@ const queueBar = document.getElementById("queue-bar");
 const queueList = document.getElementById("queue-list");
 const queueAsk = document.getElementById("queue-ask");
 const queueAskText = document.getElementById("queue-ask-text");
+const permissionAsk = document.getElementById("permission-ask");
+const permissionAskText = document.getElementById("permission-ask-text");
 
 const BUSY_MARK = " (ocupada)";
 
 let lastAssistant = null;
 let warned = false;
 let running = false;
+let pendingPermission = null;
 let usageLabel = "0 / 200k";
 let usageTitle = "contexto da sessão";
 let liveUsage = null;
@@ -206,12 +233,188 @@ function setPage(name) {
   if (page === "account") {
     hideSkills();
     paintAccountFields();
-    if (currentEngine === "cursor") keyInput.focus();
-    else if (currentEngine === "opencode" && opencodeKeyInput) opencodeKeyInput.focus();
-    else if (activeProvider === "api" && geminiKeyInput) geminiKeyInput.focus();
+    if (currentSettingsTab === "logs") {
+      fetchAndRenderLogs();
+    } else {
+      if (currentEngine === "cursor") keyInput.focus();
+      else if (currentEngine === "opencode" && opencodeKeyInput) opencodeKeyInput.focus();
+      else if (activeProvider === "api" && geminiKeyInput) geminiKeyInput.focus();
+    }
     return;
   }
   input.focus();
+}
+
+function setSettingsTab(tabName) {
+  currentSettingsTab = tabName === "logs" ? "logs" : "general";
+  if (tabBtnGeneral) tabBtnGeneral.classList.toggle("active", currentSettingsTab === "general");
+  if (tabBtnLogs) tabBtnLogs.classList.toggle("active", currentSettingsTab === "logs");
+  if (settingsViewGeneral) settingsViewGeneral.hidden = currentSettingsTab !== "general";
+  if (settingsViewLogs) settingsViewLogs.hidden = currentSettingsTab !== "logs";
+
+  if (currentSettingsTab === "logs") {
+    unreadLogErrors = 0;
+    paintLogsBadge();
+    fetchAndRenderLogs();
+  }
+}
+
+function paintLogsBadge() {
+  if (!logsBadge) return;
+  if (unreadLogErrors > 0) {
+    logsBadge.textContent = unreadLogErrors > 99 ? "99+" : String(unreadLogErrors);
+    logsBadge.hidden = false;
+  } else {
+    logsBadge.hidden = true;
+  }
+}
+
+function copyToClipboard(text, btn, successLabel = "Copiado!") {
+  const origText = btn ? btn.textContent : "";
+  const doCopy = () => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    const t = document.createElement("textarea");
+    t.value = text;
+    t.style.position = "fixed";
+    t.style.opacity = "0";
+    document.body.appendChild(t);
+    t.select();
+    document.execCommand("copy");
+    t.remove();
+    return Promise.resolve();
+  };
+
+  doCopy()
+    .then(() => {
+      if (btn) {
+        btn.textContent = successLabel;
+        setTimeout(() => {
+          btn.textContent = origText;
+        }, 1500);
+      }
+    })
+    .catch(() => {});
+}
+
+async function fetchAndRenderLogs() {
+  if (!window.wisp || typeof window.wisp.getLogs !== "function") return;
+  try {
+    const data = await window.wisp.getLogs(currentLogFilter);
+    cachedLogs = (data && data.logs) || [];
+    const summary = (data && data.summary) || { total: 0, errors: 0, warnings: 0 };
+    paintLogsSummary(summary);
+    renderLogsList(cachedLogs);
+  } catch (err) {
+    console.error("[fetchAndRenderLogs]", err);
+  }
+}
+
+function paintLogsSummary(summary) {
+  if (!summary) return;
+  if (logsCountTotal) logsCountTotal.textContent = String(summary.total || 0);
+  if (logsCountErrors) logsCountErrors.textContent = String(summary.errors || 0);
+  if (logsCountWarns) logsCountWarns.textContent = String(summary.warnings || 0);
+
+  if (logsStatusDot && logsStatusText) {
+    logsStatusDot.classList.remove("ok", "error", "warn");
+    if (summary.errors > 0) {
+      logsStatusDot.classList.add("error");
+      logsStatusText.textContent = `${summary.errors} ${summary.errors === 1 ? "erro detectado" : "erros detectados"}`;
+    } else if (summary.warnings > 0) {
+      logsStatusDot.classList.add("warn");
+      logsStatusText.textContent = `${summary.warnings} ${summary.warnings === 1 ? "aviso" : "avisos"}`;
+    } else {
+      logsStatusDot.classList.add("ok");
+      logsStatusText.textContent = "Sistema estável";
+    }
+  }
+
+  if (logsLastErrorBox && logsLastErrorContent) {
+    if (summary.lastError && summary.errors > 0) {
+      logsLastErrorBox.hidden = false;
+      const time = summary.lastError.time ? `[${summary.lastError.time}] ` : "";
+      const src = summary.lastError.source ? `[${summary.lastError.source}] ` : "";
+      logsLastErrorContent.textContent = `${time}${src}${summary.lastError.message}`;
+    } else {
+      logsLastErrorBox.hidden = true;
+    }
+  }
+}
+
+function renderLogsList(logs) {
+  if (!logsList) return;
+  logsList.innerHTML = "";
+  if (!logs || !logs.length) {
+    const empty = document.createElement("div");
+    empty.className = "logs-empty";
+    empty.textContent = "Nenhum log encontrado para o filtro atual.";
+    logsList.appendChild(empty);
+    return;
+  }
+
+  const reversed = logs.slice().reverse();
+  for (const entry of reversed) {
+    const item = document.createElement("div");
+    const levelClass = entry.level === "error" ? "level-error" : entry.level === "warn" ? "level-warn" : "level-info";
+    item.className = `log-item ${levelClass}`;
+
+    const header = document.createElement("div");
+    header.className = "log-item-header";
+
+    const time = document.createElement("span");
+    time.className = "log-item-time";
+    time.textContent = entry.time || "";
+
+    const level = document.createElement("span");
+    level.className = "log-item-level";
+    level.textContent = entry.level || "info";
+
+    const source = document.createElement("span");
+    source.className = "log-item-source";
+    source.textContent = entry.source || "system";
+
+    const copyItemBtn = document.createElement("button");
+    copyItemBtn.type = "button";
+    copyItemBtn.className = "log-item-copy-btn";
+    copyItemBtn.title = "Copiar este log";
+    copyItemBtn.textContent = "📋";
+    copyItemBtn.onclick = (ev) => {
+      ev.stopPropagation();
+      const text = `[${entry.time}] [${(entry.level || "").toUpperCase()}] [${entry.source}] ${entry.message}${entry.details ? "\nDetalhes:\n" + entry.details : ""}`;
+      copyToClipboard(text, copyItemBtn, "✓");
+    };
+
+    header.appendChild(time);
+    header.appendChild(level);
+    header.appendChild(source);
+    header.appendChild(copyItemBtn);
+    item.appendChild(header);
+
+    const msg = document.createElement("div");
+    msg.className = "log-item-msg";
+    msg.textContent = entry.message || "";
+    item.appendChild(msg);
+
+    if (entry.details) {
+      const details = document.createElement("details");
+      details.className = "log-item-details";
+      if (entry.level === "error") details.open = true;
+
+      const summary = document.createElement("summary");
+      summary.textContent = "Ver detalhes / diagnóstico";
+      details.appendChild(summary);
+
+      const pre = document.createElement("pre");
+      pre.textContent = entry.details;
+      details.appendChild(pre);
+
+      item.appendChild(details);
+    }
+
+    logsList.appendChild(item);
+  }
 }
 
 function paintFolder() {
@@ -232,7 +435,10 @@ function setRunning(on) {
   goBtn.textContent = running ? "Parar" : "Enviar";
   goBtn.classList.toggle("stop", running);
   goBtn.title = running ? "Parar a resposta" : "Enviar mensagem";
-  if (!running) setThinking(false);
+  if (!running) {
+    setThinking(false);
+    hidePermissionAsk();
+  }
 }
 
 function setThinking(on, text) {
@@ -836,6 +1042,37 @@ function hideQueueAsk() {
   queueDraft = "";
 }
 
+function hidePermissionAsk() {
+  if (permissionAsk) permissionAsk.hidden = true;
+  pendingPermission = null;
+}
+
+function showPermissionAsk(event) {
+  pendingPermission = event || null;
+  if (!permissionAsk) return;
+  if (permissionAskText) permissionAskText.textContent = (event && event.title) || "O agente pede permissão.";
+  permissionAsk.hidden = false;
+}
+
+async function respondPermission(response) {
+  const req = pendingPermission;
+  if (!req) return hidePermissionAsk();
+  hidePermissionAsk();
+  try {
+    await window.wisp.respondPermission(
+      {
+        permissionId: req.permissionId,
+        sessionId: req.sessionId,
+        response,
+        engine: req.engine,
+      },
+      viewId,
+    );
+  } catch (err) {
+    addMsg("error", err && err.message ? err.message : String(err));
+  }
+}
+
 function showQueueAsk(text) {
   if (!queueAsk) return;
   queueDraft = text;
@@ -1287,6 +1524,7 @@ window.addEventListener("resize", closePicks);
 document.getElementById("reset").onclick = async () => {
   hideClearAsk();
   hideQueueAsk();
+  hidePermissionAsk();
   clearQueue(viewId);
   try {
     applyState(await window.wisp.reset(payload()));
@@ -1308,6 +1546,7 @@ document.getElementById("clear-no").onclick = hideClearAsk;
 document.getElementById("clear-yes").onclick = async () => {
   hideClearAsk();
   hideQueueAsk();
+  hidePermissionAsk();
   clearQueue(viewId);
   if (running) {
     try {
@@ -1349,6 +1588,7 @@ chatName.addEventListener("blur", () => {
 
 setup.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (currentSettingsTab === "logs") return;
   if (currentEngine === "cursor") {
     await probeAccount(keyInput.value.trim());
   } else if (currentEngine === "opencode") {
@@ -1362,6 +1602,111 @@ setup.addEventListener("submit", async (event) => {
     await probeAccount({
       provider: activeProvider,
       geminiApiKey: typedGemini,
+    });
+  }
+});
+
+if (tabBtnGeneral) {
+  tabBtnGeneral.addEventListener("click", () => setSettingsTab("general"));
+}
+if (tabBtnLogs) {
+  tabBtnLogs.addEventListener("click", () => setSettingsTab("logs"));
+}
+
+if (logFilterBtns) {
+  logFilterBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      logFilterBtns.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentLogFilter.level = btn.dataset.level || "all";
+      fetchAndRenderLogs();
+    });
+  });
+}
+
+if (logFilterSource) {
+  logFilterSource.addEventListener("change", () => {
+    currentLogFilter.source = logFilterSource.value;
+    fetchAndRenderLogs();
+  });
+}
+
+let searchTimer = null;
+if (logSearchInput) {
+  logSearchInput.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      currentLogFilter.query = logSearchInput.value.trim();
+      fetchAndRenderLogs();
+    }, 150);
+  });
+}
+
+if (logsCopyBtn) {
+  logsCopyBtn.addEventListener("click", () => {
+    const formatted = typeof LogStore !== "undefined" && typeof LogStore.prototype.formatExport === "function"
+      ? (new LogStore()).formatExport.call({ filter: () => cachedLogs, entries: cachedLogs })
+      : cachedLogs.map((e) => `[${e.time}] [${(e.level || "").toUpperCase()}] [${e.source}] ${e.message}${e.details ? "\nDetalhes:\n" + e.details : ""}`).join("\n\n");
+    copyToClipboard(formatted, logsCopyBtn, "Copiado!");
+  });
+}
+
+if (logsClearBtn) {
+  logsClearBtn.addEventListener("click", async () => {
+    if (window.wisp && typeof window.wisp.clearLogs === "function") {
+      await window.wisp.clearLogs();
+    }
+    cachedLogs = [];
+    unreadLogErrors = 0;
+    paintLogsBadge();
+    paintLogsSummary({ total: 0, errors: 0, warnings: 0 });
+    renderLogsList([]);
+  });
+}
+
+if (window.wisp && typeof window.wisp.onLog === "function") {
+  window.wisp.onLog((entry) => {
+    if (entry.type === "clear") {
+      cachedLogs = [];
+      unreadLogErrors = 0;
+      paintLogsBadge();
+      paintLogsSummary({ total: 0, errors: 0, warnings: 0 });
+      renderLogsList([]);
+      return;
+    }
+
+    if (entry.level === "error") {
+      if (currentSettingsTab !== "logs") {
+        unreadLogErrors += 1;
+        paintLogsBadge();
+      }
+    }
+
+    if (currentSettingsTab === "logs") {
+      fetchAndRenderLogs();
+    }
+  });
+}
+
+window.addEventListener("error", (event) => {
+  if (window.wisp && typeof window.wisp.addLog === "function") {
+    window.wisp.addLog({
+      level: "error",
+      source: "chat",
+      message: event.message || "Erro na interface do chat",
+      details: event.error && event.error.stack ? event.error.stack : `${event.filename}:${event.lineno}`,
+    });
+  }
+});
+
+window.addEventListener("unhandledrejection", (event) => {
+  if (window.wisp && typeof window.wisp.addLog === "function") {
+    const reason = event.reason;
+    window.wisp.addLog({
+      level: "error",
+      source: "chat",
+      message: reason && reason.message ? reason.message : String(reason),
+      details: reason && reason.stack ? reason.stack : "",
     });
   }
 });
@@ -1531,12 +1876,28 @@ document.getElementById("queue-cut").onclick = () => {
 
 document.getElementById("queue-no").onclick = hideQueueAsk;
 
+if (document.getElementById("permission-once")) {
+  document.getElementById("permission-once").onclick = () => void respondPermission("once");
+  document.getElementById("permission-always").onclick = () => void respondPermission("always");
+  document.getElementById("permission-reject").onclick = () => void respondPermission("reject");
+}
+
+goBtn.addEventListener("click", (event) => {
+  if (!running || input.value.trim() || attachments.length) return;
+  event.preventDefault();
+  window.wisp.cancel(viewId);
+});
+
 composer.addEventListener("submit", async (event) => {
   event.preventDefault();
   hideSkills();
   const rawText = input.value.trim();
   if (running) {
     if (!rawText && !attachments.length) {
+      if (pendingPermission) {
+        void respondPermission("once");
+        return;
+      }
       try {
         await window.wisp.cancel(viewId);
       } catch (err) {
@@ -1631,6 +1992,12 @@ window.addEventListener("keydown", (event) => {
     hideQueueAsk();
     return;
   }
+  if (permissionAsk && !permissionAsk.hidden) {
+    event.preventDefault();
+    void respondPermission("reject");
+    window.wisp.cancel(viewId);
+    return;
+  }
   if (panel.dataset.page === "account") {
     event.preventDefault();
     setPage("chat");
@@ -1676,6 +2043,16 @@ window.wisp.onChat((event) => {
     addMsg("tool", `⚙ ${event.text || "tool"}`);
     paintTick();
     log.scrollTop = log.scrollHeight;
+  }
+  if (event.type === "permission-request") {
+    setThinking(true);
+    showPermissionAsk(event);
+    addMsg("permission", event.title || "O agente pede permissão.");
+    paintTick();
+    log.scrollTop = log.scrollHeight;
+  }
+  if (event.type === "permission-resolved") {
+    hidePermissionAsk();
   }
   if (event.type === "thinking") setThinking(true, event.text);
   if (event.type === "usage") {

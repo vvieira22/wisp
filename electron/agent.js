@@ -89,6 +89,13 @@ function simplifyEvent(event) {
   if (type === "assistant") return { kind: "assistant", text: contentText(event) };
   if (type === "usage") return { kind: "usage", usage: slimUsage(event) };
   if (type === "thinking") return { kind: "thinking", text: String(event.text || "") };
+  if (type === "request") {
+    return {
+      kind: "request",
+      requestId: String(event.request_id || event.requestId || ""),
+      text: String(event.message || event.text || ""),
+    };
+  }
   if (type === "tool_call") {
     if (event.status && event.status !== "running") return { kind: "skip", text: "" };
     return { kind: "tool", text: toolLabel(event) };
@@ -100,6 +107,8 @@ const { slimModel, collapseModels, pickDefault, resolveModel, effortChoices } = 
 const { mergeStream } = require("../src/lib/text");
 const { normalizeMode, sdkMode, agentOpts } = require("../src/lib/mode");
 const { slimUsage, mergeUsage, formatUsage, contextLimit, formatTokens, formatCents, formatElapsed, formatMeter, formatTurn, meterTitle, spendFrom } = require("../src/lib/usage");
+const { permissionRequest, normalizeReply } = require("../src/lib/permission");
+const { globalLogger: logger } = require("../src/lib/logs");
 
 function paramsEqual(a, b) {
   return JSON.stringify(a || []) === JSON.stringify(b || []);
@@ -238,6 +247,7 @@ class WispAgent {
     this.cancelling = false;
     this.mode = "agent";
     this.sessionGap = false;
+    this.pendingPermission = null;
   }
 
   remember(messages) {
@@ -381,6 +391,16 @@ class WispAgent {
               thinkingText += simple.text;
               onEvent({ type: "thinking", text: thinkingText });
             }
+          } else if (simple.kind === "request") {
+            const req = permissionRequest({
+              engine: "cursor",
+              permissionId: simple.requestId,
+              sessionId: this.agentId,
+              kind: "request",
+              detail: simple.text,
+            });
+            this.pendingPermission = req;
+            onEvent(req);
           } else if (simple.kind === "usage" && simple.usage) {
             turnUsage = turnUsage ? mergeUsage(turnUsage, simple.usage) : simple.usage;
             onEvent({ type: "usage", usage: turnUsage });
@@ -395,7 +415,9 @@ class WispAgent {
         return;
       }
       if (result && result.status === "error") {
-        onEvent({ type: "run-error", text: result.result || (result.error && result.error.message) || "O run falhou.", ms: msOf() });
+        const errText = result.result || (result.error && result.error.message) || "O run falhou.";
+        logger.error("cursor", `Cursor run encerrou com status error: ${errText}`, result);
+        onEvent({ type: "run-error", text: errText, ms: msOf() });
         return;
       }
       if (!sawText && result && typeof result.result === "string" && result.result) {
@@ -420,10 +442,12 @@ class WispAgent {
       this.agentId = "";
       await this.dropAgent();
       if (this.cancelling) {
+        logger.warn("cursor", "Run cancelado pelo usuário.");
         onEvent({ type: "run-cancel", ms: msOf() });
         return;
       }
       const message = err && err.message ? err.message : String(err);
+      logger.error("cursor", `Erro no SDK Cursor: ${message}`, { stack: err && err.stack });
       console.error("[wisp send]", message);
       onEvent({ type: "run-error", text: message, ms: msOf() });
     } finally {
@@ -443,9 +467,25 @@ class WispAgent {
     }
   }
 
+  async respondPermission(payload) {
+    const run = this.run;
+    const reply = normalizeReply(payload && payload.response);
+    if (run && typeof run.respond === "function") {
+      await run.respond((payload && payload.permissionId) || "", reply);
+      this.pendingPermission = null;
+      return true;
+    }
+    if (reply === "reject") {
+      await this.cancel();
+      return true;
+    }
+    return false;
+  }
+
   async cancel() {
     if (!this.busy) return false;
     this.cancelling = true;
+    this.pendingPermission = null;
     await this.stopRun(this.run);
     return true;
   }

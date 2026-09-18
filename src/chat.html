@@ -81,6 +81,12 @@
           <button type="button" id="queue-cut">Cancelar e enviar</button>
           <button type="button" id="queue-no">Voltar</button>
         </div>
+        <div id="permission-ask" class="queue-ask permission-ask" hidden>
+          <span id="permission-ask-text">O agente pede permissão.</span>
+          <button type="button" id="permission-once">Uma vez</button>
+          <button type="button" id="permission-always">Sempre</button>
+          <button type="button" id="permission-reject">Negar</button>
+        </div>
         <form id="composer">
           <div id="attachments" class="attachments" hidden></div>
           <textarea
@@ -113,82 +119,146 @@
       </div>
 
       <form id="page-account">
-        <div id="account-cursor-box">
-          <p class="page-lead">A chave fica neste computador. O Wisp usa ela pra falar com o Cursor.</p>
-          <label>
-            Chave da API do Cursor
-            <input id="key" type="password" spellcheck="false" placeholder="cursor_..." />
-          </label>
-        </div>
-
-        <div id="account-antigravity-box" hidden>
-          <p class="page-lead">Conecte ao ecossistema Antigravity / Gemini.</p>
-          <div class="field-provider">
-            <span class="field-label">Modo de Conexão</span>
-            <div class="provider-toggle">
-              <button type="button" id="provider-cli" class="provider-btn active" data-provider="cli">CLI Local (agy)</button>
-              <button type="button" id="provider-api" class="provider-btn" data-provider="api">API Gemini (Nuvem)</button>
-            </div>
-          </div>
-          <div id="box-cli">
-            <p id="cli-status" class="hint">Usando o binário local <code id="cli-path">agy.exe</code>.</p>
-          </div>
-          <div id="box-api" hidden>
-            <label>
-              Chave da API Gemini (Google AI Studio)
-              <input id="gemini-key" type="password" spellcheck="false" placeholder="AIzaSy..." />
-            </label>
-            <p class="hint">Gere gratuitamente no Google AI Studio (sem precisar instalar o CLI).</p>
-          </div>
-        </div>
-
-        <div id="account-opencode-box" hidden>
-          <p class="page-lead">BYOK via OpenCode. A chave fica neste computador; o CLI fala com a API do provedor.</p>
-          <div class="setup-callout" role="note">
-            <p class="setup-warn">O Wisp não embute o OpenCode. É preciso ter o CLI <code>opencode</code> instalado no PATH. Não precisa de conta paga do OpenCode — só a key do provedor.</p>
-            <ol class="setup-steps">
-              <li>Instale o CLI: <code>npm i -g opencode-ai</code></li>
-              <li>Confira no terminal: <code>opencode --version</code></li>
-              <li>Crie a API key no site do provedor (DeepSeek, Z.AI ou Moonshot)</li>
-              <li>Escolha o chip, cole a key e clique em Verificar setup</li>
-            </ol>
-          </div>
-          <div class="field-provider">
-            <span class="field-label">Provedor</span>
-            <div class="provider-toggle" id="opencode-provider-toggle">
-              <button type="button" class="provider-btn active" data-oc-provider="deepseek">DeepSeek</button>
-              <button type="button" class="provider-btn" data-oc-provider="zai">GLM</button>
-              <button type="button" class="provider-btn" data-oc-provider="moonshotai">Kimi</button>
-            </div>
-          </div>
-          <label>
-            Chave da API
-            <input id="opencode-key" type="password" spellcheck="false" placeholder="sk-..." />
-          </label>
-          <p id="opencode-setup-status" class="hint setup-status">Ainda não verificado.</p>
-          <button type="button" id="opencode-check" class="setup-check">Verificar setup</button>
-        </div>
-
-        <p id="who" class="hint"></p>
-        <p id="status" class="hint">Ao salvar, testa a conexão e busca os modelos disponíveis.</p>
-        <button type="submit" id="probe">Salvar e testar</button>
-        <div class="account-block">
-          <p class="field-label">Mascote</p>
-          <button id="riv" type="button" class="workspace" title="Troca o mascot.riv bundled por outro .riv">
-            <span class="workspace-copy">
-              <span class="field-value">mascot.riv</span>
-            </span>
-            <span class="workspace-action">Trocar</span>
+        <div class="settings-nav">
+          <button type="button" class="settings-nav-btn active" id="tab-btn-general" data-settings-tab="general">
+            Geral
           </button>
-          <button type="button" id="riv-clear" hidden>Voltar ao padrão</button>
-          <label class="field">
-            <span class="field-label">Pose</span>
-            <select id="pose" title="Testa a pose do mascote sem mandar mensagem">
-              <option value="idle">idle</option>
-              <option value="thinking">thinking</option>
-              <option value="alert">alert</option>
-            </select>
-          </label>
+          <button type="button" class="settings-nav-btn" id="tab-btn-logs" data-settings-tab="logs">
+            Logs
+            <span id="logs-badge" class="logs-badge" hidden>0</span>
+          </button>
+        </div>
+
+        <div id="settings-view-general">
+          <div id="account-cursor-box">
+            <p class="page-lead">A chave fica neste computador. O Wisp usa ela pra falar com o Cursor.</p>
+            <label>
+              Chave da API do Cursor
+              <input id="key" type="password" spellcheck="false" placeholder="cursor_..." />
+            </label>
+          </div>
+
+          <div id="account-antigravity-box" hidden>
+            <p class="page-lead">Conecte ao ecossistema Antigravity / Gemini.</p>
+            <div class="field-provider">
+              <span class="field-label">Modo de Conexão</span>
+              <div class="provider-toggle">
+                <button type="button" id="provider-cli" class="provider-btn active" data-provider="cli">CLI Local (agy)</button>
+                <button type="button" id="provider-api" class="provider-btn" data-provider="api">API Gemini (Nuvem)</button>
+              </div>
+            </div>
+            <div id="box-cli">
+              <p id="cli-status" class="hint">Usando o binário local <code id="cli-path">agy.exe</code>.</p>
+            </div>
+            <div id="box-api" hidden>
+              <label>
+                Chave da API Gemini (Google AI Studio)
+                <input id="gemini-key" type="password" spellcheck="false" placeholder="AIzaSy..." />
+              </label>
+              <p class="hint">Gere gratuitamente no Google AI Studio (sem precisar instalar o CLI).</p>
+            </div>
+          </div>
+
+          <div id="account-opencode-box" hidden>
+            <p class="page-lead">BYOK via OpenCode. A chave fica neste computador; o CLI fala com a API do provedor.</p>
+            <div class="setup-callout" role="note">
+              <p class="setup-warn">O Wisp não embute o OpenCode. É preciso ter o CLI <code>opencode</code> instalado no PATH. Não precisa de conta paga do OpenCode — só a key do provedor.</p>
+              <ol class="setup-steps">
+                <li>Instale o CLI: <code>npm i -g opencode-ai</code></li>
+                <li>Confira no terminal: <code>opencode --version</code></li>
+                <li>Crie a API key no site do provedor (DeepSeek, Z.AI ou Moonshot)</li>
+                <li>Escolha o chip, cole a key e clique em Verificar setup</li>
+              </ol>
+            </div>
+            <div class="field-provider">
+              <span class="field-label">Provedor</span>
+              <div class="provider-toggle" id="opencode-provider-toggle">
+                <button type="button" class="provider-btn active" data-oc-provider="deepseek">DeepSeek</button>
+                <button type="button" class="provider-btn" data-oc-provider="zai">GLM</button>
+                <button type="button" class="provider-btn" data-oc-provider="moonshotai">Kimi</button>
+              </div>
+            </div>
+            <label>
+              Chave da API
+              <input id="opencode-key" type="password" spellcheck="false" placeholder="sk-..." />
+            </label>
+            <p id="opencode-setup-status" class="hint setup-status">Ainda não verificado.</p>
+            <button type="button" id="opencode-check" class="setup-check">Verificar setup</button>
+          </div>
+
+          <p id="who" class="hint"></p>
+          <p id="status" class="hint">Ao salvar, testa a conexão e busca os modelos disponíveis.</p>
+          <button type="submit" id="probe">Salvar e testar</button>
+          <div class="account-block">
+            <p class="field-label">Mascote</p>
+            <button id="riv" type="button" class="workspace" title="Troca o mascot.riv bundled por outro .riv">
+              <span class="workspace-copy">
+                <span class="field-value">mascot.riv</span>
+              </span>
+              <span class="workspace-action">Trocar</span>
+            </button>
+            <button type="button" id="riv-clear" hidden>Voltar ao padrão</button>
+            <label class="field">
+              <span class="field-label">Pose</span>
+              <select id="pose" title="Testa a pose do mascote sem mandar mensagem">
+                <option value="idle">idle</option>
+                <option value="thinking">thinking</option>
+                <option value="alert">alert</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div id="settings-view-logs" hidden>
+          <div class="logs-summary">
+            <div class="logs-status-indicator">
+              <span id="logs-status-dot" class="status-dot ok"></span>
+              <span id="logs-status-text">Sistema estável</span>
+            </div>
+            <div class="logs-counts">
+              <span class="count-pill">Total: <strong id="logs-count-total">0</strong></span>
+              <span class="count-pill error">Erros: <strong id="logs-count-errors">0</strong></span>
+              <span class="count-pill warn">Avisos: <strong id="logs-count-warns">0</strong></span>
+            </div>
+          </div>
+
+          <div id="logs-last-error-box" class="logs-alert-box" hidden>
+            <div class="alert-title">
+              <svg viewBox="0 0 24 24" aria-hidden="true" width="14" height="14">
+                <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Último erro detectado</span>
+            </div>
+            <div id="logs-last-error-content" class="alert-content"></div>
+          </div>
+
+          <div class="logs-toolbar">
+            <div class="logs-filter-group">
+              <button type="button" class="log-filter-btn active" data-level="all">Todos</button>
+              <button type="button" class="log-filter-btn" data-level="error">Erros</button>
+              <button type="button" class="log-filter-btn" data-level="warn">Avisos</button>
+              <button type="button" class="log-filter-btn" data-level="info">Info</button>
+            </div>
+            <div class="logs-search-row">
+              <input id="log-search" type="text" placeholder="Filtrar logs..." autocomplete="off" spellcheck="false" />
+              <select id="log-filter-source" class="pick-source" title="Filtrar por fonte">
+                <option value="all">Todas as fontes</option>
+                <option value="antigravity">Antigravity</option>
+                <option value="opencode">OpenCode</option>
+                <option value="cursor">Cursor</option>
+                <option value="gemini">Gemini</option>
+                <option value="system">Sistema</option>
+              </select>
+            </div>
+            <div class="logs-actions">
+              <button type="button" id="logs-copy" class="logs-btn" title="Copiar logs formatados">Copiar logs</button>
+              <button type="button" id="logs-clear" class="logs-btn" title="Limpar histórico de logs">Limpar</button>
+            </div>
+          </div>
+
+          <div id="logs-list" class="logs-list">
+            <div class="logs-empty">Nenhum log registrado ainda.</div>
+          </div>
         </div>
       </form>
 
@@ -209,8 +279,10 @@
     <script src="lib/usage.js"></script>
     <script src="lib/opencode-providers.js"></script>
     <script src="lib/mode.js"></script>
+    <script src="lib/permission.js"></script>
     <script src="lib/markdown.js"></script>
     <script src="lib/attachments.js"></script>
+    <script src="lib/logs.js"></script>
     <script src="chat.js"></script>
   </body>
 </html>
