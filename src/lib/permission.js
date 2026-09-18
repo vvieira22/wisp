@@ -8,10 +8,12 @@ function clipDetail(text) {
   return raw.length > 180 ? raw.slice(0, 177) + "…" : raw;
 }
 
-function permissionRequest(partial) {
+function permissionRequest(partial, lang = "en") {
+  const isPt = lang === "pt-BR" || lang === "pt";
   const kind = String((partial && (partial.kind || partial.permission || partial.action)) || "tool");
   const detail = clipDetail(partial && partial.detail);
-  const title = detail ? `Permitir ${kind.replace(/_/g, " ")}: ${detail}` : `Permitir ${kind.replace(/_/g, " ")}?`;
+  const prefix = isPt ? "Permitir" : "Allow";
+  const title = detail ? `${prefix} ${kind.replace(/_/g, " ")}: ${detail}` : `${prefix} ${kind.replace(/_/g, " ")}?`;
   return {
     type: "permission-request",
     engine: String((partial && partial.engine) || ""),

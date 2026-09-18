@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <title>Wisp chat</title>
@@ -9,27 +9,27 @@
     <div id="panel" data-dock="left" data-align="end" data-page="chat">
       <header>
         <div class="heading">
-          <button type="button" id="back" class="icon-btn" data-for="account" title="Voltar ao chat" aria-label="Voltar ao chat">
+          <button type="button" id="back" class="icon-btn" data-for="account" title="Back to chat" aria-label="Back to chat" data-i18n-title="backToChat" data-i18n-aria-label="backToChat">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M14 5.5 7 12l7 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
-          <p class="name" data-for="chat">Wisp</p>
-          <p class="name" data-for="account">Conta</p>
+          <p class="name" data-for="chat" data-i18n="appTitle">Wisp</p>
+          <p class="name" data-for="account" data-i18n="account">Account</p>
         </div>
         <div class="engine-tabs">
-          <button type="button" class="engine-tab active" data-engine="cursor">Cursor</button>
-          <button type="button" class="engine-tab" data-engine="antigravity">Antigravity</button>
-          <button type="button" class="engine-tab" data-engine="opencode">OpenCode</button>
+          <button type="button" class="engine-tab active" data-engine="cursor" data-i18n="engineCursor">Cursor</button>
+          <button type="button" class="engine-tab" data-engine="antigravity" data-i18n="engineAntigravity">Antigravity</button>
+          <button type="button" class="engine-tab" data-engine="opencode" data-i18n="engineOpenCode">OpenCode</button>
         </div>
         <div class="tools">
-          <button id="gear" type="button" class="icon-btn" data-for="chat" title="Abrir conta" aria-label="Abrir conta">
+          <button id="gear" type="button" class="icon-btn" data-for="chat" title="Settings" aria-label="Settings" data-i18n-title="settings" data-i18n-aria-label="settings">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="12" cy="8" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8" />
               <path d="M5.2 19.2c1.3-3.1 3.6-4.7 6.8-4.7s5.5 1.6 6.8 4.7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
             </svg>
           </button>
-          <button id="hide" type="button" class="icon-btn" title="Esconder o painel" aria-label="Esconder o painel">
+          <button id="hide" type="button" class="icon-btn" title="Hide panel" aria-label="Hide panel" data-i18n-title="hidePanel" data-i18n-aria-label="hidePanel">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
             </svg>
@@ -39,53 +39,53 @@
 
       <div id="page-chat">
         <div class="session">
-          <button id="folder" type="button" title="Escolhe a pasta do projeto">
-            <span class="field-label">Projeto</span>
-            <span class="field-value">escolher pasta</span>
+          <button id="folder" type="button" title="Choose project folder" data-i18n-title="chooseProjectFolder">
+            <span class="field-label" data-i18n="project">Project</span>
+            <span class="field-value" data-i18n="chooseFolder">choose folder</span>
           </button>
           <div class="session-chat">
-            <span class="field-label" id="chats-label">Conversa</span>
+            <span class="field-label" id="chats-label" data-i18n="chat">Chat</span>
             <div class="session-chat-row">
               <select id="chats" class="pick" aria-labelledby="chats-label">
-                <option value="">Nova conversa</option>
+                <option value="" data-i18n="newChat">New chat</option>
               </select>
-              <input id="chat-name" hidden maxlength="42" spellcheck="false" aria-label="Nome da conversa" />
-              <button type="button" id="reset" title="Nova conversa">+</button>
-              <button type="button" id="clear" class="icon-btn" title="Limpar conversa atual" aria-label="Limpar conversa atual">
+              <input id="chat-name" hidden maxlength="42" spellcheck="false" aria-label="Chat name" data-i18n-aria-label="chatName" />
+              <button type="button" id="reset" title="New chat" data-i18n-title="newChat">+</button>
+              <button type="button" id="clear" class="icon-btn" title="Clear current chat" aria-label="Clear current chat" data-i18n-title="clearCurrentChat" data-i18n-aria-label="clearCurrentChat">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M8 7h8M9.5 7V5.5h5V7M9 10.5v6M12 10.5v6M15 10.5v6M8.5 7l.7 12h5.6l.7-12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
               </button>
             </div>
             <div id="clear-ask" class="clear-ask" hidden>
-              <span>Limpar esta conversa?</span>
-              <button type="button" id="clear-yes">Limpar</button>
-              <button type="button" id="clear-no">Não</button>
+              <span data-i18n="clearThisChatPrompt">Clear this chat?</span>
+              <button type="button" id="clear-yes" data-i18n="clear">Clear</button>
+              <button type="button" id="clear-no" data-i18n="no">No</button>
             </div>
           </div>
         </div>
         <div id="log">
           <div class="empty-log">
-            <p class="empty-title">Nenhuma mensagem ainda</p>
-            <p class="empty-copy">Escreve embaixo. Modo e modelo ficam na barra.</p>
+            <p class="empty-title" data-i18n="emptyTitle">No messages yet</p>
+            <p class="empty-copy" data-i18n="emptyCopy">Type below. Mode and model are in the bar.</p>
           </div>
         </div>
         <ul id="skill-list" hidden></ul>
         <div id="queue-bar" class="queue-bar" hidden>
-          <span class="queue-bar-label">Na fila</span>
+          <span class="queue-bar-label" data-i18n="queued">Queued</span>
           <ol id="queue-list" class="queue-list"></ol>
         </div>
         <div id="queue-ask" class="queue-ask" hidden>
-          <span id="queue-ask-text">Resposta em andamento.</span>
-          <button type="button" id="queue-yes">Na fila</button>
-          <button type="button" id="queue-cut">Cancelar e enviar</button>
-          <button type="button" id="queue-no">Voltar</button>
+          <span id="queue-ask-text" data-i18n="queueResponseInProgress">Response in progress.</span>
+          <button type="button" id="queue-yes" data-i18n="queueBtn">Queue</button>
+          <button type="button" id="queue-cut" data-i18n="cancelAndSend">Cancel and send</button>
+          <button type="button" id="queue-no" data-i18n="back">Back</button>
         </div>
         <div id="permission-ask" class="queue-ask permission-ask" hidden>
-          <span id="permission-ask-text">O agente pede permissão.</span>
-          <button type="button" id="permission-once">Uma vez</button>
-          <button type="button" id="permission-always">Sempre</button>
-          <button type="button" id="permission-reject">Negar</button>
+          <span id="permission-ask-text" data-i18n="agentRequestsPermission">The agent requests permission.</span>
+          <button type="button" id="permission-once" data-i18n="allowOnce">Allow once</button>
+          <button type="button" id="permission-always" data-i18n="always">Always</button>
+          <button type="button" id="permission-reject" data-i18n="deny">Deny</button>
         </div>
         <form id="composer">
           <div id="attachments" class="attachments" hidden></div>
@@ -94,15 +94,16 @@
             rows="1"
             autocomplete="off"
             spellcheck="false"
-            placeholder="Escreve aqui, ou / pra uma skill"
+            placeholder="Type here, or / for a skill"
+            data-i18n-placeholder="inputPlaceholder"
           ></textarea>
           <div class="composer-bar">
-            <select id="mode" class="pick" title="Modo">
-              <option value="ask" selected>Perguntar</option>
-              <option value="plan">Plano</option>
-              <option value="agent">Agente</option>
+            <select id="mode" class="pick" title="Mode" data-i18n-title="mode">
+              <option value="ask" selected data-i18n="modeAsk">Ask</option>
+              <option value="plan" data-i18n="modePlan">Plan</option>
+              <option value="agent" data-i18n="modeAgent">Agent</option>
             </select>
-            <select id="model" class="pick" disabled title="Modelo">
+            <select id="model" class="pick" disabled title="Model" data-i18n-title="model">
               <option value="composer-2.5">composer-2.5</option>
             </select>
             <label id="fast-wrap" class="fast-check" hidden>
@@ -110,68 +111,79 @@
               <span id="fast-label">Fast</span>
             </label>
             <span id="effort-wrap" hidden>
-              <select id="effort" class="pick" title="Esforço"></select>
+              <select id="effort" class="pick" title="Effort" data-i18n-title="effort"></select>
             </span>
-            <span id="meter-value" title="contexto da sessão">0 / 200k</span>
-            <button type="submit" id="go">Enviar</button>
+            <span id="meter-value" title="session context" data-i18n-title="sessionContext">0 / 200k</span>
+            <button type="submit" id="go" data-i18n="send">Send</button>
           </div>
         </form>
       </div>
 
       <form id="page-account">
         <div class="settings-nav">
-          <button type="button" class="settings-nav-btn active" id="tab-btn-general" data-settings-tab="general">
-            Geral
+          <button type="button" class="settings-nav-btn active" id="tab-btn-general" data-settings-tab="general" data-i18n="tabGeneral">
+            General
           </button>
-          <button type="button" class="settings-nav-btn" id="tab-btn-logs" data-settings-tab="logs">
+          <button type="button" class="settings-nav-btn" id="tab-btn-logs" data-settings-tab="logs" data-i18n="tabLogs">
             Logs
             <span id="logs-badge" class="logs-badge" hidden>0</span>
           </button>
         </div>
 
         <div id="settings-view-general">
+          <div class="account-block">
+            <p class="field-label" data-i18n="language">Language</p>
+            <label class="field">
+              <span class="field-label" data-i18n="languageSystem">System Language</span>
+              <select id="lang" class="pick" title="System Language" data-i18n-title="languageSystem">
+                <option value="en" data-i18n="langEn">English</option>
+                <option value="pt-BR" data-i18n="langPtBr">Português (Brasil)</option>
+              </select>
+            </label>
+          </div>
+
           <div id="account-cursor-box">
-            <p class="page-lead">A chave fica neste computador. O Wisp usa ela pra falar com o Cursor.</p>
+            <p class="page-lead" data-i18n="cursorLead">The key stays on this computer. Wisp uses it to communicate with Cursor.</p>
             <label>
-              Chave da API do Cursor
+              <span data-i18n="cursorKeyLabel">Cursor API Key</span>
               <input id="key" type="password" spellcheck="false" placeholder="cursor_..." />
             </label>
           </div>
 
           <div id="account-antigravity-box" hidden>
-            <p class="page-lead">Conecte ao ecossistema Antigravity / Gemini.</p>
+            <p class="page-lead" data-i18n="antigravityLead">Connect to the Antigravity / Gemini ecosystem.</p>
             <div class="field-provider">
-              <span class="field-label">Modo de Conexão</span>
+              <span class="field-label" data-i18n="connectionMode">Connection Mode</span>
               <div class="provider-toggle">
-                <button type="button" id="provider-cli" class="provider-btn active" data-provider="cli">CLI Local (agy)</button>
-                <button type="button" id="provider-api" class="provider-btn" data-provider="api">API Gemini (Nuvem)</button>
+                <button type="button" id="provider-cli" class="provider-btn active" data-provider="cli" data-i18n="cliLocal">Local CLI (agy)</button>
+                <button type="button" id="provider-api" class="provider-btn" data-provider="api" data-i18n="apiCloud">Gemini API (Cloud)</button>
               </div>
             </div>
             <div id="box-cli">
-              <p id="cli-status" class="hint">Usando o binário local <code id="cli-path">agy.exe</code>.</p>
+              <p id="cli-status" class="hint"><span data-i18n="usingLocalCli">Using local binary</span> <code id="cli-path">agy.exe</code>.</p>
             </div>
             <div id="box-api" hidden>
               <label>
-                Chave da API Gemini (Google AI Studio)
+                <span data-i18n="geminiKeyLabel">Gemini API Key (Google AI Studio)</span>
                 <input id="gemini-key" type="password" spellcheck="false" placeholder="AIzaSy..." />
               </label>
-              <p class="hint">Gere gratuitamente no Google AI Studio (sem precisar instalar o CLI).</p>
+              <p class="hint" data-i18n="geminiKeyHint">Generate for free in Google AI Studio (no CLI installation needed).</p>
             </div>
           </div>
 
           <div id="account-opencode-box" hidden>
-            <p class="page-lead">BYOK via OpenCode. A chave fica neste computador; o CLI fala com a API do provedor.</p>
+            <p class="page-lead" data-i18n="opencodeLead">BYOK via OpenCode. The key stays on this computer; the CLI communicates with the provider's API.</p>
             <div class="setup-callout" role="note">
-              <p class="setup-warn">O Wisp não embute o OpenCode. É preciso ter o CLI <code>opencode</code> instalado no PATH. Não precisa de conta paga do OpenCode — só a key do provedor.</p>
+              <p class="setup-warn" data-i18n="opencodeWarn">Wisp does not embed OpenCode. The opencode CLI must be installed in PATH. No paid OpenCode account needed — only the provider key.</p>
               <ol class="setup-steps">
-                <li>Instale o CLI: <code>npm i -g opencode-ai</code></li>
-                <li>Confira no terminal: <code>opencode --version</code></li>
-                <li>Crie a API key no site do provedor (DeepSeek, Z.AI ou Moonshot)</li>
-                <li>Escolha o chip, cole a key e clique em Verificar setup</li>
+                <li data-i18n="opencodeStep1">Install the CLI: <code>npm i -g opencode-ai</code></li>
+                <li data-i18n="opencodeStep2">Check in terminal: <code>opencode --version</code></li>
+                <li data-i18n="opencodeStep3">Create the API key on the provider site (DeepSeek, Z.AI or Moonshot)</li>
+                <li data-i18n="opencodeStep4">Choose chip, paste the key and click Verify setup</li>
               </ol>
             </div>
             <div class="field-provider">
-              <span class="field-label">Provedor</span>
+              <span class="field-label" data-i18n="provider">Provider</span>
               <div class="provider-toggle" id="opencode-provider-toggle">
                 <button type="button" class="provider-btn active" data-oc-provider="deepseek">DeepSeek</button>
                 <button type="button" class="provider-btn" data-oc-provider="zai">GLM</button>
@@ -179,28 +191,28 @@
               </div>
             </div>
             <label>
-              Chave da API
+              <span data-i18n="apiKey">API Key</span>
               <input id="opencode-key" type="password" spellcheck="false" placeholder="sk-..." />
             </label>
-            <p id="opencode-setup-status" class="hint setup-status">Ainda não verificado.</p>
-            <button type="button" id="opencode-check" class="setup-check">Verificar setup</button>
+            <p id="opencode-setup-status" class="hint setup-status" data-i18n="notVerifiedYet">Not verified yet.</p>
+            <button type="button" id="opencode-check" class="setup-check" data-i18n="verifySetup">Verify setup</button>
           </div>
 
           <p id="who" class="hint"></p>
-          <p id="status" class="hint">Ao salvar, testa a conexão e busca os modelos disponíveis.</p>
-          <button type="submit" id="probe">Salvar e testar</button>
+          <p id="status" class="hint" data-i18n="probeStatusDefault">Upon saving, tests the connection and fetches available models.</p>
+          <button type="submit" id="probe" data-i18n="saveAndTest">Save and test</button>
           <div class="account-block">
-            <p class="field-label">Mascote</p>
-            <button id="riv" type="button" class="workspace" title="Troca o mascot.riv bundled por outro .riv">
+            <p class="field-label" data-i18n="mascot">Mascot</p>
+            <button id="riv" type="button" class="workspace" title="Change bundled mascot.riv for another .riv" data-i18n-title="mascotChangeTitle">
               <span class="workspace-copy">
                 <span class="field-value">mascot.riv</span>
               </span>
-              <span class="workspace-action">Trocar</span>
+              <span class="workspace-action" data-i18n="change">Change</span>
             </button>
-            <button type="button" id="riv-clear" hidden>Voltar ao padrão</button>
+            <button type="button" id="riv-clear" hidden data-i18n="resetToDefault">Reset to default</button>
             <label class="field">
-              <span class="field-label">Pose</span>
-              <select id="pose" title="Testa a pose do mascote sem mandar mensagem">
+              <span class="field-label" data-i18n="pose">Pose</span>
+              <select id="pose" title="Test mascot pose without sending a message" data-i18n-title="poseTitle">
                 <option value="idle">idle</option>
                 <option value="thinking">thinking</option>
                 <option value="alert">alert</option>
@@ -213,12 +225,12 @@
           <div class="logs-summary">
             <div class="logs-status-indicator">
               <span id="logs-status-dot" class="status-dot ok"></span>
-              <span id="logs-status-text">Sistema estável</span>
+              <span id="logs-status-text" data-i18n="systemStable">System stable</span>
             </div>
             <div class="logs-counts">
-              <span class="count-pill">Total: <strong id="logs-count-total">0</strong></span>
-              <span class="count-pill error">Erros: <strong id="logs-count-errors">0</strong></span>
-              <span class="count-pill warn">Avisos: <strong id="logs-count-warns">0</strong></span>
+              <span class="count-pill"><span data-i18n="totalLogs">Total:</span> <strong id="logs-count-total">0</strong></span>
+              <span class="count-pill error"><span data-i18n="errorsLogs">Errors:</span> <strong id="logs-count-errors">0</strong></span>
+              <span class="count-pill warn"><span data-i18n="warnsLogs">Warnings:</span> <strong id="logs-count-warns">0</strong></span>
             </div>
           </div>
 
@@ -227,54 +239,55 @@
               <svg viewBox="0 0 24 24" aria-hidden="true" width="14" height="14">
                 <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              <span>Último erro detectado</span>
+              <span data-i18n="lastErrorDetected">Last detected error</span>
             </div>
             <div id="logs-last-error-content" class="alert-content"></div>
           </div>
 
           <div class="logs-toolbar">
             <div class="logs-filter-group">
-              <button type="button" class="log-filter-btn active" data-level="all">Todos</button>
-              <button type="button" class="log-filter-btn" data-level="error">Erros</button>
-              <button type="button" class="log-filter-btn" data-level="warn">Avisos</button>
-              <button type="button" class="log-filter-btn" data-level="info">Info</button>
+              <button type="button" class="log-filter-btn active" data-level="all" data-i18n="logFilterAll">All</button>
+              <button type="button" class="log-filter-btn" data-level="error" data-i18n="logFilterErrors">Errors</button>
+              <button type="button" class="log-filter-btn" data-level="warn" data-i18n="logFilterWarns">Warnings</button>
+              <button type="button" class="log-filter-btn" data-level="info" data-i18n="logFilterInfo">Info</button>
             </div>
             <div class="logs-search-row">
-              <input id="log-search" type="text" placeholder="Filtrar logs..." autocomplete="off" spellcheck="false" />
-              <select id="log-filter-source" class="pick-source" title="Filtrar por fonte">
-                <option value="all">Todas as fontes</option>
+              <input id="log-search" type="text" placeholder="Filter logs..." autocomplete="off" spellcheck="false" data-i18n-placeholder="filterLogsPlaceholder" />
+              <select id="log-filter-source" class="pick-source" title="Filter by source" data-i18n-title="filterBySource">
+                <option value="all" data-i18n="allSources">All sources</option>
                 <option value="antigravity">Antigravity</option>
                 <option value="opencode">OpenCode</option>
                 <option value="cursor">Cursor</option>
                 <option value="gemini">Gemini</option>
-                <option value="system">Sistema</option>
+                <option value="system" data-i18n="sourceSystem">System</option>
               </select>
             </div>
             <div class="logs-actions">
-              <button type="button" id="logs-copy" class="logs-btn" title="Copiar logs formatados">Copiar logs</button>
-              <button type="button" id="logs-clear" class="logs-btn" title="Limpar histórico de logs">Limpar</button>
+              <button type="button" id="logs-copy" class="logs-btn" title="Copy logs" data-i18n-title="copyLogs" data-i18n="copyLogs">Copy logs</button>
+              <button type="button" id="logs-clear" class="logs-btn" title="Clear logs history" data-i18n-title="clearLogsHistory" data-i18n="clearLogs">Clear</button>
             </div>
           </div>
 
           <div id="logs-list" class="logs-list">
-            <div class="logs-empty">Nenhum log registrado ainda.</div>
+            <div class="logs-empty" data-i18n="noLogsRecorded">No logs recorded yet.</div>
           </div>
         </div>
       </form>
 
       <div id="engine-ask" class="modal-backdrop" hidden>
         <div class="modal-card">
-          <p class="modal-title" id="engine-ask-title">Trocar provedor?</p>
-          <div class="modal-desc" id="engine-ask-desc">
-            Mudar para o provedor selecionado alternará o histórico de conversas e os modelos disponíveis.
+          <p class="modal-title" id="engine-ask-title" data-i18n="switchProviderTitle">Switch provider?</p>
+          <div class="modal-desc" id="engine-ask-desc" data-i18n="switchProviderDesc">
+            Switching to the selected provider will alternate conversation history and available models.
           </div>
           <div class="modal-actions">
-            <button type="button" id="engine-ask-cancel" class="modal-btn">Cancelar</button>
-            <button type="button" id="engine-ask-confirm" class="modal-btn primary">Trocar</button>
+            <button type="button" id="engine-ask-cancel" class="modal-btn" data-i18n="cancel">Cancel</button>
+            <button type="button" id="engine-ask-confirm" class="modal-btn primary" data-i18n="switch">Switch</button>
           </div>
         </div>
       </div>
     </div>
+    <script src="lib/i18n.js"></script>
     <script src="lib/models.js"></script>
     <script src="lib/usage.js"></script>
     <script src="lib/opencode-providers.js"></script>

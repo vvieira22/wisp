@@ -3,7 +3,13 @@
 const { normalizeMode } = require("./mode");
 const { clipUsage, stampUsage } = require("./usage");
 
-const FRESH_TITLE = "Nova conversa";
+const FRESH_TITLE_EN = "New chat";
+const FRESH_TITLE_PT = "Nova conversa";
+const FRESH_TITLE = FRESH_TITLE_EN;
+
+function freshTitle(lang = "en") {
+  return lang === "pt-BR" || lang === "pt" ? FRESH_TITLE_PT : FRESH_TITLE_EN;
+}
 
 function nid() {
   return "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -63,14 +69,14 @@ function isFresh(chat) {
   return !chat.messages.some((m) => m.role === "user");
 }
 
-function resetFresh(chat, partial) {
+function resetFresh(chat, partial, lang = "en") {
   chat.messages = [];
   chat.agentId = "";
   chat.cwd = "";
   chat.usageLabel = "0 / 200k";
   chat.usage = null;
   chat.turnAt = 0;
-  chat.title = FRESH_TITLE;
+  chat.title = freshTitle(lang);
   chat.titleLocked = false;
   chat.at = Date.now();
   if (partial) {
@@ -88,11 +94,11 @@ function pruneEmpty(store) {
   return store;
 }
 
-function blank(partial) {
+function blank(partial, lang = "en") {
   return Object.assign(
     {
       id: nid(),
-      title: FRESH_TITLE,
+      title: freshTitle(lang),
       titleLocked: false,
       messages: [],
       agentId: "",
@@ -154,7 +160,7 @@ function putMessages(store, messages, usageLabel) {
   return chat;
 }
 
-function startNew(store, messages, usageLabel) {
+function startNew(store, messages, usageLabel, lang = "en") {
   putMessages(store, messages, usageLabel);
   const chat = current(store);
   const carry = {
@@ -163,30 +169,30 @@ function startNew(store, messages, usageLabel) {
     params: Array.isArray(chat.params) ? chat.params.slice() : [],
   };
   if (isFresh(chat)) {
-    resetFresh(chat);
+    resetFresh(chat, null, lang);
     return pruneEmpty(store);
   }
   const existing = store.items.find((c) => c.id !== chat.id && isFresh(c));
   if (existing) {
     store.currentId = existing.id;
-    resetFresh(existing, carry);
+    resetFresh(existing, carry, lang);
     return pruneEmpty(store);
   }
-  const next = blank(carry);
+  const next = blank(carry, lang);
   store.items.unshift(next);
   store.items = store.items.slice(0, 40);
   store.currentId = next.id;
   return pruneEmpty(store);
 }
 
-function clearCurrent(store) {
+function clearCurrent(store, lang = "en") {
   const chat = current(store);
   chat.messages = [];
   chat.agentId = "";
   chat.usageLabel = "0 / 200k";
   chat.usage = null;
   chat.turnAt = 0;
-  if (!chat.titleLocked) chat.title = FRESH_TITLE;
+  if (!chat.titleLocked) chat.title = freshTitle(lang);
   chat.at = Date.now();
   return store;
 }
@@ -348,6 +354,10 @@ const api = {
   publicState,
   blank,
   lastUsage,
+  FRESH_TITLE,
+  FRESH_TITLE_EN,
+  FRESH_TITLE_PT,
+  freshTitle,
 };
 if (typeof module === "object" && module.exports) module.exports = api;
 else Object.assign(globalThis, api);

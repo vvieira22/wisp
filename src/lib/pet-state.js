@@ -27,17 +27,18 @@ function snippet(text, done) {
   return `…${sp >= 0 && sp < 40 ? tail.slice(sp + 1) : tail}`;
 }
 
-function bubbleCopy({ live, tool, runActive } = {}) {
+function bubbleCopy({ live, tool, runActive, lang = "en" } = {}) {
+  const isPt = lang === "pt-BR" || lang === "pt";
   if (live) {
     return {
       kind: runActive ? "live" : "done",
-      eyebrow: runActive ? "Escrevendo" : "Pronto",
+      eyebrow: runActive ? (isPt ? "Escrevendo" : "Writing") : (isPt ? "Pronto" : "Done"),
       line: snippet(live, !runActive),
     };
   }
-  if (tool) return { kind: "tool", eyebrow: "Trabalhando", line: String(tool) };
-  if (runActive) return { kind: "working", eyebrow: "Trabalhando", line: "" };
-  return { kind: "done", eyebrow: "Pronto", line: "" };
+  if (tool) return { kind: "tool", eyebrow: isPt ? "Trabalhando" : "Working", line: String(tool) };
+  if (runActive) return { kind: "working", eyebrow: isPt ? "Trabalhando" : "Working", line: "" };
+  return { kind: "done", eyebrow: isPt ? "Pronto" : "Done", line: "" };
 }
 
 const api = { STATES: PET_STATES, reducePet, forcePet, snippet, bubbleCopy };

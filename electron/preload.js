@@ -89,4 +89,9 @@ contextBridge.exposeInMainWorld("wisp", {
     ipcRenderer.on("logs:entry", fn);
     return () => ipcRenderer.removeListener("logs:entry", fn);
   },
+  onLang: (cb) => {
+    const fn = (_event, lang) => cb(lang);
+    ipcRenderer.on("config:lang", fn);
+    return () => ipcRenderer.removeListener("config:lang", fn);
+  },
 });

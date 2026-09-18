@@ -138,11 +138,12 @@ function tokenBits(u, opts) {
   const bits = [];
   if (!u) return bits;
   const compact = opts && opts.compact;
-  if (u.inputTokens) bits.push(compact ? `${formatTokens(u.inputTokens)} in` : `${formatTokens(u.inputTokens)} entrada`);
+  const isPt = opts && (opts.lang === "pt-BR" || opts.lang === "pt");
+  if (u.inputTokens) bits.push(compact ? `${formatTokens(u.inputTokens)} in` : isPt ? `${formatTokens(u.inputTokens)} entrada` : `${formatTokens(u.inputTokens)} in`);
   if (u.cacheReadTokens) bits.push(`${formatTokens(u.cacheReadTokens)} cache↺`);
   if (u.cacheWriteTokens) bits.push(`${formatTokens(u.cacheWriteTokens)} cache✎`);
-  if (u.outputTokens) bits.push(compact ? `${formatTokens(u.outputTokens)} out` : `${formatTokens(u.outputTokens)} saída`);
-  if (u.reasoningTokens) bits.push(compact ? `${formatTokens(u.reasoningTokens)} think` : `${formatTokens(u.reasoningTokens)} raciocínio`);
+  if (u.outputTokens) bits.push(compact ? `${formatTokens(u.outputTokens)} out` : isPt ? `${formatTokens(u.outputTokens)} saída` : `${formatTokens(u.outputTokens)} out`);
+  if (u.reasoningTokens) bits.push(compact ? `${formatTokens(u.reasoningTokens)} think` : isPt ? `${formatTokens(u.reasoningTokens)} raciocínio` : `${formatTokens(u.reasoningTokens)} think`);
   const rough = u.inputTokens + u.outputTokens + u.cacheReadTokens + u.cacheWriteTokens;
   if (u.totalTokens && bits.length > 1 && u.totalTokens !== rough && u.totalTokens !== rough + u.reasoningTokens) {
     bits.push(`Σ ${formatTokens(u.totalTokens)}`);
@@ -212,33 +213,35 @@ function formatTurn(usage) {
   return bits.join(" · ");
 }
 
-function meterTitle(usage, messages, modelId) {
+function meterTitle(usage, messages, modelId, lang = "en") {
+  const isPt = lang === "pt-BR" || lang === "pt";
   const lines = [];
   const turn = slimUsage(usage);
   if (turn) {
-    lines.push("Último turno");
-    lines.push(tokenBits(turn).join(" · ") || "—");
+    lines.push(isPt ? "Último turno" : "Last turn");
+    lines.push(tokenBits(turn, { lang }).join(" · ") || "—");
     const money = formatCents(turn.chargedCents);
-    if (money) lines.push(`cobrado ${money}`);
-    if (turn.rawCostCents > turn.chargedCents) lines.push(`bruto ${formatCents(turn.rawCostCents)}`);
-    if (turn.ms) lines.push(`tempo ${formatElapsed(turn.ms)}`);
+    if (money) lines.push(isPt ? `cobrado ${money}` : `charged ${money}`);
+    if (turn.rawCostCents > turn.chargedCents) lines.push(isPt ? `bruto ${formatCents(turn.rawCostCents)}` : `raw ${formatCents(turn.rawCostCents)}`);
+    if (turn.ms) lines.push(isPt ? `tempo ${formatElapsed(turn.ms)}` : `time ${formatElapsed(turn.ms)}`);
   }
   const spend = spendFrom(messages);
   if (spend.turns) {
     if (lines.length) lines.push("");
-    lines.push(`Sessão (${spend.turns} prompt${spend.turns === 1 ? "" : "s"})`);
+    const promptWord = spend.turns === 1 ? "prompt" : "prompts";
+    lines.push(isPt ? `Sessão (${spend.turns} ${promptWord})` : `Session (${spend.turns} ${promptWord})`);
     const sessionBits = [];
-    if (spend.inputTokens) sessionBits.push(`${formatTokens(spend.inputTokens)} entrada`);
+    if (spend.inputTokens) sessionBits.push(isPt ? `${formatTokens(spend.inputTokens)} entrada` : `${formatTokens(spend.inputTokens)} in`);
     if (spend.cacheReadTokens) sessionBits.push(`${formatTokens(spend.cacheReadTokens)} cache↺`);
     if (spend.cacheWriteTokens) sessionBits.push(`${formatTokens(spend.cacheWriteTokens)} cache✎`);
-    if (spend.outputTokens) sessionBits.push(`${formatTokens(spend.outputTokens)} saída`);
-    if (spend.reasoningTokens) sessionBits.push(`${formatTokens(spend.reasoningTokens)} raciocínio`);
+    if (spend.outputTokens) sessionBits.push(isPt ? `${formatTokens(spend.outputTokens)} saída` : `${formatTokens(spend.outputTokens)} out`);
+    if (spend.reasoningTokens) sessionBits.push(isPt ? `${formatTokens(spend.reasoningTokens)} raciocínio` : `${formatTokens(spend.reasoningTokens)} think`);
     if (spend.totalTokens) sessionBits.push(`Σ ${formatTokens(spend.totalTokens)}`);
     lines.push(sessionBits.join(" · ") || "—");
     const money = formatCents(spend.chargedCents);
-    if (money) lines.push(`gasto ${money}`);
+    if (money) lines.push(isPt ? `gasto ${money}` : `spent ${money}`);
   }
-  lines.unshift(`contexto ${formatUsage(usage, modelId)}`);
+  lines.unshift(isPt ? `contexto ${formatUsage(usage, modelId)}` : `context ${formatUsage(usage, modelId)}`);
   return lines.join("\n");
 }
 
