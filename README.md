@@ -1,12 +1,27 @@
-# Wisp
+<div align="center">
+  <img src="assets/mascot-idle.gif" alt="Wisp Mascot" width="130" />
+  <h1>Wisp</h1>
+  <p><b>Seu companheiro de IA na área de trabalho. Leve, arrastável e focado no seu código.</b><br>
+  <i>Your desktop AI coding companion. Lightweight, draggable, and focused on your workflow.</i></p>
 
-[Português](#português) | [English](#english)
+  <p>
+    <img src="https://img.shields.io/badge/Electron-339933?style=flat&logo=electron&logoColor=white" alt="Electron" />
+    <img src="https://img.shields.io/badge/Rive-F05A28?style=flat&logo=rive&logoColor=white" alt="Rive" />
+    <img src="https://img.shields.io/badge/Engines-Cursor%20|%20Antigravity%20|%20OpenCode-6366f1" alt="Engines" />
+    <img src="https://img.shields.io/badge/Platform-Windows%20|%20macOS%20|%20Linux-0284c7" alt="Platforms" />
+    <img src="https://img.shields.io/badge/Storage-100%25%20Local-10b981" alt="Local Storage" />
+  </p>
+
+  <p>
+    <a href="#português"><b>Português</b></a> • <a href="#english"><b>English</b></a>
+  </p>
+</div>
 
 ---
 
 ## Português
 
-O **Wisp** é um companheiro de código que fica na sua área de trabalho como um mascote ("desktop pet"). Em vez de ficar alternando entre abas do navegador ou manter janelas de terminal escondidas, você tem um fantasminha flutuante no canto da tela que reage visualmente ao que o agente de IA está fazendo e abre um painel de chat ao ser clicado.
+O **Wisp** é um companheiro de código que fica na sua área de trabalho como um mascote ("desktop pet"). Em vez de ficar alternando entre abas do navegador ou manter janelas de terminal escondidas, você tem um mascote flutuante no canto da tela que reage visualmente ao que o agente de IA está fazendo e abre um painel de chat ao ser clicado.
 
 ### A proposta
 
@@ -20,6 +35,16 @@ A ideia do Wisp é simples: trazer presença visual e agilidade ao uso de agente
   - *Notificando:* terminou a tarefa solicitada.
   - *Dormindo:* ocioso no canto da tela.
   - *Erro:* caso algo falhe na chamada.
+
+<div align="center">
+
+| Ocioso / Esperando | Trabalhando / Analisando Código |
+| :---: | :---: |
+| <img src="assets/mascot-idle.gif" width="130" alt="Wisp Ocioso" /> | <img src="assets/mascot-thinking.gif" width="160" alt="Wisp Trabalhando" /> |
+| *Flutuando na área de trabalho* | *Pensando, examinando arquivos e rodando ferramentas* |
+
+</div>
+
 - **Você no controle do projeto:** você seleciona a pasta de trabalho (workspace) onde o Wisp deve atuar. Toda leitura, edição de arquivo e execução de comando fica estritamente restrita àquele diretório.
 - **Liberdade de provedores:** o Wisp não te prende a um único modelo ou ecossistema. Você pode alternar facilmente entre três motores no topo do chat:
   - **Cursor** (via `@cursor/sdk`)
@@ -110,6 +135,16 @@ The goal behind Wisp is straightforward: bring visual presence and quick access 
   - *Notifying:* requested task completed.
   - *Sleeping:* resting idle on your desktop.
   - *Error:* if an error occurs during execution.
+
+<div align="center">
+
+| Idle / Resting | Thinking / Running Tasks |
+| :---: | :---: |
+| <img src="assets/mascot-idle.gif" width="130" alt="Wisp Idle" /> | <img src="assets/mascot-thinking.gif" width="160" alt="Wisp Thinking" /> |
+| *Floating calmly on your desktop* | *Thinking, inspecting files, and running tools* |
+
+</div>
+
 - **Scoped to your project:** you select your active workspace directory. All file reads, edits, and terminal commands are strictly confined to that folder.
 - **Engine freedom:** Wisp doesn't lock you into a single tool or model. Switch between three backends anytime using the tabs at the top of the chat:
   - **Cursor** (via `@cursor/sdk`)

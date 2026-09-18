@@ -141,10 +141,13 @@ assert.deepEqual(petWindowSize(true), {
 assert.equal(BUBBLE.w, 280);
 assert.equal(BUBBLE.h, 96);
 
-assert.deepEqual(bubbleCopy({ runActive: true }), { kind: "working", eyebrow: "Trabalhando", line: "" });
+assert.deepEqual(bubbleCopy({ runActive: true }), { kind: "working", eyebrow: "Working", line: "" });
 assert.equal(bubbleCopy({ runActive: true, tool: "read pet.js" }).line, "read pet.js");
-assert.equal(bubbleCopy({ runActive: true, live: "hello world" }).eyebrow, "Escrevendo");
-assert.equal(bubbleCopy({ live: "hello", runActive: false }).eyebrow, "Pronto");
+assert.equal(bubbleCopy({ runActive: true, live: "hello world" }).eyebrow, "Writing");
+assert.equal(bubbleCopy({ live: "hello", runActive: false }).eyebrow, "Done");
+assert.deepEqual(bubbleCopy({ runActive: true, lang: "pt-BR" }), { kind: "working", eyebrow: "Trabalhando", line: "" });
+assert.equal(bubbleCopy({ runActive: true, live: "hello world", lang: "pt-BR" }).eyebrow, "Escrevendo");
+assert.equal(bubbleCopy({ live: "hello", runActive: false, lang: "pt-BR" }).eyebrow, "Pronto");
 assert.equal(snippet("oi", true), "oi");
 assert.ok(snippet("x".repeat(200), true).endsWith("…"));
 assert.ok(snippet("x".repeat(200), false).startsWith("…"));
@@ -306,11 +309,13 @@ chats.putMessages(store, [
 chats.startNew(store, chats.current(store).messages, "1k / 200k");
 assert.equal(store.items.length, 2);
 assert.equal(store.items[1].title, "oi");
-assert.equal(chats.current(store).title, "Nova conversa");
+assert.equal(chats.current(store).title, "New chat");
 chats.open(store, store.items[1].id);
 assert.equal(chats.current(store).messages[0].text, "oi");
 chats.clearCurrent(store);
 assert.equal(chats.current(store).messages.length, 0);
+assert.equal(chats.current(store).title, "New chat");
+chats.clearCurrent(store, "pt-BR");
 assert.equal(chats.current(store).title, "Nova conversa");
 chats.appendUser(store, "oi de novo");
 chats.rename(store, "ghost bug");

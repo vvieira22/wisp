@@ -54,6 +54,7 @@ const opencodeKeyInput = document.getElementById("opencode-key");
 const opencodeProviderBtns = document.querySelectorAll("[data-oc-provider]");
 const opencodeSetupStatus = document.getElementById("opencode-setup-status");
 const opencodeCheckBtn = document.getElementById("opencode-check");
+const langSelect = document.getElementById("lang");
 
 const tabBtnGeneral = document.getElementById("tab-btn-general");
 const tabBtnLogs = document.getElementById("tab-btn-logs");
@@ -91,7 +92,38 @@ const queueAskText = document.getElementById("queue-ask-text");
 const permissionAsk = document.getElementById("permission-ask");
 const permissionAskText = document.getElementById("permission-ask-text");
 
-const BUSY_MARK = " (ocupada)";
+let currentLang = "en";
+
+function busyMark() {
+  return typeof t === "function" ? t("busyMark", null, currentLang) : " (busy)";
+}
+
+function setAppLanguage(lang) {
+  currentLang = typeof normalizeLang === "function" ? normalizeLang(lang) : "en";
+  if (typeof setLanguage === "function") setLanguage(currentLang);
+  document.documentElement.lang = currentLang === "pt-BR" ? "pt-BR" : "en";
+  if (typeof applyTranslations === "function") applyTranslations(currentLang);
+  if (langSelect) {
+    langSelect.value = currentLang;
+  }
+  if (typeof paintFolder === "function") paintFolder();
+  if (typeof paintRiv === "function") paintRiv();
+  if (typeof paintMeter === "function") paintMeter();
+  if (typeof paintMode === "function") paintMode();
+  if (typeof setRunning === "function") setRunning(running);
+  const emptyLog = log && log.querySelector(".empty-log");
+  if (emptyLog) {
+    const title = emptyLog.querySelector(".empty-title");
+    if (title) title.textContent = t("emptyTitle", null, currentLang);
+    const copy = emptyLog.querySelector(".empty-copy");
+    if (copy) copy.textContent = t("emptyCopy", null, currentLang);
+  }
+  if (typeof picks !== "undefined" && picks && typeof picks.forEach === "function") {
+    picks.forEach((pick) => {
+      if (typeof pick.paint === "function") pick.paint();
+    });
+  }
+}
 
 let lastAssistant = null;
 let warned = false;
@@ -141,7 +173,7 @@ function opencodeKeyFor(provider) {
 }
 
 function folderName(cwd) {
-  if (!cwd) return "sem pasta";
+  if (!cwd) return typeof t === "function" ? t("noFolder", null, currentLang) : "no folder";
   const parts = cwd.replace(/[\\/]+$/, "").split(/[/\\]/);
   return parts[parts.length - 1] || cwd;
 }
@@ -173,21 +205,21 @@ function paintOpenCodeSetup(result) {
   if (!opencodeSetupStatus) return;
   opencodeSetupStatus.classList.remove("ok", "error");
   if (!result) {
-    opencodeSetupStatus.textContent = "Ainda não verificado.";
+    opencodeSetupStatus.textContent = t("notVerifiedYet", null, currentLang);
     return;
   }
   if (result.ok) {
     opencodeSetupStatus.classList.add("ok");
     const path = result.cliPath ? ` · ${result.cliPath}` : "";
-    opencodeSetupStatus.textContent = `Tudo ok: CLI + key do ${result.provider || opencodeProvider}${path}`;
+    opencodeSetupStatus.textContent = `${t("opencodeAllOk", null, currentLang)} ${result.provider || opencodeProvider}${path}`;
     return;
   }
   opencodeSetupStatus.classList.add("error");
   if (result.cliPath) {
-    opencodeSetupStatus.textContent = `CLI ok (${result.cliPath}). ${result.error || "Falta a chave da API."}`;
+    opencodeSetupStatus.textContent = t("opencodeCliOkKeyMissing", { path: result.cliPath }, currentLang);
     return;
   }
-  opencodeSetupStatus.textContent = result.error || "Setup incompleto.";
+  opencodeSetupStatus.textContent = result.error || t("opencodeSetupIncomplete", null, currentLang);
 }
 
 function paintAccountFields() {
@@ -199,8 +231,8 @@ function paintAccountFields() {
   if (currentEngine === "cursor") {
     if (!config.apiKey) keyInput.value = "";
     else if (!keyInput.value.trim()) keyInput.value = "••••••••";
-    whoEl.textContent = config.apiKey ? "Conta Cursor conectada" : "";
-    statusEl.textContent = "Ao salvar, testa a conexão e busca os modelos disponíveis.";
+    whoEl.textContent = config.apiKey ? t("cursorConnected", null, currentLang) : "";
+    statusEl.textContent = t("probeStatusDefault", null, currentLang);
     return;
   }
 
@@ -211,7 +243,7 @@ function paintAccountFields() {
     paintOpenCodeProvider();
     const key = opencodeKeyFor(opencodeProvider);
     whoEl.textContent = key ? `${engineLabel("opencode")} · ${opencodeProvider}` : "";
-    statusEl.textContent = "Use Verificar setup pra checar o CLI e a key.";
+    statusEl.textContent = t("verifySetup", null, currentLang);
     return;
   }
 
@@ -221,8 +253,8 @@ function paintAccountFields() {
     if (!config.geminiApiKey) geminiKeyInput.value = "";
     else if (!geminiKeyInput.value.trim()) geminiKeyInput.value = "••••••••";
   }
-  whoEl.textContent = activeProvider === "cli" ? "CLI Local (agy)" : (config.geminiApiKey ? "API Gemini conectada" : "");
-  statusEl.textContent = "Ao salvar, testa a conexão e busca os modelos disponíveis.";
+  whoEl.textContent = activeProvider === "cli" ? t("cliConnected", null, currentLang) : (config.geminiApiKey ? t("geminiConnected", null, currentLang) : "");
+  statusEl.textContent = t("probeStatusDefault", null, currentLang);
 }
 
 function setPage(name) {
@@ -269,7 +301,7 @@ function paintLogsBadge() {
   }
 }
 
-function copyToClipboard(text, btn, successLabel = "Copiado!") {
+function copyToClipboard(text, btn, successLabel = (typeof t === "function" ? t("copied", null, currentLang) : "Copied!")) {
   const origText = btn ? btn.textContent : "";
   const doCopy = () => {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -321,13 +353,13 @@ function paintLogsSummary(summary) {
     logsStatusDot.classList.remove("ok", "error", "warn");
     if (summary.errors > 0) {
       logsStatusDot.classList.add("error");
-      logsStatusText.textContent = `${summary.errors} ${summary.errors === 1 ? "erro detectado" : "erros detectados"}`;
+      logsStatusText.textContent = `${summary.errors} ${summary.errors === 1 ? t("errorDetected", null, currentLang) : t("errorsDetected", null, currentLang)}`;
     } else if (summary.warnings > 0) {
       logsStatusDot.classList.add("warn");
-      logsStatusText.textContent = `${summary.warnings} ${summary.warnings === 1 ? "aviso" : "avisos"}`;
+      logsStatusText.textContent = `${summary.warnings} ${summary.warnings === 1 ? t("warningDetected", null, currentLang) : t("warningsDetected", null, currentLang)}`;
     } else {
       logsStatusDot.classList.add("ok");
-      logsStatusText.textContent = "Sistema estável";
+      logsStatusText.textContent = t("systemStable", null, currentLang);
     }
   }
 
@@ -349,7 +381,7 @@ function renderLogsList(logs) {
   if (!logs || !logs.length) {
     const empty = document.createElement("div");
     empty.className = "logs-empty";
-    empty.textContent = "Nenhum log encontrado para o filtro atual.";
+    empty.textContent = t("noLogsMatchFilter", null, currentLang);
     logsList.appendChild(empty);
     return;
   }
@@ -378,11 +410,11 @@ function renderLogsList(logs) {
     const copyItemBtn = document.createElement("button");
     copyItemBtn.type = "button";
     copyItemBtn.className = "log-item-copy-btn";
-    copyItemBtn.title = "Copiar este log";
+    copyItemBtn.title = t("copyThisLog", null, currentLang);
     copyItemBtn.textContent = "📋";
     copyItemBtn.onclick = (ev) => {
       ev.stopPropagation();
-      const text = `[${entry.time}] [${(entry.level || "").toUpperCase()}] [${entry.source}] ${entry.message}${entry.details ? "\nDetalhes:\n" + entry.details : ""}`;
+      const text = `[${entry.time}] [${(entry.level || "").toUpperCase()}] [${entry.source}] ${entry.message}${entry.details ? `\n${t("detailsLabel", null, currentLang)}:\n` + entry.details : ""}`;
       copyToClipboard(text, copyItemBtn, "✓");
     };
 
@@ -403,7 +435,7 @@ function renderLogsList(logs) {
       if (entry.level === "error") details.open = true;
 
       const summary = document.createElement("summary");
-      summary.textContent = "Ver detalhes / diagnóstico";
+      summary.textContent = t("viewDetailsDiagnostics", null, currentLang);
       details.appendChild(summary);
 
       const pre = document.createElement("pre");
@@ -418,23 +450,23 @@ function renderLogsList(logs) {
 }
 
 function paintFolder() {
-  folderValue.textContent = config.cwd ? folderName(config.cwd) : "escolher pasta";
-  folderBtn.title = config.cwd || "Escolhe a pasta do projeto";
+  folderValue.textContent = config.cwd ? folderName(config.cwd) : t("chooseFolder", null, currentLang);
+  folderBtn.title = config.cwd || t("chooseProjectFolder", null, currentLang);
 }
 
 function paintRiv() {
   const mascot = config.mascot || {};
   if (mascot.source === "config") rivValue.textContent = folderName(mascot.file);
-  else if (mascot.source === "cwd") rivValue.textContent = folderName(mascot.file) + " (projeto)";
+  else if (mascot.source === "cwd") rivValue.textContent = folderName(mascot.file) + t("mascotProjectSuffix", null, currentLang);
   else rivValue.textContent = "mascot.riv";
   rivClear.hidden = mascot.source !== "config";
 }
 
 function setRunning(on) {
   running = !!on;
-  goBtn.textContent = running ? "Parar" : "Enviar";
+  goBtn.textContent = running ? t("stop", null, currentLang) : t("send", null, currentLang);
   goBtn.classList.toggle("stop", running);
-  goBtn.title = running ? "Parar a resposta" : "Enviar mensagem";
+  goBtn.title = running ? t("stopResponse", null, currentLang) : t("sendMessage", null, currentLang);
   if (!running) {
     setThinking(false);
     hidePermissionAsk();
@@ -447,7 +479,7 @@ function setThinking(on, text) {
     if (prev) prev.remove();
     return;
   }
-  let label = "pensando…";
+  let label = t("thinking", null, currentLang);
   if (text) {
     const clean = String(text).replace(/\s+/g, " ").trim();
     if (clean) label = clean.length > 90 ? "…" + clean.slice(-85) : clean;
@@ -633,27 +665,33 @@ function currentModel() {
 
 function paintMeter() {
   if (currentEngine === "cursor" && !config.apiKey) {
-    meterValue.textContent = "liga a conta";
+    meterValue.textContent = t("connectAccount", null, currentLang);
     meterValue.title = "";
     return;
   }
   if (currentEngine === "antigravity" && config.provider === "api" && !config.geminiApiKey) {
-    meterValue.textContent = "insira a chave";
+    meterValue.textContent = t("enterKey", null, currentLang);
     meterValue.title = "";
     return;
   }
   if (currentEngine === "opencode" && !opencodeKeyFor(config.provider || opencodeProvider)) {
-    meterValue.textContent = "insira a chave";
+    meterValue.textContent = t("enterKey", null, currentLang);
     meterValue.title = "";
     return;
   }
   const messages = snapshot();
   meterValue.textContent = typeof formatMeter === "function" ? formatMeter(liveUsage, messages, view.model) : usageLabel;
-  meterValue.title = typeof meterTitle === "function" ? meterTitle(liveUsage, messages, view.model) : usageTitle;
+  meterValue.title = typeof meterTitle === "function" ? meterTitle(liveUsage, messages, view.model, currentLang) : usageTitle;
 }
 
 function paintMode() {
   modeSelect.value = normalizeMode(view.mode);
+  const askOpt = modeSelect.querySelector('option[value="ask"]');
+  if (askOpt) askOpt.textContent = t("modeAsk", null, currentLang);
+  const planOpt = modeSelect.querySelector('option[value="plan"]');
+  if (planOpt) planOpt.textContent = t("modePlan", null, currentLang);
+  const agentOpt = modeSelect.querySelector('option[value="agent"]');
+  if (agentOpt) agentOpt.textContent = t("modeAgent", null, currentLang);
   const api = picks.get(modeSelect);
   if (api) api.paint();
 }
@@ -758,10 +796,10 @@ function paintEmpty() {
   wrap.className = "empty-log";
   const title = document.createElement("p");
   title.className = "empty-title";
-  title.textContent = "Nenhuma mensagem ainda";
+  title.textContent = t("emptyTitle", null, currentLang);
   const copy = document.createElement("p");
   copy.className = "empty-copy";
-  copy.textContent = "Escreve embaixo. Modo e modelo ficam na barra.";
+  copy.textContent = t("emptyCopy", null, currentLang);
   wrap.append(title, copy);
   log.appendChild(wrap);
 }
@@ -889,13 +927,16 @@ function paintLog(messages) {
 function fillChats(state) {
   if (!state || !state.items) return;
   chatsSelect.innerHTML = "";
+  const mark = busyMark();
   for (const item of state.items) {
     const opt = document.createElement("option");
     opt.value = item.id;
-    opt.textContent = item.busy ? item.title + BUSY_MARK : item.title;
+    opt.textContent = item.busy ? item.title + mark : item.title;
     chatsSelect.appendChild(opt);
   }
   chatsSelect.value = state.currentId;
+  const api = picks.get(chatsSelect);
+  if (api) api.paint();
 }
 
 function stopRename(save) {
@@ -908,11 +949,21 @@ function stopRename(save) {
 
 function startRename() {
   const current = chatsSelect.selectedOptions[0];
-  chatName.value = current
-    ? current.textContent.endsWith(BUSY_MARK)
-      ? current.textContent.slice(0, -BUSY_MARK.length)
-      : current.textContent
-    : "";
+  let text = current ? current.textContent : "";
+  const mark = busyMark();
+  if (mark && text.endsWith(mark)) {
+    text = text.slice(0, -mark.length);
+  } else if (typeof BUSY_MARK !== "undefined" && text.endsWith(BUSY_MARK)) {
+    text = text.slice(0, -BUSY_MARK.length);
+  } else if (typeof BUSY_MARK_BY_LANG !== "undefined") {
+    for (const m of Object.values(BUSY_MARK_BY_LANG)) {
+      if (text.endsWith(m)) {
+        text = text.slice(0, -m.length);
+        break;
+      }
+    }
+  }
+  chatName.value = text;
   chatsSelect.hidden = true;
   chatName.hidden = false;
   chatName.focus();
@@ -962,7 +1013,7 @@ function paintQueue() {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "queue-remove";
-    btn.setAttribute("aria-label", "Remover da fila");
+    btn.setAttribute("aria-label", t("removeFromQueue", null, currentLang));
     btn.textContent = "×";
     btn.addEventListener("click", () => removeQueueItem(index));
     li.append(label, btn);
@@ -1001,7 +1052,7 @@ function paintAttachments() {
   attachments.forEach((att, index) => {
     const chip = document.createElement("div");
     chip.className = "attachment-chip";
-    chip.title = att.dir ? `${att.path}\nDiretório: ${att.dir}` : att.path;
+    chip.title = att.dir ? `${att.path}\n${t("directoryLabel", null, currentLang)}: ${att.dir}` : att.path;
 
     const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     icon.setAttribute("class", "attachment-icon");
@@ -1023,8 +1074,8 @@ function paintAttachments() {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "attachment-remove";
-    btn.setAttribute("aria-label", `Remover ${att.name}`);
-    btn.title = "Remover anexo";
+    btn.setAttribute("aria-label", t("removeAttachmentAria", { name: att.name }, currentLang));
+    btn.title = t("removeAttachment", null, currentLang);
     btn.textContent = "×";
     btn.addEventListener("click", (e) => {
       e.preventDefault();
@@ -1050,7 +1101,7 @@ function hidePermissionAsk() {
 function showPermissionAsk(event) {
   pendingPermission = event || null;
   if (!permissionAsk) return;
-  if (permissionAskText) permissionAskText.textContent = (event && event.title) || "O agente pede permissão.";
+  if (permissionAskText) permissionAskText.textContent = (event && event.title) || t("agentRequestsPermission", null, currentLang);
   permissionAsk.hidden = false;
 }
 
@@ -1077,7 +1128,7 @@ function showQueueAsk(text) {
   if (!queueAsk) return;
   queueDraft = text;
   if (queueAskText) {
-    queueAskText.textContent = `Resposta em andamento. Enfileirar "${clipQueueText(text)}" ou cancelar e enviar agora?`;
+    queueAskText.textContent = t("queueAskFormat", { text: clipQueueText(text) }, currentLang);
   }
   queueAsk.hidden = false;
 }
@@ -1195,6 +1246,10 @@ async function refresh() {
     currentEngine = "cursor";
   }
   config = await window.wisp.getConfig();
+  if (config && config.lang) {
+    currentLang = typeof normalizeLang === "function" ? normalizeLang(config.lang) : "en";
+    setAppLanguage(currentLang);
+  }
   activeProvider = config.provider || "cli";
   if (currentEngine === "opencode") {
     opencodeProvider = typeof normalizeProvider === "function"
@@ -1211,7 +1266,7 @@ async function refresh() {
   } catch {
     /* first paint */
   }
-  if (!config.cwd) addSystemOnce("Clica em Projeto pra escolher a pasta do trabalho.");
+  if (!config.cwd) addSystemOnce(t("clickProjectFolderHint", null, currentLang));
   if (currentEngine === "cursor") {
     if (!config.apiKey) setPage("account");
     else probeAccount(config.apiKey);
@@ -1234,7 +1289,7 @@ async function probeAccount(targetPayload) {
   const probeEngine = currentEngine;
 
   if (currentEngine === "antigravity") {
-    statusEl.textContent = "testando conexão Antigravity…";
+    statusEl.textContent = t("testingAntigravity", null, currentLang);
     const prov = (targetPayload && targetPayload.provider) || activeProvider || "cli";
     const key = (targetPayload && targetPayload.geminiApiKey) || (geminiKeyInput ? geminiKeyInput.value.trim() : "");
     const geminiKey = key && !key.startsWith("•") ? key : (config.geminiApiKey || "");
@@ -1243,7 +1298,7 @@ async function probeAccount(targetPayload) {
       if (currentEngine !== probeEngine) return;
       if (!result.ok) {
         statusEl.classList.add("error");
-        statusEl.textContent = result.error || "falha na conexão Antigravity";
+        statusEl.textContent = result.error || t("antigravityFailed", null, currentLang);
         return;
       }
       config = result.config || config;
@@ -1255,9 +1310,9 @@ async function probeAccount(targetPayload) {
       if (result.usageLabel) usageLabel = result.usageLabel;
       if (result.usageTitle) usageTitle = result.usageTitle;
       if (result && "usage" in result) liveUsage = result.usage || liveUsage;
-      whoEl.textContent = prov === "cli" ? "CLI Local (agy) conectado" : "API Gemini conectada";
+      whoEl.textContent = prov === "cli" ? t("cliConnected", null, currentLang) : t("geminiConnected", null, currentLang);
       if (cliPathEl && result.cliPath) cliPathEl.textContent = result.cliPath;
-      statusEl.textContent = `${antigravityModels.length} modelos disponíveis. Volta ao chat pra escolher o modo.`;
+      statusEl.textContent = t("modelsAvailableHint", { count: antigravityModels.length }, currentLang);
       paintMeter();
       if (prov === "api" && geminiKeyInput && geminiKey) geminiKeyInput.value = "••••••••";
       await saveModel();
@@ -1273,10 +1328,10 @@ async function probeAccount(targetPayload) {
   }
 
   if (currentEngine === "opencode") {
-    statusEl.textContent = "verificando setup OpenCode…";
+    statusEl.textContent = t("verifyingOpenCode", null, currentLang);
     if (opencodeSetupStatus) {
       opencodeSetupStatus.classList.remove("ok", "error");
-      opencodeSetupStatus.textContent = "Verificando CLI e key…";
+      opencodeSetupStatus.textContent = t("verifyingCliAndKey", null, currentLang);
     }
     if (opencodeCheckBtn) opencodeCheckBtn.disabled = true;
     const prov = (targetPayload && targetPayload.provider) || opencodeProvider || "deepseek";
@@ -1289,8 +1344,8 @@ async function probeAccount(targetPayload) {
       if (!result.ok) {
         statusEl.classList.remove("error");
         statusEl.textContent = result.cliPath
-          ? "CLI encontrado. Falta só a chave válida do provedor."
-          : "Setup incompleto — veja o aviso acima.";
+          ? t("opencodeCliFoundNeedKey", null, currentLang)
+          : t("opencodeSetupIncomplete", null, currentLang);
         return;
       }
       config = result.config || config;
@@ -1301,7 +1356,7 @@ async function probeAccount(targetPayload) {
       if (result.usageTitle) usageTitle = result.usageTitle;
       if (result && "usage" in result) liveUsage = result.usage || liveUsage;
       whoEl.textContent = `${engineLabel("opencode")} · ${opencodeProvider}`;
-      statusEl.textContent = `${opencodeModels.length} modelos disponíveis. Volta ao chat pra escolher o modo.`;
+      statusEl.textContent = t("modelsAvailableHint", { count: opencodeModels.length }, currentLang);
       paintOpenCodeProvider();
       paintMeter();
       if (opencodeKeyInput && key) opencodeKeyInput.value = "••••••••";
@@ -1320,7 +1375,7 @@ async function probeAccount(targetPayload) {
     return;
   }
 
-  statusEl.textContent = "testando a chave…";
+  statusEl.textContent = t("testingKey", null, currentLang);
   const typed = typeof targetPayload === "string" ? targetPayload : (targetPayload && targetPayload.apiKey) || keyInput.value.trim();
   const key = typed && !typed.startsWith("•") ? typed : (config.apiKey || "");
   try {
@@ -1328,7 +1383,7 @@ async function probeAccount(targetPayload) {
     if (currentEngine !== probeEngine) return;
     if (!result.ok) {
       statusEl.classList.add("error");
-      statusEl.textContent = result.error || "chave recusada";
+      statusEl.textContent = result.error || t("keyRejected", null, currentLang);
       return;
     }
     config = result.config || config;
@@ -1340,8 +1395,8 @@ async function probeAccount(targetPayload) {
     if (result.usageTitle) usageTitle = result.usageTitle;
     if (result && "usage" in result) liveUsage = result.usage || liveUsage;
     const who = result.me && (result.me.email || result.me.name || result.me.keyName);
-    whoEl.textContent = who ? `Conta ligada: ${who}` : "Chave ok";
-    statusEl.textContent = `${cursorModels.length} modelos disponíveis. Volta ao chat pra escolher o modo.`;
+    whoEl.textContent = who ? t("accountConnected", { who }, currentLang) : t("keyOk", null, currentLang);
+    statusEl.textContent = t("modelsAvailableHint", { count: cursorModels.length }, currentLang);
     paintMeter();
     keyInput.value = "••••••••";
     await saveModel();
@@ -1428,7 +1483,7 @@ function paintSkillList() {
   if (!items.length) {
     const empty = document.createElement("p");
     empty.className = "empty";
-    empty.textContent = skills.length ? "nada com esse nome" : "nenhuma skill nestas pastas";
+    empty.textContent = skills.length ? t("nothingWithName", null, currentLang) : t("noSkillsInFolders", null, currentLang);
     skillList.appendChild(empty);
     return;
   }
@@ -1444,7 +1499,11 @@ function paintSkillList() {
     name.textContent = "/" + skill.name;
     const meta = document.createElement("span");
     meta.className = "skill-meta";
-    meta.textContent = [skill.description, skill.family, skill.source === "project" ? "projeto" : "user"]
+    meta.textContent = [
+      skill.description,
+      skill.family,
+      skill.source === "project" ? t("skillSourceProject", null, currentLang) : t("skillSourceUser", null, currentLang),
+    ]
       .filter(Boolean)
       .join(" · ");
     btn.appendChild(name);
@@ -1503,7 +1562,18 @@ hit(document.getElementById("gear"), () => setPage("account"));
 hit(document.getElementById("back"), () => setPage("chat"));
 hit(document.getElementById("hide"), () => window.wisp.hideChat());
 
-for (const el of [chatsSelect, modeSelect, modelSelect, effortSelect, poseSelect]) decoratePick(el);
+for (const el of [chatsSelect, modeSelect, modelSelect, effortSelect, poseSelect, langSelect].filter(Boolean)) decoratePick(el);
+if (langSelect) {
+  langSelect.addEventListener("change", async () => {
+    const next = langSelect.value;
+    setAppLanguage(next);
+    try {
+      config = await window.wisp.setConfig({ lang: next });
+    } catch (err) {
+      console.error("[langSelect]", err);
+    }
+  });
+}
 picks.get(chatsSelect).btn.addEventListener("dblclick", startRename);
 picks.get(chatsSelect).btn.addEventListener("keydown", (event) => {
   if (event.key !== "F2") return;
@@ -1646,8 +1716,8 @@ if (logsCopyBtn) {
   logsCopyBtn.addEventListener("click", () => {
     const formatted = typeof LogStore !== "undefined" && typeof LogStore.prototype.formatExport === "function"
       ? (new LogStore()).formatExport.call({ filter: () => cachedLogs, entries: cachedLogs })
-      : cachedLogs.map((e) => `[${e.time}] [${(e.level || "").toUpperCase()}] [${e.source}] ${e.message}${e.details ? "\nDetalhes:\n" + e.details : ""}`).join("\n\n");
-    copyToClipboard(formatted, logsCopyBtn, "Copiado!");
+      : cachedLogs.map((e) => `[${e.time}] [${(e.level || "").toUpperCase()}] [${e.source}] ${e.message}${e.details ? `\n${t("detailsLabel", null, currentLang)}:\n` + e.details : ""}`).join("\n\n");
+    copyToClipboard(formatted, logsCopyBtn, t("copied", null, currentLang));
   });
 }
 
@@ -1693,7 +1763,7 @@ window.addEventListener("error", (event) => {
     window.wisp.addLog({
       level: "error",
       source: "chat",
-      message: event.message || "Erro na interface do chat",
+      message: event.message || t("errorChatUI", null, currentLang),
       details: event.error && event.error.stack ? event.error.stack : `${event.filename}:${event.lineno}`,
     });
   }
@@ -1761,12 +1831,12 @@ function showEngineAsk(target) {
   const currentLabel = engineLabel(currentEngine);
 
   if (engineAskTitle) {
-    engineAskTitle.textContent = `Trocar para ${targetLabel}?`;
+    engineAskTitle.textContent = t("switchProviderSpecificTitle", { target: targetLabel }, currentLang);
   }
   if (engineAskDesc) {
-    let html = `Alternará o histórico de conversas e os modelos de <strong>${currentLabel}</strong> para <strong>${targetLabel}</strong>.`;
+    let html = t("switchProviderDesc", { current: currentLabel, target: targetLabel }, currentLang);
     if (running) {
-      html += `<p class="modal-warning">A resposta sendo gerada agora será cancelada.</p>`;
+      html += `<p class="modal-warning">${t("switchProviderWarnRunning", null, currentLang)}</p>`;
     }
     engineAskDesc.innerHTML = html;
   }
@@ -1906,7 +1976,7 @@ composer.addEventListener("submit", async (event) => {
       return;
     }
     const queuedText = typeof formatAttachmentReference === "function"
-      ? formatAttachmentReference(attachments, rawText)
+      ? formatAttachmentReference(attachments, rawText, currentLang)
       : rawText;
     clearAttachments();
     input.value = "";
@@ -1916,7 +1986,7 @@ composer.addEventListener("submit", async (event) => {
   }
   if (!rawText && !attachments.length) return;
   const prompt = typeof formatAttachmentReference === "function"
-    ? formatAttachmentReference(attachments, rawText)
+    ? formatAttachmentReference(attachments, rawText, currentLang)
     : rawText;
   input.value = "";
   clearAttachments();
@@ -2033,7 +2103,7 @@ window.wisp.onChat((event) => {
     startTick(event.at);
   }
   if (event.type === "session-gap") {
-    const el = addMsg("notice", event.text || "Não retomei a sessão anterior. Esta resposta começa do zero.");
+    const el = addMsg("notice", event.text || t("sessionGapNotice", null, currentLang));
     const think = log.querySelector(".msg.thinking");
     if (think) log.insertBefore(el, think);
   }
@@ -2047,7 +2117,7 @@ window.wisp.onChat((event) => {
   if (event.type === "permission-request") {
     setThinking(true);
     showPermissionAsk(event);
-    addMsg("permission", event.title || "O agente pede permissão.");
+    addMsg("permission", event.title || t("agentRequestsPermission", null, currentLang));
     paintTick();
     log.scrollTop = log.scrollHeight;
   }
@@ -2072,8 +2142,8 @@ window.wisp.onChat((event) => {
     paintTick();
     log.scrollTop = log.scrollHeight;
   }
-  if (event.type === "run-cancel") addMsg("system", "parou");
-  if (event.type === "run-error") addMsg("error", event.text || "falhou");
+  if (event.type === "run-cancel") addMsg("system", t("runStopped", null, currentLang));
+  if (event.type === "run-error") addMsg("error", event.text || t("runFailed", null, currentLang));
   if (event.type === "run-end" || event.type === "run-error" || event.type === "run-cancel") {
     const ms = stopTick(event.ms);
     setThinking(false);
@@ -2113,6 +2183,10 @@ window.wisp.onDock((info) => {
   panel.dataset.dock = info.side || "left";
   panel.dataset.align = info.align || "end";
 });
+
+if (window.wisp && typeof window.wisp.onLang === "function") {
+  window.wisp.onLang((l) => setAppLanguage(l));
+}
 
 let dragCounter = 0;
 

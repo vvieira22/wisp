@@ -74,8 +74,10 @@ assert.equal(spendFrom(msgs).chargedCents, 35);
 assert.equal(spendFrom(msgs).inputTokens, 12100);
 
 assert.match(formatMeter(cursor, msgs, "composer-2.5"), /22k \/ 200k/);
-assert.match(meterTitle(cursor, msgs, "composer-2.5"), /Último turno/);
-assert.match(meterTitle(cursor, msgs, "composer-2.5"), /Sessão \(2 prompts\)/);
+assert.match(meterTitle(cursor, msgs, "composer-2.5"), /Last turn/);
+assert.match(meterTitle(cursor, msgs, "composer-2.5"), /Session \(2 prompts\)/);
+assert.match(meterTitle(cursor, msgs, "composer-2.5", "pt-BR"), /Último turno/);
+assert.match(meterTitle(cursor, msgs, "composer-2.5", "pt-BR"), /Sessão \(2 prompts\)/);
 
 const stamped = [
   { role: "user", text: "oi" },

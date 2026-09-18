@@ -45,11 +45,14 @@ function ensureRipgrep() {
 }
 ensureRipgrep();
 
-const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage, screen, protocol } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage, screen, protocol, safeStorage } = require("electron");
+const { setSafeStorage } = require("../src/lib/crypto");
+if (safeStorage) setSafeStorage(safeStorage);
 const { WispAgent, loadConfig, saveConfig, pickDefault, resolveModel, formatMeter, meterTitle, resolveCwd, sameCwd, prewarmWorkspace, dropPrewarm } = require("./agent");
 const { AntigravityAgent, findAgyBin, DEFAULT_GEMINI_MODELS } = require("./agent-antigravity");
 const { OpenCodeAgent } = require("./agent-opencode");
 const { normalizeProvider, mergeKeys, resolveOpenCodeModel } = require("../src/lib/opencode-providers");
+const { t, normalizeLang } = require("../src/lib/i18n");
 const { reducePet, forcePet, STATES } = require("../src/lib/pet-state");
 const { PET, spriteRect, dockChat, clampToArea, petWindowSize } = require("../src/lib/dock");
 const { resolveRiv } = require("../src/lib/riv");
@@ -298,6 +301,7 @@ function rawCfg() {
 
   return {
     engine: currentEngine,
+    lang: normalizeLang(fileData.lang),
     cursor: cursorCfg,
     antigravity: antigravityCfg,
     opencode: opencodeCfg,
@@ -334,6 +338,7 @@ function writeCfg(next) {
   for (const [k, v] of Object.entries(next)) {
     if (k === "riv") full.riv = v;
     else if (k === "engine") full.engine = v;
+    else if (k === "lang") full.lang = normalizeLang(v);
     else if (k === "cursor" || k === "antigravity" || k === "opencode" || k === "fullConfig" || k === "mascot") continue;
     else target[k] = v;
   }
@@ -345,6 +350,7 @@ function cfg() {
   const active = activeBlock(full);
   const out = Object.assign({}, active, {
     engine: currentEngine,
+    lang: full.lang || "en",
     riv: full.riv,
     fullConfig: full,
   });
@@ -353,8 +359,9 @@ function cfg() {
 }
 
 async function pickMascot() {
+  const lang = (cfg() && cfg().lang) || "en";
   const result = await nativeDialog({
-    title: "Mascote Rive",
+    title: t("dialogPickMascot", null, lang),
     properties: ["openFile"],
     filters: [{ name: "Rive", extensions: ["riv"] }],
   });
@@ -731,7 +738,8 @@ async function resetSession(payload) {
   const prev = current(chats);
   const prevId = prev.id;
   const hadUser = prev.messages.some((m) => m.role === "user");
-  startNew(chats, prev.messages, prev.usageLabel);
+  const lang = (cfg() && cfg().lang) || "en";
+  startNew(chats, prev.messages, prev.usageLabel, lang);
   saveChats();
   const next = current(chats);
   if (!hadUser) await dropSession(prevId);
@@ -752,7 +760,8 @@ async function clearSession() {
     return chatState();
   }
   await dropSession(chat.id);
-  clearCurrent(chats);
+  const lang = (cfg() && cfg().lang) || "en";
+  clearCurrent(chats, lang);
   saveChats();
   applyEvent(chat.id, { type: "session-reset" });
   tellUsage(chat, null);
@@ -764,6 +773,22 @@ function toggleChat() {
   else showChat(true);
 }
 
+function updateTrayMenu() {
+  if (!tray) return;
+  const lang = (cfg() && cfg().lang) || "en";
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: t("trayOpenChat", null, lang), click: () => showChat(true) },
+      { label: t("trayHideChat", null, lang), click: hideChat },
+      { label: t("trayNewChat", null, lang), click: () => resetSession().catch((err) => console.error(err)) },
+      { label: t("trayPickMascot", null, lang), click: () => pickMascot().catch((err) => console.error(err)) },
+      { label: t("trayDefaultMascot", null, lang), click: () => clearMascot() },
+      { type: "separator" },
+      { label: t("trayQuit", null, lang), click: () => app.quit() },
+    ]),
+  );
+}
+
 function createTray() {
   const source = nativeImage.createFromPath(appIcon());
   const img = source.isEmpty()
@@ -771,17 +796,7 @@ function createTray() {
     : source.resize({ width: 32, height: 32, quality: "best" });
   tray = new Tray(img);
   tray.setToolTip("Wisp");
-  tray.setContextMenu(
-    Menu.buildFromTemplate([
-      { label: "Abrir chat", click: () => showChat(true) },
-      { label: "Esconder chat", click: hideChat },
-      { label: "Nova conversa", click: () => resetSession().catch((err) => console.error(err)) },
-      { label: "Mascote .riv…", click: () => pickMascot().catch((err) => console.error(err)) },
-      { label: "Mascote padrão", click: () => clearMascot() },
-      { type: "separator" },
-      { label: "Sair", click: () => app.quit() },
-    ]),
-  );
+  updateTrayMenu();
   tray.on("click", () => toggleChat());
 }
 
@@ -799,6 +814,7 @@ app.whenReady().then(() => {
       callback({ error: -2 });
     }
   });
+  if (safeStorage) setSafeStorage(safeStorage);
   rawCfg();
   loadChats();
   createPet();
@@ -852,6 +868,11 @@ ipcMain.handle("config:set", async (_event, partial) => {
   writeCfg(next);
   if (partial && (partial.cwd || partial.riv !== undefined)) tellPetMascot();
   if (partial && partial.cwd && !sameCwd(prev.cwd, next.cwd)) pinChatToCwd(next.cwd);
+  if (partial && partial.lang) {
+    updateTrayMenu();
+    if (petWin && !petWin.isDestroyed()) petWin.webContents.send("config:lang", next.lang);
+    if (chatWin && !chatWin.isDestroyed()) chatWin.webContents.send("config:lang", next.lang);
+  }
   tellUsage(current(chats));
   return cfg();
 });
@@ -939,8 +960,9 @@ ipcMain.handle("account:probe", async (_event, payload) => {
 });
 
 ipcMain.handle("config:pick-folder", async () => {
+  const lang = (cfg() && cfg().lang) || "en";
   const result = await nativeDialog({
-    title: "Pasta do projeto",
+    title: t("dialogPickFolder", null, lang),
     properties: ["openDirectory"],
   });
   if (result.canceled || !result.filePaths[0]) return cfg();

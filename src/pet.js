@@ -149,12 +149,14 @@ async function bootMascot() {
   startRive(data.src);
 }
 
+let currentLang = "en";
+
 function paint() {
   const show = !compact && (runActive || (unread && state === "alert"));
   bubble.hidden = !show;
   if (show) {
-    const copy = bubbleCopy({ live, tool, runActive });
-    eyebrow.textContent = hasError ? "Erro" : copy.eyebrow;
+    const copy = bubbleCopy({ live, tool, runActive, lang: currentLang });
+    eyebrow.textContent = hasError ? (currentLang === "pt-BR" ? "Erro" : "Error") : copy.eyebrow;
     line.textContent = copy.line;
     line.hidden = !copy.line;
     bubble.classList.toggle("working", copy.kind === "working" && !hasError);
@@ -247,8 +249,15 @@ window.wisp.onChat((event) => {
   }
 });
 
+if (window.wisp.onLang) {
+  window.wisp.onLang((lang) => {
+    currentLang = lang || "en";
+    paint();
+  });
+}
 window.wisp.onMascot(() => bootMascot());
-window.wisp.getConfig().then(async () => {
+window.wisp.getConfig().then(async (c) => {
+  if (c && c.lang) currentLang = c.lang;
   await bootMascot();
   setState("idle");
 });

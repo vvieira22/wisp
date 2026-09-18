@@ -44,9 +44,11 @@ function ensureRipgrep() {
 }
 ensureRipgrep();
 
+const { encryptConfig, decryptConfig } = require("../src/lib/crypto");
+
 function loadConfig(file) {
   try {
-    return JSON.parse(fs.readFileSync(file, "utf8"));
+    return decryptConfig(JSON.parse(fs.readFileSync(file, "utf8")));
   } catch {
     return {};
   }
@@ -54,7 +56,7 @@ function loadConfig(file) {
 
 function saveConfig(file, cfg) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(cfg, null, 2), "utf8");
+  fs.writeFileSync(file, JSON.stringify(encryptConfig(cfg), null, 2), "utf8");
 }
 
 function contentText(node) {

@@ -18,15 +18,17 @@ function parseAttachment(fullPath) {
   };
 }
 
-function formatAttachmentReference(attachments, text) {
+function formatAttachmentReference(attachments, text, lang = "en") {
   const cleanText = String(text || "").trim();
   const list = Array.isArray(attachments) ? attachments.filter((a) => a && a.path) : [];
   if (!list.length) return cleanText;
+  const isPt = lang === "pt-BR" || lang === "pt";
+  const dirLabel = isPt ? "diretório" : "directory";
   const lines = list.map((a) => {
-    const dirInfo = a.dir ? ` [diretório: ${a.dir}]` : "";
+    const dirInfo = a.dir ? ` [${dirLabel}: ${a.dir}]` : "";
     return `- ${a.name} (${a.path})${dirInfo}`;
   });
-  const header = `[Arquivos referenciados:\n${lines.join("\n")}\n]`;
+  const header = isPt ? `[Arquivos referenciados:\n${lines.join("\n")}\n]` : `[Referenced files:\n${lines.join("\n")}\n]`;
   return cleanText ? `${header}\n\n${cleanText}` : header;
 }
 
