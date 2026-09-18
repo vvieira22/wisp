@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Wisp README hero</title>
+    <style>
+      :root {
+        --night: #16141c;
+        --glass: rgba(22, 20, 28, 0.92);
+        --paper: #f3e6c4;
+        --ember: #d89a4a;
+        --mist: #b4ab97;
+        --line: rgba(243, 230, 196, 0.14);
+        --ui: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+        --mono: "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
+        --display: Georgia, "Palatino Linotype", serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 1280px;
+        height: 720px;
+        overflow: hidden;
+        font-family: var(--ui);
+        color: var(--paper);
+      }
+
+      .desktop {
+        position: relative;
+        width: 1280px;
+        height: 720px;
+        background:
+          radial-gradient(120% 90% at 15% 10%, rgba(120, 90, 180, 0.35), transparent 55%),
+          radial-gradient(90% 70% at 85% 20%, rgba(216, 154, 74, 0.22), transparent 50%),
+          linear-gradient(145deg, #1a1624 0%, #0f0d14 45%, #12101a 100%);
+      }
+
+      .desktop::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 70% 85%, rgba(0, 0, 0, 0.15), transparent 45%);
+        pointer-events: none;
+      }
+
+      .taskbar {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 44px;
+        background: rgba(12, 10, 18, 0.72);
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        backdrop-filter: blur(18px);
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        gap: 10px;
+        font-size: 11px;
+        color: rgba(243, 230, 196, 0.55);
+      }
+
+      .taskbar .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--ember);
+        box-shadow: 0 0 10px rgba(216, 154, 74, 0.55);
+      }
+
+      #panel {
+        position: absolute;
+        top: 72px;
+        left: 48px;
+        width: 392px;
+        height: 560px;
+        display: flex;
+        flex-direction: column;
+        padding: 12px 12px 16px;
+        background:
+          radial-gradient(120% 80% at 12% -10%, rgba(216, 154, 74, 0.16), transparent 42%),
+          var(--glass);
+        border: 1px solid var(--line);
+        border-radius: 16px 12px 6px 16px;
+        box-shadow:
+          0 28px 60px rgba(0, 0, 0, 0.55),
+          inset 0 1px 0 rgba(243, 230, 196, 0.1);
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding-bottom: 12px;
+      }
+
+      .name {
+        margin: 0;
+        font-family: var(--display);
+        font-size: 20px;
+        font-weight: 500;
+        letter-spacing: -0.03em;
+      }
+
+      .engine-tabs {
+        display: inline-flex;
+        background: rgba(8, 7, 12, 0.45);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 2px;
+        gap: 1px;
+      }
+
+      .engine-tab {
+        font-size: 10px;
+        padding: 3px 6px;
+        border-radius: 6px;
+        color: var(--mist);
+      }
+
+      .engine-tab.active {
+        background: rgba(216, 154, 74, 0.22);
+        color: var(--paper);
+        font-weight: 600;
+      }
+
+      .session {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 10px;
+        font-size: 11px;
+      }
+
+      .field-label {
+        display: block;
+        font-size: 10px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--mist);
+        margin-bottom: 2px;
+      }
+
+      .field-value {
+        display: block;
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--paper);
+        opacity: 0.92;
+      }
+
+      #log {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        padding: 8px 2px 12px;
+        overflow: hidden;
+      }
+
+      .msg {
+        display: grid;
+        gap: 4px;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        line-height: 1.45;
+      }
+
+      .msg::before {
+        font-family: var(--ui);
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        color: var(--mist);
+      }
+
+      .msg.user {
+        align-self: flex-end;
+        color: var(--ember);
+        max-width: 92%;
+      }
+
+      .msg.user::before {
+        content: "Você";
+        justify-self: end;
+      }
+
+      .msg.assistant {
+        color: var(--paper);
+      }
+
+      .msg.assistant::before {
+        content: "Wisp";
+      }
+
+      .msg.tool {
+        color: var(--mist);
+        font-size: 11px;
+      }
+
+      .msg.tool::before {
+        content: "Ferramenta";
+      }
+
+      .msg.thinking {
+        color: var(--mist);
+        font-style: italic;
+        font-size: 11px;
+      }
+
+      .msg.thinking::before {
+        content: "Pensando";
+      }
+
+      #composer {
+        border-top: 1px solid var(--line);
+        padding-top: 10px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .composer-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        font-size: 10px;
+        color: var(--mist);
+      }
+
+      .pick {
+        background: rgba(8, 7, 12, 0.55);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--paper);
+        padding: 4px 8px;
+        font-size: 10px;
+      }
+
+      .composer-input {
+        min-height: 52px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: rgba(8, 7, 12, 0.35);
+        padding: 10px 12px;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: rgba(243, 230, 196, 0.45);
+      }
+
+      .send {
+        margin-left: auto;
+        background: rgba(216, 154, 74, 0.25);
+        border: 1px solid rgba(216, 154, 74, 0.35);
+        color: var(--paper);
+        border-radius: 8px;
+        padding: 4px 10px;
+        font-weight: 600;
+      }
+
+      .pet-wrap {
+        position: absolute;
+        right: 56px;
+        bottom: 72px;
+        display: flex;
+        align-items: flex-end;
+        gap: 12px;
+      }
+
+      .pet-bubble {
+        width: 280px;
+        padding: 14px 16px;
+        border-radius: 16px;
+        background:
+          radial-gradient(120% 80% at 12% -10%, rgba(216, 154, 74, 0.16), transparent 45%),
+          var(--glass);
+        border: 1px solid var(--line);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+      }
+
+      .pet-bubble .eyebrow {
+        margin: 0 0 4px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ember);
+      }
+
+      .pet-bubble .line {
+        margin: 0;
+        font-family: var(--mono);
+        font-size: 12px;
+        line-height: 1.4;
+        color: var(--paper);
+      }
+
+      .pet-bubble::after {
+        content: "";
+        position: absolute;
+        right: 118px;
+        bottom: 88px;
+        width: 14px;
+        height: 14px;
+        background: var(--glass);
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        transform: rotate(-45deg);
+      }
+
+      .pet-wrap img {
+        width: 148px;
+        height: 148px;
+        image-rendering: auto;
+        filter: drop-shadow(0 16px 24px rgba(0, 0, 0, 0.45));
+      }
+
+      .caption {
+        position: absolute;
+        left: 48px;
+        bottom: 58px;
+        font-size: 12px;
+        color: rgba(243, 230, 196, 0.45);
+        letter-spacing: 0.02em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="desktop">
+      <div id="panel">
+        <header>
+          <p class="name">Wisp</p>
+          <div class="engine-tabs">
+            <span class="engine-tab active">Cursor</span>
+            <span class="engine-tab">Antigravity</span>
+            <span class="engine-tab">OpenCode</span>
+          </div>
+        </header>
+        <div class="session">
+          <div>
+            <span class="field-label">Projeto</span>
+            <span class="field-value">~/projects/wisp</span>
+          </div>
+          <div>
+            <span class="field-label">Chat</span>
+            <span class="field-value">README — mascote & demo</span>
+          </div>
+        </div>
+        <div id="log">
+          <div class="msg user">Melhora o README: mascote sem fundo branco e mostrando o app funcionando.</div>
+          <div class="msg tool">grep — estados do pet em src/lib/pet-state.js</div>
+          <div class="msg tool">read — src/chat.css, src/pet.css</div>
+          <div class="msg thinking">Renderizando APNG transparente e montando preview do desktop…</div>
+          <div class="msg assistant">Pronto — hero com painel acoplado, bolha de status e animações idle / thinking / alert.</div>
+        </div>
+        <form id="composer">
+          <div class="composer-input">Digite aqui, ou / para uma skill</div>
+          <div class="composer-bar">
+            <span class="pick">Agente</span>
+            <span class="pick">composer-2.5</span>
+            <span>12.4k / 200k</span>
+            <span class="send">Enviar</span>
+          </div>
+        </form>
+      </div>
+
+      <div class="pet-wrap">
+        <div class="pet-bubble">
+          <p class="eyebrow">Trabalhando</p>
+          <p class="line">read — src/chat.css</p>
+        </div>
+        <img src="mascot-thinking.apng" alt="Wisp mascote pensando" />
+      </div>
+
+      <p class="caption">Pet flutuante + chat acoplado — feedback visual do agente em tempo real</p>
+
+      <div class="taskbar">
+        <span class="dot"></span>
+        <span>Wisp — desktop pet</span>
+      </div>
+    </div>
+  </body>
+</html>
