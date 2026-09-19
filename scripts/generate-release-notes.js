@@ -9,7 +9,7 @@ const root = path.join(__dirname, "..");
 
 function getPackageVersion() {
   const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-  return pkg.version || "0.0.1";
+  return pkg.version || "1.0.0";
 }
 
 function extractChangelogSection(version) {
