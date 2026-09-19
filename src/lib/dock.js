@@ -3,7 +3,7 @@
 const PET = { w: 148, h: 176, spriteW: 124, spriteH: 148 };
 const GAP = 8;
 // w/h/lift/padX/gap must match #bubble and #stage in pet.css
-const BUBBLE = { w: 280, h: 96, gap: 10, padX: 12, lift: 32 };
+const BUBBLE = { w: 280, h: 108, gap: 10, padX: 12, lift: 32 };
 
 function petWindowSize(visible) {
   if (!visible) return { width: PET.w, height: PET.h };

@@ -110,6 +110,7 @@ function agyPrintArgs(cfg, resumeId, prompt) {
     "--model",
     agyModel(cfg),
   ];
+  if (cfg && cfg.cwd) args.push("--add-dir", String(cfg.cwd));
   if (resumeId) args.push("--conversation", String(resumeId));
   args.push("--print", String(prompt || ""));
   return args;

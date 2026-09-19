@@ -1,11 +1,10 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <title>Wisp README hero</title>
     <style>
       :root {
-        --night: #16141c;
         --glass: rgba(22, 20, 28, 0.92);
         --paper: #f3e6c4;
         --ember: #d89a4a;
@@ -186,7 +185,7 @@
       }
 
       .msg.user::before {
-        content: "Você";
+        content: "You";
         justify-self: end;
       }
 
@@ -204,7 +203,7 @@
       }
 
       .msg.tool::before {
-        content: "Ferramenta";
+        content: "Tool";
       }
 
       .msg.thinking {
@@ -214,7 +213,7 @@
       }
 
       .msg.thinking::before {
-        content: "Pensando";
+        content: "Thinking";
       }
 
       #composer {
@@ -273,8 +272,10 @@
       }
 
       .pet-bubble {
+        position: relative;
         width: 280px;
         padding: 14px 16px;
+        margin-bottom: 32px;
         border-radius: 16px;
         background:
           radial-gradient(120% 80% at 12% -10%, rgba(216, 154, 74, 0.16), transparent 45%),
@@ -283,11 +284,24 @@
         box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
       }
 
+      .pet-bubble::after {
+        content: "";
+        position: absolute;
+        right: -5px;
+        bottom: 26px;
+        width: 10px;
+        height: 10px;
+        background: #18151f;
+        border-top: 1px solid var(--line);
+        border-right: 1px solid var(--line);
+        transform: rotate(45deg);
+      }
+
       .pet-bubble .eyebrow {
         margin: 0 0 4px;
         font-size: 10px;
         font-weight: 700;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
         color: var(--ember);
       }
@@ -295,28 +309,19 @@
       .pet-bubble .line {
         margin: 0;
         font-family: var(--mono);
-        font-size: 12px;
-        line-height: 1.4;
-        color: var(--paper);
-      }
-
-      .pet-bubble::after {
-        content: "";
-        position: absolute;
-        right: 118px;
-        bottom: 88px;
-        width: 14px;
-        height: 14px;
-        background: var(--glass);
-        border-right: 1px solid var(--line);
-        border-bottom: 1px solid var(--line);
-        transform: rotate(-45deg);
+        font-size: 11px;
+        line-height: 1.35;
+        color: var(--mist);
+        background: rgba(8, 7, 12, 0.45);
+        border: 1px solid var(--line);
+        padding: 4px 8px;
+        border-radius: 6px;
       }
 
       .pet-wrap img {
         width: 148px;
         height: 148px;
-        image-rendering: auto;
+        object-fit: contain;
         filter: drop-shadow(0 16px 24px rgba(0, 0, 0, 0.45));
       }
 
@@ -343,41 +348,41 @@
         </header>
         <div class="session">
           <div>
-            <span class="field-label">Projeto</span>
+            <span class="field-label">Project</span>
             <span class="field-value">~/projects/wisp</span>
           </div>
           <div>
             <span class="field-label">Chat</span>
-            <span class="field-value">README — mascote & demo</span>
+            <span class="field-value">README — mascot & demo</span>
           </div>
         </div>
         <div id="log">
-          <div class="msg user">Melhora o README: mascote sem fundo branco e mostrando o app funcionando.</div>
-          <div class="msg tool">grep — estados do pet em src/lib/pet-state.js</div>
+          <div class="msg user">Polish the README: transparent mascot and show the app in action.</div>
+          <div class="msg tool">grep — pet states in src/lib/pet-state.js</div>
           <div class="msg tool">read — src/chat.css, src/pet.css</div>
-          <div class="msg thinking">Renderizando APNG transparente e montando preview do desktop…</div>
-          <div class="msg assistant">Pronto — hero com painel acoplado, bolha de status e animações idle / thinking / alert.</div>
+          <div class="msg thinking">Rendering transparent APNG and building a desktop preview…</div>
+          <div class="msg assistant">Done — docked chat, live status bubble, and idle / thinking / alert animations.</div>
         </div>
         <form id="composer">
-          <div class="composer-input">Digite aqui, ou / para uma skill</div>
+          <div class="composer-input">Type here, or / for a skill</div>
           <div class="composer-bar">
-            <span class="pick">Agente</span>
+            <span class="pick">Agent</span>
             <span class="pick">composer-2.5</span>
             <span>12.4k / 200k</span>
-            <span class="send">Enviar</span>
+            <span class="send">Send</span>
           </div>
         </form>
       </div>
 
       <div class="pet-wrap">
         <div class="pet-bubble">
-          <p class="eyebrow">Trabalhando</p>
+          <p class="eyebrow">Working</p>
           <p class="line">read — src/chat.css</p>
         </div>
-        <img src="mascot-thinking.apng" alt="Wisp mascote pensando" />
+        <img src="mascot-thinking.apng" alt="" />
       </div>
 
-      <p class="caption">Pet flutuante + chat acoplado — feedback visual do agente em tempo real</p>
+      <p class="caption">Floating pet + docked chat — real-time visual feedback from the agent</p>
 
       <div class="taskbar">
         <span class="dot"></span>
