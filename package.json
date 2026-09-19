@@ -1,6 +1,6 @@
 {
   "name": "wisp",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Desktop ghost that talks to a local Cursor agent.",
   "author": "vvieira22",
@@ -13,6 +13,7 @@
     "start": "electron .",
     "check": "node src/lib/usage.check.js && node src/lib/pet-state.check.js && node src/lib/markdown.check.js && node src/lib/opencode-providers.check.js && node src/lib/attachments.check.js && node src/lib/logs.check.js && node src/lib/crypto.check.js && node src/lib/i18n.check.js && node src/lib/compat.check.js",
     "compat:release-notes": "node scripts/compat-release-notes.js",
+    "release:notes": "node scripts/generate-release-notes.js",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
     "dist:win": "electron-builder --win",

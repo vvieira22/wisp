@@ -51,4 +51,10 @@ const report = buildCompatReport(
 );
 assert.equal(report.activeMismatch, false, "relatório simulado do CI não deve acusar mismatch");
 
+const { buildReleaseNotes, extractChangelogSection } = require("../../scripts/generate-release-notes.js");
+const changelogSec = extractChangelogSection(pkg.version);
+assert.ok(changelogSec, `CHANGELOG.md deve conter seção para a versão ${pkg.version}`);
+const notes = buildReleaseNotes();
+assert.ok(notes.includes(`Wisp v${pkg.version}`), "buildReleaseNotes deve conter título da versão");
+
 console.log("compat.check ok");
