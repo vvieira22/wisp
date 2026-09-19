@@ -55,6 +55,11 @@ const opencodeProviderBtns = document.querySelectorAll("[data-oc-provider]");
 const opencodeSetupStatus = document.getElementById("opencode-setup-status");
 const opencodeCheckBtn = document.getElementById("opencode-check");
 const langSelect = document.getElementById("lang");
+const compatBanner = document.getElementById("compat-banner");
+const compatWarn = document.getElementById("compat-warn");
+const compatRows = document.getElementById("compat-rows");
+const compatLead = document.getElementById("compat-lead");
+const compatRefreshBtn = document.getElementById("compat-refresh");
 
 const tabBtnGeneral = document.getElementById("tab-btn-general");
 const tabBtnLogs = document.getElementById("tab-btn-logs");
@@ -201,6 +206,76 @@ function paintOpenCodeProvider() {
   else if (!opencodeKeyInput.value.trim()) opencodeKeyInput.value = "••••••••";
 }
 
+const COMPAT_LABEL_KEYS = {
+  wisp: "compatComponentWisp",
+  cursorSdk: "compatComponentCursorSdk",
+  electron: "compatComponentElectron",
+  agy: "compatComponentAgy",
+  opencode: "compatComponentOpenCode",
+};
+
+function compatStatusLabel(status) {
+  if (status === "ok") return t("compatStatusOk", null, currentLang);
+  if (status === "pending") return t("compatStatusPending", null, currentLang);
+  if (status === "missing") return t("compatStatusMissing", null, currentLang);
+  return t("compatStatusMismatch", null, currentLang);
+}
+
+function compatYoursCell(row) {
+  if (row.status === "pending") return compatStatusLabel("pending");
+  if (row.status === "missing") {
+    if (row.bundled) return t("compatStatusBundledUnknown", null, currentLang);
+    return compatStatusLabel("missing");
+  }
+  const val = row.installed || "—";
+  return `${val} (${compatStatusLabel(row.status)})`;
+}
+
+function paintCompatReport(report) {
+  if (!report || !compatRows) return;
+  if (compatLead) {
+    compatLead.textContent = t("compatLead", { version: report.wisp || "?" }, currentLang);
+  }
+  compatRows.replaceChildren();
+  for (const row of report.rows || []) {
+    const tr = document.createElement("tr");
+    const labelKey = COMPAT_LABEL_KEYS[row.id] || row.id;
+    const name = t(labelKey, null, currentLang);
+    const tdName = document.createElement("td");
+    tdName.textContent = name;
+    const tdTested = document.createElement("td");
+    tdTested.textContent = row.tested || "—";
+    const tdYours = document.createElement("td");
+    tdYours.textContent = compatYoursCell(row);
+    if (row.status === "ok") tdYours.className = "compat-ok";
+    else if (row.status === "pending") tdYours.className = "compat-missing";
+    else if (row.status === "missing") tdYours.className = "compat-missing";
+    else tdYours.className = "compat-bad";
+    tr.append(tdName, tdTested, tdYours);
+    compatRows.appendChild(tr);
+  }
+  if (compatWarn) compatWarn.hidden = !report.activeMismatch;
+  if (compatBanner) {
+    if (report.activeMismatch) {
+      compatBanner.hidden = false;
+      compatBanner.textContent = t("compatChatBanner", null, currentLang);
+    } else {
+      compatBanner.hidden = true;
+      compatBanner.textContent = "";
+    }
+  }
+}
+
+async function refreshCompatReport(fullScan) {
+  if (!window.wisp || typeof window.wisp.compatReport !== "function") return;
+  try {
+    const opts = fullScan ? { cli: "all", force: true } : undefined;
+    paintCompatReport(await window.wisp.compatReport(opts));
+  } catch (err) {
+    console.error("[compat]", err);
+  }
+}
+
 function paintOpenCodeSetup(result) {
   if (!opencodeSetupStatus) return;
   opencodeSetupStatus.classList.remove("ok", "error");
@@ -265,6 +340,7 @@ function setPage(name) {
   if (page === "account") {
     hideSkills();
     paintAccountFields();
+    void refreshCompatReport(true);
     if (currentSettingsTab === "logs") {
       fetchAndRenderLogs();
     } else {
@@ -1912,6 +1988,12 @@ function handleEngineChanged(payload) {
   }
 }
 
+if (compatRefreshBtn) {
+  compatRefreshBtn.addEventListener("click", () => {
+    void refreshCompatReport(true);
+  });
+}
+
 engineTabs.forEach((tab) => {
   tab.addEventListener("click", () => {
     const target = tab.dataset.engine;
@@ -1922,6 +2004,10 @@ engineTabs.forEach((tab) => {
 
 if (window.wisp.onEngine) {
   window.wisp.onEngine(handleEngineChanged);
+}
+
+if (window.wisp.onCompat) {
+  window.wisp.onCompat((report) => paintCompatReport(report));
 }
 
 modelSelect.addEventListener("change", saveModel);

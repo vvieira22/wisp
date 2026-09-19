@@ -73,6 +73,92 @@ const {
 } = require("../src/lib/chats");
 const { listSkills, attachSkill } = require("../src/lib/skills");
 const { globalLogger: logger } = require("../src/lib/logs");
+const { buildCompatReport } = require("../src/lib/compat");
+const { collectInstalledVersions, collectBundledVersions } = require("./stack-versions");
+
+const COMPAT_CLI_CACHE_MS = 120000;
+let compatCliCache = null;
+let compatCliCacheAt = 0;
+
+function compatCtx() {
+  return { engine: currentEngine, antigravityProvider: cfg().provider };
+}
+
+function mergeCliCache(installed, needs) {
+  if (!compatCliCache) return installed;
+  const out = Object.assign({}, installed);
+  if (!needs.agy && compatCliCache.agy) out.agy = compatCliCache.agy;
+  if (!needs.opencode && compatCliCache.opencode) out.opencode = compatCliCache.opencode;
+  if (!needs.agy && compatCliCache.scanned && compatCliCache.scanned.agy) {
+    out.scanned = Object.assign({}, out.scanned, { agy: true });
+  }
+  if (!needs.opencode && compatCliCache.scanned && compatCliCache.scanned.opencode) {
+    out.scanned = Object.assign({}, out.scanned, { opencode: true });
+  }
+  return out;
+}
+
+async function installedForCompat(opts) {
+  const o = Object.assign({ cli: "none" }, compatCtx(), opts || {});
+  const { cliNeeds } = require("./stack-versions");
+  const needs = cliNeeds(o);
+  const useCache =
+    !o.force &&
+    compatCliCache &&
+    Date.now() - compatCliCacheAt < COMPAT_CLI_CACHE_MS &&
+    (!needs.agy || compatCliCache.scanned?.agy) &&
+    (!needs.opencode || compatCliCache.scanned?.opencode);
+
+  if (o.cli === "none") {
+    const bundled = collectBundledVersions();
+    return mergeCliCache(
+      Object.assign(bundled, {
+        agy: "",
+        opencode: "",
+        paths: { agy: "", opencode: "" },
+        scanned: { agy: false, opencode: false },
+      }),
+      needs
+    );
+  }
+
+  if (useCache && o.cli !== "all") {
+    return mergeCliCache(
+      Object.assign(collectBundledVersions(), {
+        agy: needs.agy ? compatCliCache.agy : compatCliCache.agy || "",
+        opencode: needs.opencode ? compatCliCache.opencode : compatCliCache.opencode || "",
+        paths: compatCliCache.paths || { agy: "", opencode: "" },
+        scanned: compatCliCache.scanned || { agy: false, opencode: false },
+      }),
+      needs
+    );
+  }
+
+  const installed = await collectInstalledVersions(o);
+  if (installed.scanned?.agy || installed.scanned?.opencode) {
+    compatCliCache = Object.assign({}, compatCliCache || {}, installed, {
+      scanned: Object.assign({}, compatCliCache?.scanned, installed.scanned),
+    });
+    compatCliCacheAt = Date.now();
+  }
+  return installed;
+}
+
+function pushCompatReport(opts) {
+  return installedForCompat(opts).then((installed) => {
+    const report = buildCompatReport(installed, compatCtx());
+    if (report.activeMismatch) {
+      logger.warn(
+        "compat",
+        `Stack fora do testado no Wisp ${report.wisp}. Erros e falhas são mais prováveis — veja Configurações → Stack testado.`
+      );
+    }
+    if (chatWin && !chatWin.isDestroyed()) {
+      chatWin.webContents.send("compat:report", report);
+    }
+    return report;
+  });
+}
 
 if (process.platform === "win32") {
   // ponytail: Chromium 139+ keeps DirectComposition in "software" mode, so transparent
@@ -821,6 +907,11 @@ app.whenReady().then(() => {
   createChat();
   createTray();
   prewarmWorkspace(cfg()).catch((err) => console.error(err));
+  // ponytail: opencode/agy --version can take seconds each; never block cold start on both CLIs.
+  pushCompatReport({ cli: "none" }).catch((err) => console.error("[compat]", err));
+  setTimeout(() => {
+    pushCompatReport({ cli: "auto" }).catch((err) => console.error("[compat]", err));
+  }, 5000);
   screen.on("display-metrics-changed", () => {
     keepOnWorkArea(petWin);
     if (chatOpen) placeChat();
@@ -832,6 +923,11 @@ app.on("window-all-closed", () => {});
 app.on("before-quit", async () => {
   await dropPrewarm();
   await closeAllSessions();
+});
+
+ipcMain.handle("compat:report", async (_event, opts) => {
+  const installed = await installedForCompat(Object.assign({ cli: "all", force: true }, opts || {}));
+  return buildCompatReport(installed, compatCtx());
 });
 
 ipcMain.handle("engine:get", () => currentEngine);
@@ -849,6 +945,7 @@ ipcMain.handle("engine:set", async (_event, targetEngine) => {
   const payload = { engine: currentEngine, config: cfg(), chats: chatState() };
   if (chatWin && !chatWin.isDestroyed()) {
     chatWin.webContents.send("engine:changed", payload);
+    pushCompatReport({ cli: "auto", force: true }).catch(() => {});
   }
   return payload;
 });

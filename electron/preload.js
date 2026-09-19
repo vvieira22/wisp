@@ -23,6 +23,12 @@ contextBridge.exposeInMainWorld("wisp", {
   cancel: (chatId) => ipcRenderer.invoke("chat:cancel", chatId),
   respondPermission: (payload, chatId) => ipcRenderer.invoke("chat:permission:respond", payload, chatId),
   probe: (apiKey) => ipcRenderer.invoke("account:probe", apiKey),
+  compatReport: (opts) => ipcRenderer.invoke("compat:report", opts),
+  onCompat: (cb) => {
+    const fn = (_event, payload) => cb(payload);
+    ipcRenderer.on("compat:report", fn);
+    return () => ipcRenderer.removeListener("compat:report", fn);
+  },
   hideChat: () => ipcRenderer.send("chat:hide"),
   reset: (payload) => ipcRenderer.invoke("chat:reset", payload),
   clearChat: () => ipcRenderer.invoke("chat:clear"),

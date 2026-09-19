@@ -220,7 +220,7 @@ header {
   padding-bottom: 1px;
   flex: 0 0 auto;
   width: max-content;
-  -webkit-app-region: drag;
+  -webkit-app-region: no-drag;
 }
 
 .icon-btn {
@@ -779,6 +779,60 @@ select:disabled {
   background: var(--paper);
   color: var(--ink);
   border-color: var(--paper);
+}
+
+.compat-banner {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--paper);
+  background: rgba(216, 154, 74, 0.14);
+  border-bottom: 1px solid rgba(216, 154, 74, 0.35);
+}
+
+.compat-block {
+  display: grid;
+  gap: 8px;
+}
+
+.compat-warn {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(216, 154, 74, 0.45);
+  background: rgba(216, 154, 74, 0.1);
+}
+
+.compat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.compat-table th,
+.compat-table td {
+  text-align: left;
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.compat-table th {
+  color: var(--mist);
+  font-weight: 600;
+}
+
+.compat-table td.compat-ok {
+  color: #9ec7a0;
+}
+
+.compat-table td.compat-bad {
+  color: #e7a08a;
+}
+
+.compat-table td.compat-missing {
+  color: var(--mist);
 }
 
 .setup-callout {
