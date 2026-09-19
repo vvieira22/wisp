@@ -1,0 +1,1349 @@
+{
+ "artboard": {
+  "name": "Ikari",
+  "width": 248,
+  "height": 296
+ },
+ "groups": [
+  {
+   "id": "rig",
+   "x": 124,
+   "y": 148
+  },
+  {
+   "id": "poses",
+   "x": 0,
+   "y": 0,
+   "parent": "rig",
+   "solo": true
+  }
+ ],
+ "shapes": [
+  {
+   "id": "__background",
+   "type": "rect",
+   "x": 124,
+   "y": 148,
+   "z": 99885,
+   "width": 248,
+   "height": 296,
+   "fill": {
+    "color": "#00000000"
+   }
+  }
+ ],
+ "animations": [
+  {
+   "name": "idle",
+   "fps": 60,
+   "duration": 1521,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "poses",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "114"
+      },
+      {
+       "frame": 130,
+       "ref": "104",
+       "easing": "hold"
+      },
+      {
+       "frame": 131,
+       "ref": "103",
+       "easing": "hold"
+      },
+      {
+       "frame": 132,
+       "ref": "102",
+       "easing": "hold"
+      },
+      {
+       "frame": 133,
+       "ref": "109",
+       "easing": "hold"
+      },
+      {
+       "frame": 136,
+       "ref": "101",
+       "easing": "hold"
+      },
+      {
+       "frame": 137,
+       "ref": "100",
+       "easing": "hold"
+      },
+      {
+       "frame": 138,
+       "ref": "99",
+       "easing": "hold"
+      },
+      {
+       "frame": 139,
+       "ref": "114",
+       "easing": "hold"
+      },
+      {
+       "frame": 239,
+       "ref": "113",
+       "easing": "hold"
+      },
+      {
+       "frame": 289,
+       "ref": "114",
+       "easing": "hold"
+      },
+      {
+       "frame": 359,
+       "ref": "108",
+       "easing": "hold"
+      },
+      {
+       "frame": 409,
+       "ref": "114",
+       "easing": "hold"
+      },
+      {
+       "frame": 499,
+       "ref": "98",
+       "easing": "hold"
+      },
+      {
+       "frame": 500,
+       "ref": "97",
+       "easing": "hold"
+      },
+      {
+       "frame": 501,
+       "ref": "96",
+       "easing": "hold"
+      },
+      {
+       "frame": 502,
+       "ref": "109",
+       "easing": "hold"
+      },
+      {
+       "frame": 505,
+       "ref": "95",
+       "easing": "hold"
+      },
+      {
+       "frame": 506,
+       "ref": "94",
+       "easing": "hold"
+      },
+      {
+       "frame": 507,
+       "ref": "93",
+       "easing": "hold"
+      },
+      {
+       "frame": 508,
+       "ref": "114",
+       "easing": "hold"
+      },
+      {
+       "frame": 588,
+       "ref": "112",
+       "easing": "hold"
+      },
+      {
+       "frame": 623,
+       "ref": "114",
+       "easing": "hold"
+      },
+      {
+       "frame": 723,
+       "ref": "111",
+       "easing": "hold"
+      },
+      {
+       "frame": 748,
+       "ref": "114",
+       "easing": "hold"
+      },
+      {
+       "frame": 828,
+       "ref": "110",
+       "easing": "hold"
+      },
+      {
+       "frame": 853,
+       "ref": "114",
+       "easing": "hold"
+      },
+      {
+       "frame": 943,
+       "ref": "92",
+       "easing": "hold"
+      },
+      {
+       "frame": 944,
+       "ref": "91",
+       "easing": "hold"
+      },
+      {
+       "frame": 945,
+       "ref": "90",
+       "easing": "hold"
+      },
+      {
+       "frame": 946,
+       "ref": "109",
+       "easing": "hold"
+      },
+      {
+       "frame": 949,
+       "ref": "89",
+       "easing": "hold"
+      },
+      {
+       "frame": 950,
+       "ref": "88",
+       "easing": "hold"
+      },
+      {
+       "frame": 951,
+       "ref": "87",
+       "easing": "hold"
+      },
+      {
+       "frame": 952,
+       "ref": "114",
+       "easing": "hold"
+      },
+      {
+       "frame": 1072,
+       "ref": "107",
+       "easing": "hold"
+      },
+      {
+       "frame": 1132,
+       "ref": "106",
+       "easing": "hold"
+      },
+      {
+       "frame": 1182,
+       "ref": "105",
+       "easing": "hold"
+      },
+      {
+       "frame": 1242,
+       "ref": "107",
+       "easing": "hold"
+      },
+      {
+       "frame": 1292,
+       "ref": "114",
+       "easing": "hold"
+      },
+      {
+       "frame": 1392,
+       "ref": "86",
+       "easing": "hold"
+      },
+      {
+       "frame": 1393,
+       "ref": "85",
+       "easing": "hold"
+      },
+      {
+       "frame": 1394,
+       "ref": "84",
+       "easing": "hold"
+      },
+      {
+       "frame": 1395,
+       "ref": "109",
+       "easing": "hold"
+      },
+      {
+       "frame": 1398,
+       "ref": "83",
+       "easing": "hold"
+      },
+      {
+       "frame": 1399,
+       "ref": "82",
+       "easing": "hold"
+      },
+      {
+       "frame": 1400,
+       "ref": "81",
+       "easing": "hold"
+      },
+      {
+       "frame": 1401,
+       "ref": "114",
+       "easing": "hold"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "thinking",
+   "fps": 60,
+   "duration": 540,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "poses",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "80"
+      },
+      {
+       "frame": 18,
+       "ref": "62",
+       "easing": "hold"
+      },
+      {
+       "frame": 24,
+       "ref": "61",
+       "easing": "hold"
+      },
+      {
+       "frame": 30,
+       "ref": "78",
+       "easing": "hold"
+      },
+      {
+       "frame": 48,
+       "ref": "60",
+       "easing": "hold"
+      },
+      {
+       "frame": 54,
+       "ref": "59",
+       "easing": "hold"
+      },
+      {
+       "frame": 60,
+       "ref": "70",
+       "easing": "hold"
+      },
+      {
+       "frame": 78,
+       "ref": "58",
+       "easing": "hold"
+      },
+      {
+       "frame": 84,
+       "ref": "57",
+       "easing": "hold"
+      },
+      {
+       "frame": 90,
+       "ref": "69",
+       "easing": "hold"
+      },
+      {
+       "frame": 108,
+       "ref": "56",
+       "easing": "hold"
+      },
+      {
+       "frame": 114,
+       "ref": "55",
+       "easing": "hold"
+      },
+      {
+       "frame": 120,
+       "ref": "68",
+       "easing": "hold"
+      },
+      {
+       "frame": 138,
+       "ref": "54",
+       "easing": "hold"
+      },
+      {
+       "frame": 144,
+       "ref": "53",
+       "easing": "hold"
+      },
+      {
+       "frame": 150,
+       "ref": "67",
+       "easing": "hold"
+      },
+      {
+       "frame": 168,
+       "ref": "52",
+       "easing": "hold"
+      },
+      {
+       "frame": 174,
+       "ref": "51",
+       "easing": "hold"
+      },
+      {
+       "frame": 180,
+       "ref": "66",
+       "easing": "hold"
+      },
+      {
+       "frame": 198,
+       "ref": "50",
+       "easing": "hold"
+      },
+      {
+       "frame": 204,
+       "ref": "49",
+       "easing": "hold"
+      },
+      {
+       "frame": 210,
+       "ref": "65",
+       "easing": "hold"
+      },
+      {
+       "frame": 228,
+       "ref": "48",
+       "easing": "hold"
+      },
+      {
+       "frame": 234,
+       "ref": "47",
+       "easing": "hold"
+      },
+      {
+       "frame": 240,
+       "ref": "64",
+       "easing": "hold"
+      },
+      {
+       "frame": 258,
+       "ref": "46",
+       "easing": "hold"
+      },
+      {
+       "frame": 264,
+       "ref": "45",
+       "easing": "hold"
+      },
+      {
+       "frame": 270,
+       "ref": "63",
+       "easing": "hold"
+      },
+      {
+       "frame": 288,
+       "ref": "44",
+       "easing": "hold"
+      },
+      {
+       "frame": 294,
+       "ref": "43",
+       "easing": "hold"
+      },
+      {
+       "frame": 300,
+       "ref": "79",
+       "easing": "hold"
+      },
+      {
+       "frame": 318,
+       "ref": "42",
+       "easing": "hold"
+      },
+      {
+       "frame": 324,
+       "ref": "41",
+       "easing": "hold"
+      },
+      {
+       "frame": 330,
+       "ref": "77",
+       "easing": "hold"
+      },
+      {
+       "frame": 348,
+       "ref": "40",
+       "easing": "hold"
+      },
+      {
+       "frame": 354,
+       "ref": "39",
+       "easing": "hold"
+      },
+      {
+       "frame": 360,
+       "ref": "76",
+       "easing": "hold"
+      },
+      {
+       "frame": 378,
+       "ref": "38",
+       "easing": "hold"
+      },
+      {
+       "frame": 384,
+       "ref": "37",
+       "easing": "hold"
+      },
+      {
+       "frame": 390,
+       "ref": "75",
+       "easing": "hold"
+      },
+      {
+       "frame": 408,
+       "ref": "36",
+       "easing": "hold"
+      },
+      {
+       "frame": 414,
+       "ref": "35",
+       "easing": "hold"
+      },
+      {
+       "frame": 420,
+       "ref": "74",
+       "easing": "hold"
+      },
+      {
+       "frame": 438,
+       "ref": "34",
+       "easing": "hold"
+      },
+      {
+       "frame": 444,
+       "ref": "33",
+       "easing": "hold"
+      },
+      {
+       "frame": 450,
+       "ref": "73",
+       "easing": "hold"
+      },
+      {
+       "frame": 468,
+       "ref": "32",
+       "easing": "hold"
+      },
+      {
+       "frame": 474,
+       "ref": "31",
+       "easing": "hold"
+      },
+      {
+       "frame": 480,
+       "ref": "72",
+       "easing": "hold"
+      },
+      {
+       "frame": 498,
+       "ref": "30",
+       "easing": "hold"
+      },
+      {
+       "frame": 504,
+       "ref": "29",
+       "easing": "hold"
+      },
+      {
+       "frame": 510,
+       "ref": "71",
+       "easing": "hold"
+      },
+      {
+       "frame": 528,
+       "ref": "28",
+       "easing": "hold"
+      },
+      {
+       "frame": 534,
+       "ref": "27",
+       "easing": "hold"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "pensativo2",
+   "fps": 60,
+   "duration": 1328,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "poses",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "26"
+      },
+      {
+       "frame": 130,
+       "ref": "8",
+       "easing": "hold"
+      },
+      {
+       "frame": 131,
+       "ref": "7",
+       "easing": "hold"
+      },
+      {
+       "frame": 132,
+       "ref": "6",
+       "easing": "hold"
+      },
+      {
+       "frame": 133,
+       "ref": "25",
+       "easing": "hold"
+      },
+      {
+       "frame": 136,
+       "ref": "5",
+       "easing": "hold"
+      },
+      {
+       "frame": 137,
+       "ref": "4",
+       "easing": "hold"
+      },
+      {
+       "frame": 138,
+       "ref": "3",
+       "easing": "hold"
+      },
+      {
+       "frame": 139,
+       "ref": "24",
+       "easing": "hold"
+      },
+      {
+       "frame": 189,
+       "ref": "26",
+       "easing": "hold"
+      },
+      {
+       "frame": 249,
+       "ref": "20",
+       "easing": "hold"
+      },
+      {
+       "frame": 324,
+       "ref": "19",
+       "easing": "hold"
+      },
+      {
+       "frame": 384,
+       "ref": "20",
+       "easing": "hold"
+      },
+      {
+       "frame": 429,
+       "ref": "26",
+       "easing": "hold"
+      },
+      {
+       "frame": 499,
+       "ref": "8",
+       "easing": "hold"
+      },
+      {
+       "frame": 500,
+       "ref": "7",
+       "easing": "hold"
+      },
+      {
+       "frame": 501,
+       "ref": "6",
+       "easing": "hold"
+      },
+      {
+       "frame": 502,
+       "ref": "25",
+       "easing": "hold"
+      },
+      {
+       "frame": 505,
+       "ref": "5",
+       "easing": "hold"
+      },
+      {
+       "frame": 506,
+       "ref": "4",
+       "easing": "hold"
+      },
+      {
+       "frame": 507,
+       "ref": "3",
+       "easing": "hold"
+      },
+      {
+       "frame": 508,
+       "ref": "16",
+       "easing": "hold"
+      },
+      {
+       "frame": 558,
+       "ref": "26",
+       "easing": "hold"
+      },
+      {
+       "frame": 638,
+       "ref": "18",
+       "easing": "hold"
+      },
+      {
+       "frame": 703,
+       "ref": "17",
+       "easing": "hold"
+      },
+      {
+       "frame": 758,
+       "ref": "18",
+       "easing": "hold"
+      },
+      {
+       "frame": 798,
+       "ref": "26",
+       "easing": "hold"
+      },
+      {
+       "frame": 888,
+       "ref": "22",
+       "easing": "hold"
+      },
+      {
+       "frame": 924,
+       "ref": "26",
+       "easing": "hold"
+      },
+      {
+       "frame": 984,
+       "ref": "21",
+       "easing": "hold"
+      },
+      {
+       "frame": 1059,
+       "ref": "23",
+       "easing": "hold"
+      },
+      {
+       "frame": 1109,
+       "ref": "26",
+       "easing": "hold"
+      },
+      {
+       "frame": 1199,
+       "ref": "8",
+       "easing": "hold"
+      },
+      {
+       "frame": 1200,
+       "ref": "7",
+       "easing": "hold"
+      },
+      {
+       "frame": 1201,
+       "ref": "6",
+       "easing": "hold"
+      },
+      {
+       "frame": 1202,
+       "ref": "25",
+       "easing": "hold"
+      },
+      {
+       "frame": 1205,
+       "ref": "5",
+       "easing": "hold"
+      },
+      {
+       "frame": 1206,
+       "ref": "4",
+       "easing": "hold"
+      },
+      {
+       "frame": 1207,
+       "ref": "3",
+       "easing": "hold"
+      },
+      {
+       "frame": 1208,
+       "ref": "26",
+       "easing": "hold"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "talking",
+   "fps": 60,
+   "duration": 190,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "poses",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "26"
+      },
+      {
+       "frame": 14,
+       "ref": "25",
+       "easing": "hold"
+      },
+      {
+       "frame": 26,
+       "ref": "24",
+       "easing": "hold"
+      },
+      {
+       "frame": 40,
+       "ref": "23",
+       "easing": "hold"
+      },
+      {
+       "frame": 52,
+       "ref": "22",
+       "easing": "hold"
+      },
+      {
+       "frame": 62,
+       "ref": "21",
+       "easing": "hold"
+      },
+      {
+       "frame": 76,
+       "ref": "26",
+       "easing": "hold"
+      },
+      {
+       "frame": 86,
+       "ref": "14",
+       "easing": "hold"
+      },
+      {
+       "frame": 94,
+       "ref": "24",
+       "easing": "hold"
+      },
+      {
+       "frame": 106,
+       "ref": "13",
+       "easing": "hold"
+      },
+      {
+       "frame": 114,
+       "ref": "23",
+       "easing": "hold"
+      },
+      {
+       "frame": 126,
+       "ref": "12",
+       "easing": "hold"
+      },
+      {
+       "frame": 134,
+       "ref": "22",
+       "easing": "hold"
+      },
+      {
+       "frame": 144,
+       "ref": "11",
+       "easing": "hold"
+      },
+      {
+       "frame": 152,
+       "ref": "21",
+       "easing": "hold"
+      },
+      {
+       "frame": 164,
+       "ref": "10",
+       "easing": "hold"
+      },
+      {
+       "frame": 172,
+       "ref": "25",
+       "easing": "hold"
+      },
+      {
+       "frame": 182,
+       "ref": "9",
+       "easing": "hold"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "y",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 148
+      },
+      {
+       "frame": 95,
+       "value": 145.1999969482422,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 190,
+       "value": 148,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "rotation",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": -0.5249999825929442
+      },
+      {
+       "frame": 57,
+       "value": 0.5249999825929442,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 143,
+       "value": -0.3499999972887716,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 190,
+       "value": -0.5249999825929442,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "scaleY",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 1
+      },
+      {
+       "frame": 133,
+       "value": 1.0041999816894531,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 190,
+       "value": 1,
+       "easing": "ease-in-out"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "reading",
+   "fps": 60,
+   "duration": 166,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "poses",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "18"
+      },
+      {
+       "frame": 30,
+       "ref": "17",
+       "easing": "hold"
+      },
+      {
+       "frame": 54,
+       "ref": "16",
+       "easing": "hold"
+      },
+      {
+       "frame": 90,
+       "ref": "19",
+       "easing": "hold"
+      },
+      {
+       "frame": 112,
+       "ref": "20",
+       "easing": "hold"
+      },
+      {
+       "frame": 138,
+       "ref": "17",
+       "easing": "hold"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "notify",
+   "fps": 60,
+   "duration": 90,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "poses",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "26"
+      },
+      {
+       "frame": 18,
+       "ref": "10",
+       "easing": "hold"
+      },
+      {
+       "frame": 48,
+       "ref": "26",
+       "easing": "hold"
+      },
+      {
+       "frame": 70,
+       "ref": "9",
+       "easing": "hold"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "scaleX",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 1
+      },
+      {
+       "frame": 4,
+       "value": 0.8799999952316284,
+       "easing": "ease-in"
+      },
+      {
+       "frame": 13,
+       "value": 1.1260000467300415,
+       "easing": "elastic-out"
+      },
+      {
+       "frame": 28,
+       "value": 1,
+       "easing": "smooth"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "scaleY",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 1
+      },
+      {
+       "frame": 4,
+       "value": 1.100000023841858,
+       "easing": "ease-in"
+      },
+      {
+       "frame": 13,
+       "value": 1.1260000467300415,
+       "easing": "elastic-out"
+      },
+      {
+       "frame": 28,
+       "value": 1,
+       "easing": "smooth"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "rotation",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 0
+      },
+      {
+       "frame": 16,
+       "value": 4.199999860743554,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 20,
+       "value": -2.520000001823497,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 25,
+       "value": 1.2600000009117485,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 28,
+       "value": 0,
+       "easing": "ease-out"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "error",
+   "fps": 60,
+   "duration": 150,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "poses",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "16"
+      },
+      {
+       "frame": 40,
+       "ref": "15",
+       "easing": "hold"
+      },
+      {
+       "frame": 70,
+       "ref": "16",
+       "easing": "hold"
+      },
+      {
+       "frame": 110,
+       "ref": "17",
+       "easing": "hold"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "x",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 124
+      },
+      {
+       "frame": 5,
+       "value": 130.3000030517578,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 11,
+       "value": 118.95999908447266,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 16,
+       "value": 127.46499633789062,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 22,
+       "value": 121.79499816894531,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 27,
+       "value": 125.13400268554688,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 36,
+       "value": 124,
+       "easing": "ease-out"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "listening",
+   "fps": 60,
+   "duration": 180,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "poses",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "26"
+      },
+      {
+       "frame": 90,
+       "ref": "24",
+       "easing": "hold"
+      },
+      {
+       "frame": 140,
+       "ref": "14",
+       "easing": "hold"
+      },
+      {
+       "frame": 148,
+       "ref": "26",
+       "easing": "hold"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "y",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 148
+      },
+      {
+       "frame": 90,
+       "value": 144.8000030517578,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 180,
+       "value": 148,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "rotation",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": -0.59999999535218
+      },
+      {
+       "frame": 54,
+       "value": 0.59999999535218,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 135,
+       "value": -0.3999999969014533,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 180,
+       "value": -0.59999999535218,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "scaleY",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 1
+      },
+      {
+       "frame": 126,
+       "value": 1.0047999620437622,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 180,
+       "value": 1,
+       "easing": "ease-in-out"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "sleepy",
+   "fps": 60,
+   "duration": 240,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "poses",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "15"
+      },
+      {
+       "frame": 80,
+       "ref": "16",
+       "easing": "hold"
+      },
+      {
+       "frame": 160,
+       "ref": "15",
+       "easing": "hold"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "scaleY",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 1
+      },
+      {
+       "frame": 120,
+       "value": 1.0069999694824219,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 240,
+       "value": 1,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "rig",
+     "property": "scaleX",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 1
+      },
+      {
+       "frame": 120,
+       "value": 0.9972000122070312,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 240,
+       "value": 1,
+       "easing": "ease-in-out"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
