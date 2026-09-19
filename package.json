@@ -1,6 +1,6 @@
 {
   "name": "wisp",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "private": true,
   "description": "Desktop ghost that talks to a local Cursor agent.",
   "author": "vvieira22",
