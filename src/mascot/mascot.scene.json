@@ -404,6 +404,16 @@
       "y": 0,
       "scale": 1.12,
       "parent": "poses"
+    },
+    {
+      "id": "notify-badge",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/notify-badge.png",
+      "x": 74,
+      "y": -110,
+      "scale": 0.48,
+      "parent": "rig",
+      "opacity": 0,
+      "z": 99990
     }
   ],
   "animations": [
@@ -535,6 +545,17 @@
             {
               "frame": 253,
               "ref": "f24",
+              "easing": "hold"
+            }
+          ]
+        },
+        {
+          "target": "notify-badge",
+          "property": "opacity",
+          "keyframes": [
+            {
+              "frame": 0,
+              "value": 0,
               "easing": "hold"
             }
           ]
@@ -672,6 +693,17 @@
               "easing": "hold"
             }
           ]
+        },
+        {
+          "target": "notify-badge",
+          "property": "opacity",
+          "keyframes": [
+            {
+              "frame": 0,
+              "value": 0,
+              "easing": "hold"
+            }
+          ]
         }
       ]
     },
@@ -680,6 +712,14 @@
       "fps": 60,
       "duration": 90,
       "loop": "loop",
+      "presets": [
+        {
+          "preset": "shake",
+          "target": "rig",
+          "intensity": 0.55,
+          "cycleSeconds": 0.42
+        }
+      ],
       "tracks": [
         {
           "target": "poses",
@@ -691,24 +731,102 @@
               "easing": "hold"
             },
             {
-              "frame": 30,
+              "frame": 12,
               "ref": "f14",
               "easing": "hold"
             },
             {
-              "frame": 45,
+              "frame": 28,
               "ref": "f01",
               "easing": "hold"
             },
             {
-              "frame": 60,
+              "frame": 40,
               "ref": "f15",
               "easing": "hold"
             },
             {
-              "frame": 75,
+              "frame": 55,
               "ref": "f01",
               "easing": "hold"
+            },
+            {
+              "frame": 68,
+              "ref": "f14",
+              "easing": "hold"
+            }
+          ]
+        },
+        {
+          "target": "notify-badge",
+          "property": "opacity",
+          "keyframes": [
+            {
+              "frame": 0,
+              "value": 0,
+              "easing": "hold"
+            },
+            {
+              "frame": 8,
+              "value": 1,
+              "easing": "ease-out"
+            },
+            {
+              "frame": 90,
+              "value": 1,
+              "easing": "smooth"
+            }
+          ]
+        },
+        {
+          "target": "notify-badge",
+          "property": "scaleX",
+          "keyframes": [
+            {
+              "frame": 0,
+              "value": 0.16799999999999998,
+              "easing": "hold"
+            },
+            {
+              "frame": 14,
+              "value": 0.48,
+              "easing": "ease-out-back"
+            },
+            {
+              "frame": 52,
+              "value": 0.5088,
+              "easing": "ease-in-out"
+            },
+            {
+              "frame": 90,
+              "value": 0.48,
+              "easing": "ease-in-out"
+            }
+          ]
+        },
+        {
+          "target": "notify-badge",
+          "property": "scaleY",
+          "keyframes": [
+            {
+              "frame": 0,
+              "value": 0.16799999999999998,
+              "easing": "hold"
+            },
+            {
+              "frame": 14,
+              "value": 0.48,
+              "easing": "ease-out-back"
+            },
+            {
+              "frame": 52,
+              "value": 0.5088,
+              "easing": "ease-in-out"
+            },
+            {
+              "frame": 90,
+              "value": 0.48,
+              "easing": "ease-in-out"
             }
           ]
         }

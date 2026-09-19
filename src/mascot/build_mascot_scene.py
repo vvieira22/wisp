@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "mascot.scene.json"
@@ -82,6 +82,27 @@ def anim_keys(ids, frame_ms):
     return len(ids) * dur, keys
 
 
+BADGE_PNG = ROOT / "notify-badge.png"
+BADGE_SCALE = 0.48
+# ponytail: canto sup. direito da silhueta (bbox f01 @ scale 1.12), não no meio da testa
+BADGE_X = 74
+BADGE_Y = -110
+
+
+def write_badge_png():
+    size = 48
+    im = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(im)
+    inset = 3
+    draw.ellipse(
+        (inset, inset, size - inset - 1, size - inset - 1),
+        fill=(244, 196, 48, 255),
+        outline=(255, 248, 231, 255),
+        width=3,
+    )
+    im.save(BADGE_PNG, optimize=True)
+
+
 def sm_transitions(states):
     out = [{"from": "entry", "to": "idle"}]
     for src in states:
@@ -101,13 +122,20 @@ def main():
     for pack in PACKS:
         if not pack["sheet"].is_file():
             raise SystemExit(f"missing {pack['sheet']}")
-        ids = slice_sheet(
-            pack["sheet"],
-            pack["seq"],
-            pack["prefix"],
-            pack["frames"],
-            pack["cols"],
-        )
+        # ponytail: t01..t24 = pack_think_rivseq.py (not think-sprites grid); re-slicing here regresses art
+        if pack["name"] == "thinking":
+            ids = [f"{pack['prefix']}{i + 1:02d}" for i in range(pack["frames"])]
+            missing = [pack["seq"] / f"{pid}.png" for pid in ids if not (pack["seq"] / f"{pid}.png").is_file()]
+            if missing:
+                raise SystemExit(f"missing thinking frames (run pack_think_rivseq.py): {missing[0]}")
+        else:
+            ids = slice_sheet(
+                pack["sheet"],
+                pack["seq"],
+                pack["prefix"],
+                pack["frames"],
+                pack["cols"],
+            )
         if active is None:
             active = ids[0]
         duration, keys = anim_keys(ids, pack["frame_ms"])
@@ -136,20 +164,84 @@ def main():
         )
         print(pack["name"], pack["frames"], "frames", duration, "f")
 
+    # ponytail: shake suave + bolinha de notificação; olhar atento em micro-cortes
     alert_keys = [
         {"frame": 0, "ref": "f01", "easing": "hold"},
-        {"frame": 30, "ref": "f14", "easing": "hold"},
-        {"frame": 45, "ref": "f01", "easing": "hold"},
-        {"frame": 60, "ref": "f15", "easing": "hold"},
-        {"frame": 75, "ref": "f01", "easing": "hold"},
+        {"frame": 12, "ref": "f14", "easing": "hold"},
+        {"frame": 28, "ref": "f01", "easing": "hold"},
+        {"frame": 40, "ref": "f15", "easing": "hold"},
+        {"frame": 55, "ref": "f01", "easing": "hold"},
+        {"frame": 68, "ref": "f14", "easing": "hold"},
     ]
+    badge_hidden = [
+        {
+            "target": "notify-badge",
+            "property": "opacity",
+            "keyframes": [{"frame": 0, "value": 0, "easing": "hold"}],
+        }
+    ]
+    for anim in animations:
+        anim["tracks"].extend(badge_hidden)
+
+    badge_pop = [
+        {
+            "target": "notify-badge",
+            "property": "opacity",
+            "keyframes": [
+                {"frame": 0, "value": 0, "easing": "hold"},
+                {"frame": 8, "value": 1, "easing": "ease-out"},
+                {"frame": 90, "value": 1, "easing": "smooth"},
+            ],
+        },
+        {
+            "target": "notify-badge",
+            "property": "scaleX",
+            "keyframes": [
+                {"frame": 0, "value": BADGE_SCALE * 0.35, "easing": "hold"},
+                {"frame": 14, "value": BADGE_SCALE, "easing": "ease-out-back"},
+                {"frame": 52, "value": BADGE_SCALE * 1.06, "easing": "ease-in-out"},
+                {"frame": 90, "value": BADGE_SCALE, "easing": "ease-in-out"},
+            ],
+        },
+        {
+            "target": "notify-badge",
+            "property": "scaleY",
+            "keyframes": [
+                {"frame": 0, "value": BADGE_SCALE * 0.35, "easing": "hold"},
+                {"frame": 14, "value": BADGE_SCALE, "easing": "ease-out-back"},
+                {"frame": 52, "value": BADGE_SCALE * 1.06, "easing": "ease-in-out"},
+                {"frame": 90, "value": BADGE_SCALE, "easing": "ease-in-out"},
+            ],
+        },
+    ]
+
     animations.append(
         {
             "name": "alert",
             "fps": FPS,
             "duration": 90,
             "loop": "loop",
-            "tracks": [{"target": "poses", "property": "soloActive", "keyframes": alert_keys}],
+            "presets": [
+                {"preset": "shake", "target": "rig", "intensity": 0.55, "cycleSeconds": 0.42},
+            ],
+            "tracks": [
+                {"target": "poses", "property": "soloActive", "keyframes": alert_keys},
+                *badge_pop,
+            ],
+        }
+    )
+
+    write_badge_png()
+    all_images.append(
+        {
+            "id": "notify-badge",
+            "pngPath": str(BADGE_PNG.resolve()).replace("\\", "/"),
+            "x": BADGE_X,
+            "y": BADGE_Y,
+            "scale": BADGE_SCALE,
+            "parent": "rig",
+            "opacity": 0,
+            "z": 99990,
         }
     )
 

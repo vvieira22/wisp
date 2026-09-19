@@ -3,7 +3,10 @@ const ghost = document.getElementById("ghost");
 const canvas = document.getElementById("canvas");
 const bubble = document.getElementById("bubble");
 const eyebrow = document.getElementById("eyebrow");
-const line = document.getElementById("line");
+const feedLines = [...document.querySelectorAll("#feed .feed-line")];
+const MAX_FEED = 3;
+let feedItems = [];
+let feedSig = "";
 
 let state = "idle";
 let compact = false;
@@ -151,21 +154,90 @@ async function bootMascot() {
 
 let currentLang = "en";
 
+function isPt() {
+  return currentLang === "pt-BR" || currentLang === "pt";
+}
+
+function clearFeed() {
+  feedItems = [];
+  feedSig = "";
+  renderFeed();
+}
+
+function pushFeed(text, kind) {
+  const line = String(text || "").trim();
+  if (!line) return;
+  const last = feedItems[feedItems.length - 1];
+  if (last && last.kind === kind && last.kind === "live") {
+    last.text = line;
+    renderFeed(false);
+    return;
+  }
+  if (last && last.text === line && last.kind === kind) return;
+  feedItems.push({ text: line, kind });
+  if (feedItems.length > MAX_FEED) feedItems = feedItems.slice(-MAX_FEED);
+  renderFeed(true);
+}
+
+function renderFeed(animate) {
+  const visible = feedItems.slice(-MAX_FEED);
+  const pad = MAX_FEED - visible.length;
+  const nextSig = visible.map((item) => `${item.kind}:${item.text}`).join("|");
+  const shifted = animate && feedSig && nextSig !== feedSig;
+  feedSig = nextSig;
+  for (let i = 0; i < MAX_FEED; i++) {
+    const el = feedLines[i];
+    const item = i >= pad ? visible[i - pad] : null;
+    const tier = item ? i - pad + (MAX_FEED - visible.length) : -1;
+    el.textContent = item ? item.text : "";
+    el.className = "feed-line";
+    if (!item) continue;
+    el.classList.add(`tier-${tier}`, `kind-${item.kind}`);
+    if (shifted && tier === MAX_FEED - 1) el.classList.add("enter");
+    else if (shifted && tier < MAX_FEED - 1) el.classList.add("shift");
+  }
+}
+
+function syncFeed() {
+  if (hasError) {
+    pushFeed(live || (isPt() ? "Falhou" : "Failed"), "error");
+    return;
+  }
+  const copy = bubbleCopy({ live, tool, runActive, lang: currentLang });
+  if (copy.kind === "live") {
+    const label = isPt() ? "Escrevendo" : "Writing";
+    const last = feedItems[feedItems.length - 1];
+    if (last && last.kind === "live") {
+      last.text = copy.line || label;
+      renderFeed(false);
+      return;
+    }
+    pushFeed(copy.line || label, "live");
+    return;
+  }
+  if (copy.kind === "tool") {
+    pushFeed(copy.line, "tool");
+    return;
+  }
+  if (copy.kind === "working") return;
+  if (copy.kind === "done" && copy.line) pushFeed(copy.line, "done");
+  else if (copy.kind === "done" && !runActive) pushFeed(copy.eyebrow, "done");
+}
+
 function paint() {
   const show = !compact && (runActive || (unread && state === "alert"));
   bubble.hidden = !show;
   if (show) {
+    syncFeed();
     const copy = bubbleCopy({ live, tool, runActive, lang: currentLang });
-    eyebrow.textContent = hasError ? (currentLang === "pt-BR" ? "Erro" : "Error") : copy.eyebrow;
-    line.textContent = copy.line;
-    line.hidden = !copy.line;
+    eyebrow.textContent = hasError ? (isPt() ? "Erro" : "Error") : copy.eyebrow;
     bubble.classList.toggle("working", copy.kind === "working" && !hasError);
     bubble.classList.toggle("tool", copy.kind === "tool" && !hasError);
     bubble.classList.toggle("live", copy.kind === "live" && !hasError);
     bubble.classList.toggle("done", copy.kind === "done" && !hasError);
     bubble.classList.toggle("error", hasError);
-    bubble.classList.toggle("compact", !copy.line);
-  }
+    bubble.classList.toggle("compact", copy.kind === "working" && !feedItems.length && !hasError);
+  } else if (feedItems.length) clearFeed();
   if (show === lastBubble) return;
   lastBubble = show;
   window.wisp.petLayout({ bubble: show });
@@ -177,6 +249,7 @@ function ackSeen() {
   if (!runActive) {
     live = "";
     tool = "";
+    clearFeed();
     if (state === "alert") setState("idle");
     else paint();
     return;
@@ -210,6 +283,7 @@ window.wisp.onChat((event) => {
     tool = event.type === "session-reset" ? "" : tool;
     unread = false;
     hasError = false;
+    if (event.type === "session-reset") clearFeed();
     if (!runActive) setState("idle");
     else paint();
     return;
@@ -220,6 +294,7 @@ window.wisp.onChat((event) => {
     hasError = false;
     live = "";
     tool = "";
+    clearFeed();
     paint();
   }
   if (event.type === "tool") {

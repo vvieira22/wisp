@@ -139,7 +139,7 @@ assert.deepEqual(petWindowSize(true), {
   height: PET.h,
 });
 assert.equal(BUBBLE.w, 280);
-assert.equal(BUBBLE.h, 96);
+assert.equal(BUBBLE.h, 108);
 
 assert.deepEqual(bubbleCopy({ runActive: true }), { kind: "working", eyebrow: "Working", line: "" });
 assert.equal(bubbleCopy({ runActive: true, tool: "read pet.js" }).line, "read pet.js");
@@ -542,6 +542,8 @@ assert.ok(!JSON.stringify(geminiContents([{ role: "tool", text: "read" }, { role
   assert.equal(PRINT_TIMEOUT, "60m");
   assert.ok(args.includes("--print-timeout") && args.includes("60m"));
   assert.ok(args.includes("--conversation") && args.includes("conv-1"));
+  const argsWithCwd = agyPrintArgs({ model: "gemini-3.8-flash-high", cwd: "C:\\my-project" }, "conv-1", "oi");
+  assert.ok(argsWithCwd.includes("--add-dir") && argsWithCwd.includes("C:\\my-project"));
   const gapAcc = emptyAgyAcc("old");
   const gapEvents = mapAgyEvent({ event: "init", conversation_id: "new" }, gapAcc);
   assert.equal(gapEvents[0].type, "session-gap");
