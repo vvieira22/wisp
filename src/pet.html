@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Wisp</title>
+    <link rel="stylesheet" href="pet.css" />
+  </head>
+  <body>
+    <div id="stage" class="idle">
+      <aside id="bubble" hidden>
+        <div class="core">
+          <span class="led" aria-hidden="true"></span>
+          <div class="copy">
+            <span id="eyebrow"></span>
+            <div id="feed" class="feed" aria-live="polite">
+              <p class="feed-line"></p>
+              <p class="feed-line"></p>
+              <p class="feed-line"></p>
+            </div>
+          </div>
+        </div>
+      </aside>
+      <button id="ghost" type="button" aria-label="Wisp">
+      <canvas id="canvas" class="hit" width="124" height="148"></canvas>
+      </button>
+    </div>
+    <script src="../node_modules/@rive-app/canvas/rive.js"></script>
+    <script src="lib/riv.js"></script>
+    <script src="lib/pet-state.js"></script>
+    <script src="pet.js"></script>
+  </body>
+</html>

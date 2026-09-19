@@ -1,0 +1,2200 @@
+{
+  "artboard": {
+    "name": "Ikari",
+    "width": 248,
+    "height": 296
+  },
+  "backgroundColor": "#00000000",
+  "groups": [
+    {
+      "id": "rig",
+      "x": 124.0,
+      "y": 148.0
+    },
+    {
+      "id": "poses",
+      "x": 0,
+      "y": 0,
+      "parent": "rig",
+      "solo": true,
+      "active": "s001"
+    }
+  ],
+  "images": [
+    {
+      "id": "s001",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/s001.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "s101",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/s101.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "s1201",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/s1201.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "s1401",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/s1401.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "s1501",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/s1501.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "s201",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/s201.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "s301",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/s301.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "s601",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/s601.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "s701",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/s701.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "s801",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/s801.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb001",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb001.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb002",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb002.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb003",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb003.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb004",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb004.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb005",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb005.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb006",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb006.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb007",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb007.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb008",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb008.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb009",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb009.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb010",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb010.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb011",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb011.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb012",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb012.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb013",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb013.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb014",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb014.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb015",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb015.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb016",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb016.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb017",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb017.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb018",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb018.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb019",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb019.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb020",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb020.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb021",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb021.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb022",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb022.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb023",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb023.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "sb024",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/seq/sb024.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th01",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th01.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th02",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th02.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th03",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th03.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th04",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th04.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th05",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th05.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th06",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th06.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th07",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th07.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th08",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th08.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th09",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th09.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th10",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th10.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th11",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th11.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th12",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th12.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th13",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th13.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th14",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th14.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th15",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th15.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th16",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th16.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th17",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th17.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th18",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th18.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th19",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th19.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th20",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th20.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th21",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th21.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th22",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th22.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th23",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th23.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "th24",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/seq/th24.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "f01",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/f01.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "f02",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/f02.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "f03",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/f03.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "f04",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/f04.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "f05",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/f05.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "f06",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/f06.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "f07",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/f07.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "f08",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/f08.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "f09",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/f09.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "f10",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/f10.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "f11",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/f11.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "f12",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/f12.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "f13",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/f13.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "f14",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/f14.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "f15",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/f15.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "f16",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/f16.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "f17",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/f17.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "f18",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/f18.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "pb01",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/pb01.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "pb02",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/pb02.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "pb03",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/pb03.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "pb04",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/pb04.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "pb05",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/pb05.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    },
+    {
+      "id": "pb06",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/chat/pb06.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1,
+      "parent": "poses"
+    }
+  ],
+  "animations": [
+    {
+      "name": "idle",
+      "fps": 60,
+      "duration": 1521,
+      "loop": "loop",
+      "tracks": [
+        {
+          "target": "poses",
+          "property": "soloActive",
+          "keyframes": [
+            {
+              "frame": 0,
+              "ref": "s001",
+              "easing": "hold"
+            },
+            {
+              "frame": 130,
+              "ref": "sb001",
+              "easing": "hold"
+            },
+            {
+              "frame": 131,
+              "ref": "sb002",
+              "easing": "hold"
+            },
+            {
+              "frame": 132,
+              "ref": "sb003",
+              "easing": "hold"
+            },
+            {
+              "frame": 133,
+              "ref": "s201",
+              "easing": "hold"
+            },
+            {
+              "frame": 136,
+              "ref": "sb004",
+              "easing": "hold"
+            },
+            {
+              "frame": 137,
+              "ref": "sb005",
+              "easing": "hold"
+            },
+            {
+              "frame": 138,
+              "ref": "sb006",
+              "easing": "hold"
+            },
+            {
+              "frame": 139,
+              "ref": "s001",
+              "easing": "hold"
+            },
+            {
+              "frame": 239,
+              "ref": "s101",
+              "easing": "hold"
+            },
+            {
+              "frame": 289,
+              "ref": "s001",
+              "easing": "hold"
+            },
+            {
+              "frame": 359,
+              "ref": "s301",
+              "easing": "hold"
+            },
+            {
+              "frame": 409,
+              "ref": "s001",
+              "easing": "hold"
+            },
+            {
+              "frame": 499,
+              "ref": "sb007",
+              "easing": "hold"
+            },
+            {
+              "frame": 500,
+              "ref": "sb008",
+              "easing": "hold"
+            },
+            {
+              "frame": 501,
+              "ref": "sb009",
+              "easing": "hold"
+            },
+            {
+              "frame": 502,
+              "ref": "s201",
+              "easing": "hold"
+            },
+            {
+              "frame": 505,
+              "ref": "sb010",
+              "easing": "hold"
+            },
+            {
+              "frame": 506,
+              "ref": "sb011",
+              "easing": "hold"
+            },
+            {
+              "frame": 507,
+              "ref": "sb012",
+              "easing": "hold"
+            },
+            {
+              "frame": 508,
+              "ref": "s001",
+              "easing": "hold"
+            },
+            {
+              "frame": 588,
+              "ref": "s1201",
+              "easing": "hold"
+            },
+            {
+              "frame": 623,
+              "ref": "s001",
+              "easing": "hold"
+            },
+            {
+              "frame": 723,
+              "ref": "s1401",
+              "easing": "hold"
+            },
+            {
+              "frame": 748,
+              "ref": "s001",
+              "easing": "hold"
+            },
+            {
+              "frame": 828,
+              "ref": "s1501",
+              "easing": "hold"
+            },
+            {
+              "frame": 853,
+              "ref": "s001",
+              "easing": "hold"
+            },
+            {
+              "frame": 943,
+              "ref": "sb013",
+              "easing": "hold"
+            },
+            {
+              "frame": 944,
+              "ref": "sb014",
+              "easing": "hold"
+            },
+            {
+              "frame": 945,
+              "ref": "sb015",
+              "easing": "hold"
+            },
+            {
+              "frame": 946,
+              "ref": "s201",
+              "easing": "hold"
+            },
+            {
+              "frame": 949,
+              "ref": "sb016",
+              "easing": "hold"
+            },
+            {
+              "frame": 950,
+              "ref": "sb017",
+              "easing": "hold"
+            },
+            {
+              "frame": 951,
+              "ref": "sb018",
+              "easing": "hold"
+            },
+            {
+              "frame": 952,
+              "ref": "s001",
+              "easing": "hold"
+            },
+            {
+              "frame": 1072,
+              "ref": "s601",
+              "easing": "hold"
+            },
+            {
+              "frame": 1132,
+              "ref": "s701",
+              "easing": "hold"
+            },
+            {
+              "frame": 1182,
+              "ref": "s801",
+              "easing": "hold"
+            },
+            {
+              "frame": 1242,
+              "ref": "s601",
+              "easing": "hold"
+            },
+            {
+              "frame": 1292,
+              "ref": "s001",
+              "easing": "hold"
+            },
+            {
+              "frame": 1392,
+              "ref": "sb019",
+              "easing": "hold"
+            },
+            {
+              "frame": 1393,
+              "ref": "sb020",
+              "easing": "hold"
+            },
+            {
+              "frame": 1394,
+              "ref": "sb021",
+              "easing": "hold"
+            },
+            {
+              "frame": 1395,
+              "ref": "s201",
+              "easing": "hold"
+            },
+            {
+              "frame": 1398,
+              "ref": "sb022",
+              "easing": "hold"
+            },
+            {
+              "frame": 1399,
+              "ref": "sb023",
+              "easing": "hold"
+            },
+            {
+              "frame": 1400,
+              "ref": "sb024",
+              "easing": "hold"
+            },
+            {
+              "frame": 1401,
+              "ref": "s001",
+              "easing": "hold"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "thinking",
+      "fps": 60,
+      "duration": 120,
+      "loop": "loop",
+      "tracks": [
+        {
+          "target": "poses",
+          "property": "soloActive",
+          "keyframes": [
+            {
+              "frame": 0,
+              "ref": "th01",
+              "easing": "hold"
+            },
+            {
+              "frame": 5,
+              "ref": "th02",
+              "easing": "hold"
+            },
+            {
+              "frame": 10,
+              "ref": "th03",
+              "easing": "hold"
+            },
+            {
+              "frame": 15,
+              "ref": "th04",
+              "easing": "hold"
+            },
+            {
+              "frame": 20,
+              "ref": "th05",
+              "easing": "hold"
+            },
+            {
+              "frame": 25,
+              "ref": "th06",
+              "easing": "hold"
+            },
+            {
+              "frame": 30,
+              "ref": "th07",
+              "easing": "hold"
+            },
+            {
+              "frame": 35,
+              "ref": "th08",
+              "easing": "hold"
+            },
+            {
+              "frame": 40,
+              "ref": "th09",
+              "easing": "hold"
+            },
+            {
+              "frame": 45,
+              "ref": "th10",
+              "easing": "hold"
+            },
+            {
+              "frame": 50,
+              "ref": "th11",
+              "easing": "hold"
+            },
+            {
+              "frame": 55,
+              "ref": "th12",
+              "easing": "hold"
+            },
+            {
+              "frame": 60,
+              "ref": "th13",
+              "easing": "hold"
+            },
+            {
+              "frame": 65,
+              "ref": "th14",
+              "easing": "hold"
+            },
+            {
+              "frame": 70,
+              "ref": "th15",
+              "easing": "hold"
+            },
+            {
+              "frame": 75,
+              "ref": "th16",
+              "easing": "hold"
+            },
+            {
+              "frame": 80,
+              "ref": "th17",
+              "easing": "hold"
+            },
+            {
+              "frame": 85,
+              "ref": "th18",
+              "easing": "hold"
+            },
+            {
+              "frame": 90,
+              "ref": "th19",
+              "easing": "hold"
+            },
+            {
+              "frame": 95,
+              "ref": "th20",
+              "easing": "hold"
+            },
+            {
+              "frame": 100,
+              "ref": "th21",
+              "easing": "hold"
+            },
+            {
+              "frame": 105,
+              "ref": "th22",
+              "easing": "hold"
+            },
+            {
+              "frame": 110,
+              "ref": "th23",
+              "easing": "hold"
+            },
+            {
+              "frame": 115,
+              "ref": "th24",
+              "easing": "hold"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "pensativo2",
+      "fps": 60,
+      "duration": 1328,
+      "loop": "loop",
+      "tracks": [
+        {
+          "target": "poses",
+          "property": "soloActive",
+          "keyframes": [
+            {
+              "frame": 0,
+              "ref": "f01",
+              "easing": "hold"
+            },
+            {
+              "frame": 130,
+              "ref": "pb01",
+              "easing": "hold"
+            },
+            {
+              "frame": 131,
+              "ref": "pb02",
+              "easing": "hold"
+            },
+            {
+              "frame": 132,
+              "ref": "pb03",
+              "easing": "hold"
+            },
+            {
+              "frame": 133,
+              "ref": "f02",
+              "easing": "hold"
+            },
+            {
+              "frame": 136,
+              "ref": "pb04",
+              "easing": "hold"
+            },
+            {
+              "frame": 137,
+              "ref": "pb05",
+              "easing": "hold"
+            },
+            {
+              "frame": 138,
+              "ref": "pb06",
+              "easing": "hold"
+            },
+            {
+              "frame": 139,
+              "ref": "f03",
+              "easing": "hold"
+            },
+            {
+              "frame": 189,
+              "ref": "f01",
+              "easing": "hold"
+            },
+            {
+              "frame": 249,
+              "ref": "f07",
+              "easing": "hold"
+            },
+            {
+              "frame": 324,
+              "ref": "f08",
+              "easing": "hold"
+            },
+            {
+              "frame": 384,
+              "ref": "f07",
+              "easing": "hold"
+            },
+            {
+              "frame": 429,
+              "ref": "f01",
+              "easing": "hold"
+            },
+            {
+              "frame": 499,
+              "ref": "pb01",
+              "easing": "hold"
+            },
+            {
+              "frame": 500,
+              "ref": "pb02",
+              "easing": "hold"
+            },
+            {
+              "frame": 501,
+              "ref": "pb03",
+              "easing": "hold"
+            },
+            {
+              "frame": 502,
+              "ref": "f02",
+              "easing": "hold"
+            },
+            {
+              "frame": 505,
+              "ref": "pb04",
+              "easing": "hold"
+            },
+            {
+              "frame": 506,
+              "ref": "pb05",
+              "easing": "hold"
+            },
+            {
+              "frame": 507,
+              "ref": "pb06",
+              "easing": "hold"
+            },
+            {
+              "frame": 508,
+              "ref": "f11",
+              "easing": "hold"
+            },
+            {
+              "frame": 558,
+              "ref": "f01",
+              "easing": "hold"
+            },
+            {
+              "frame": 638,
+              "ref": "f09",
+              "easing": "hold"
+            },
+            {
+              "frame": 703,
+              "ref": "f10",
+              "easing": "hold"
+            },
+            {
+              "frame": 758,
+              "ref": "f09",
+              "easing": "hold"
+            },
+            {
+              "frame": 798,
+              "ref": "f01",
+              "easing": "hold"
+            },
+            {
+              "frame": 888,
+              "ref": "f05",
+              "easing": "hold"
+            },
+            {
+              "frame": 924,
+              "ref": "f01",
+              "easing": "hold"
+            },
+            {
+              "frame": 984,
+              "ref": "f06",
+              "easing": "hold"
+            },
+            {
+              "frame": 1059,
+              "ref": "f04",
+              "easing": "hold"
+            },
+            {
+              "frame": 1109,
+              "ref": "f01",
+              "easing": "hold"
+            },
+            {
+              "frame": 1199,
+              "ref": "pb01",
+              "easing": "hold"
+            },
+            {
+              "frame": 1200,
+              "ref": "pb02",
+              "easing": "hold"
+            },
+            {
+              "frame": 1201,
+              "ref": "pb03",
+              "easing": "hold"
+            },
+            {
+              "frame": 1202,
+              "ref": "f02",
+              "easing": "hold"
+            },
+            {
+              "frame": 1205,
+              "ref": "pb04",
+              "easing": "hold"
+            },
+            {
+              "frame": 1206,
+              "ref": "pb05",
+              "easing": "hold"
+            },
+            {
+              "frame": 1207,
+              "ref": "pb06",
+              "easing": "hold"
+            },
+            {
+              "frame": 1208,
+              "ref": "f01",
+              "easing": "hold"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "talking",
+      "fps": 60,
+      "duration": 190,
+      "loop": "loop",
+      "presets": [
+        {
+          "preset": "float-idle",
+          "target": "rig",
+          "intensity": 0.35,
+          "cycleSeconds": 2.8
+        }
+      ],
+      "tracks": [
+        {
+          "target": "poses",
+          "property": "soloActive",
+          "keyframes": [
+            {
+              "frame": 0,
+              "ref": "f01",
+              "easing": "hold"
+            },
+            {
+              "frame": 14,
+              "ref": "f02",
+              "easing": "hold"
+            },
+            {
+              "frame": 26,
+              "ref": "f03",
+              "easing": "hold"
+            },
+            {
+              "frame": 40,
+              "ref": "f04",
+              "easing": "hold"
+            },
+            {
+              "frame": 52,
+              "ref": "f05",
+              "easing": "hold"
+            },
+            {
+              "frame": 62,
+              "ref": "f06",
+              "easing": "hold"
+            },
+            {
+              "frame": 76,
+              "ref": "f01",
+              "easing": "hold"
+            },
+            {
+              "frame": 86,
+              "ref": "f13",
+              "easing": "hold"
+            },
+            {
+              "frame": 94,
+              "ref": "f03",
+              "easing": "hold"
+            },
+            {
+              "frame": 106,
+              "ref": "f14",
+              "easing": "hold"
+            },
+            {
+              "frame": 114,
+              "ref": "f04",
+              "easing": "hold"
+            },
+            {
+              "frame": 126,
+              "ref": "f15",
+              "easing": "hold"
+            },
+            {
+              "frame": 134,
+              "ref": "f05",
+              "easing": "hold"
+            },
+            {
+              "frame": 144,
+              "ref": "f16",
+              "easing": "hold"
+            },
+            {
+              "frame": 152,
+              "ref": "f06",
+              "easing": "hold"
+            },
+            {
+              "frame": 164,
+              "ref": "f17",
+              "easing": "hold"
+            },
+            {
+              "frame": 172,
+              "ref": "f02",
+              "easing": "hold"
+            },
+            {
+              "frame": 182,
+              "ref": "f18",
+              "easing": "hold"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "reading",
+      "fps": 60,
+      "duration": 166,
+      "loop": "loop",
+      "tracks": [
+        {
+          "target": "poses",
+          "property": "soloActive",
+          "keyframes": [
+            {
+              "frame": 0,
+              "ref": "f09",
+              "easing": "hold"
+            },
+            {
+              "frame": 30,
+              "ref": "f10",
+              "easing": "hold"
+            },
+            {
+              "frame": 54,
+              "ref": "f11",
+              "easing": "hold"
+            },
+            {
+              "frame": 90,
+              "ref": "f08",
+              "easing": "hold"
+            },
+            {
+              "frame": 112,
+              "ref": "f07",
+              "easing": "hold"
+            },
+            {
+              "frame": 138,
+              "ref": "f10",
+              "easing": "hold"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "notify",
+      "fps": 60,
+      "duration": 90,
+      "loop": "loop",
+      "presets": [
+        {
+          "preset": "attention",
+          "target": "rig",
+          "intensity": 0.7
+        }
+      ],
+      "tracks": [
+        {
+          "target": "poses",
+          "property": "soloActive",
+          "keyframes": [
+            {
+              "frame": 0,
+              "ref": "f01",
+              "easing": "hold"
+            },
+            {
+              "frame": 18,
+              "ref": "f17",
+              "easing": "hold"
+            },
+            {
+              "frame": 48,
+              "ref": "f01",
+              "easing": "hold"
+            },
+            {
+              "frame": 70,
+              "ref": "f18",
+              "easing": "hold"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "error",
+      "fps": 60,
+      "duration": 150,
+      "loop": "loop",
+      "presets": [
+        {
+          "preset": "shake",
+          "target": "rig",
+          "at": 0,
+          "intensity": 0.7
+        }
+      ],
+      "tracks": [
+        {
+          "target": "poses",
+          "property": "soloActive",
+          "keyframes": [
+            {
+              "frame": 0,
+              "ref": "f11",
+              "easing": "hold"
+            },
+            {
+              "frame": 40,
+              "ref": "f12",
+              "easing": "hold"
+            },
+            {
+              "frame": 70,
+              "ref": "f11",
+              "easing": "hold"
+            },
+            {
+              "frame": 110,
+              "ref": "f10",
+              "easing": "hold"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "listening",
+      "fps": 60,
+      "duration": 180,
+      "loop": "loop",
+      "presets": [
+        {
+          "preset": "float-idle",
+          "target": "rig",
+          "intensity": 0.4,
+          "cycleSeconds": 3.0
+        }
+      ],
+      "tracks": [
+        {
+          "target": "poses",
+          "property": "soloActive",
+          "keyframes": [
+            {
+              "frame": 0,
+              "ref": "f01",
+              "easing": "hold"
+            },
+            {
+              "frame": 90,
+              "ref": "f03",
+              "easing": "hold"
+            },
+            {
+              "frame": 140,
+              "ref": "f13",
+              "easing": "hold"
+            },
+            {
+              "frame": 148,
+              "ref": "f01",
+              "easing": "hold"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "sleepy",
+      "fps": 60,
+      "duration": 240,
+      "loop": "loop",
+      "presets": [
+        {
+          "preset": "breathing",
+          "target": "rig",
+          "intensity": 0.35,
+          "cycleSeconds": 4.0
+        }
+      ],
+      "tracks": [
+        {
+          "target": "poses",
+          "property": "soloActive",
+          "keyframes": [
+            {
+              "frame": 0,
+              "ref": "f12",
+              "easing": "hold"
+            },
+            {
+              "frame": 80,
+              "ref": "f11",
+              "easing": "hold"
+            },
+            {
+              "frame": 160,
+              "ref": "f12",
+              "easing": "hold"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "stateMachine": {
+    "name": "Pet",
+    "inputs": [
+      {
+        "name": "idle",
+        "type": "bool"
+      },
+      {
+        "name": "thinking",
+        "type": "bool"
+      },
+      {
+        "name": "pensativo2",
+        "type": "bool"
+      },
+      {
+        "name": "talking",
+        "type": "bool"
+      },
+      {
+        "name": "notify",
+        "type": "bool"
+      },
+      {
+        "name": "error",
+        "type": "bool"
+      },
+      {
+        "name": "listening",
+        "type": "bool"
+      },
+      {
+        "name": "reading",
+        "type": "bool"
+      },
+      {
+        "name": "sleepy",
+        "type": "bool"
+      },
+      {
+        "name": "lookX",
+        "type": "number"
+      },
+      {
+        "name": "lookY",
+        "type": "number"
+      }
+    ],
+    "states": [
+      {
+        "name": "idle",
+        "animation": "idle"
+      },
+      {
+        "name": "thinking",
+        "animation": "thinking"
+      },
+      {
+        "name": "pensativo2",
+        "animation": "pensativo2"
+      },
+      {
+        "name": "talking",
+        "animation": "talking"
+      },
+      {
+        "name": "notify",
+        "animation": "notify"
+      },
+      {
+        "name": "error",
+        "animation": "error"
+      },
+      {
+        "name": "listening",
+        "animation": "listening"
+      },
+      {
+        "name": "reading",
+        "animation": "reading"
+      },
+      {
+        "name": "sleepy",
+        "animation": "sleepy"
+      }
+    ],
+    "transitions": [
+      {
+        "from": "entry",
+        "to": "idle"
+      },
+      {
+        "from": "idle",
+        "to": "thinking",
+        "condition": {
+          "input": "thinking"
+        }
+      },
+      {
+        "from": "idle",
+        "to": "pensativo2",
+        "condition": {
+          "input": "pensativo2"
+        }
+      },
+      {
+        "from": "idle",
+        "to": "talking",
+        "condition": {
+          "input": "talking"
+        }
+      },
+      {
+        "from": "idle",
+        "to": "notify",
+        "condition": {
+          "input": "notify"
+        }
+      },
+      {
+        "from": "idle",
+        "to": "error",
+        "condition": {
+          "input": "error"
+        }
+      },
+      {
+        "from": "idle",
+        "to": "listening",
+        "condition": {
+          "input": "listening"
+        }
+      },
+      {
+        "from": "idle",
+        "to": "reading",
+        "condition": {
+          "input": "reading"
+        }
+      },
+      {
+        "from": "idle",
+        "to": "sleepy",
+        "condition": {
+          "input": "sleepy"
+        }
+      },
+      {
+        "from": "thinking",
+        "to": "idle",
+        "condition": {
+          "input": "idle"
+        }
+      },
+      {
+        "from": "thinking",
+        "to": "pensativo2",
+        "condition": {
+          "input": "pensativo2"
+        }
+      },
+      {
+        "from": "thinking",
+        "to": "talking",
+        "condition": {
+          "input": "talking"
+        }
+      },
+      {
+        "from": "thinking",
+        "to": "notify",
+        "condition": {
+          "input": "notify"
+        }
+      },
+      {
+        "from": "thinking",
+        "to": "error",
+        "condition": {
+          "input": "error"
+        }
+      },
+      {
+        "from": "thinking",
+        "to": "listening",
+        "condition": {
+          "input": "listening"
+        }
+      },
+      {
+        "from": "thinking",
+        "to": "reading",
+        "condition": {
+          "input": "reading"
+        }
+      },
+      {
+        "from": "thinking",
+        "to": "sleepy",
+        "condition": {
+          "input": "sleepy"
+        }
+      },
+      {
+        "from": "pensativo2",
+        "to": "idle",
+        "condition": {
+          "input": "idle"
+        }
+      },
+      {
+        "from": "pensativo2",
+        "to": "thinking",
+        "condition": {
+          "input": "thinking"
+        }
+      },
+      {
+        "from": "pensativo2",
+        "to": "talking",
+        "condition": {
+          "input": "talking"
+        }
+      },
+      {
+        "from": "pensativo2",
+        "to": "notify",
+        "condition": {
+          "input": "notify"
+        }
+      },
+      {
+        "from": "pensativo2",
+        "to": "error",
+        "condition": {
+          "input": "error"
+        }
+      },
+      {
+        "from": "pensativo2",
+        "to": "listening",
+        "condition": {
+          "input": "listening"
+        }
+      },
+      {
+        "from": "pensativo2",
+        "to": "reading",
+        "condition": {
+          "input": "reading"
+        }
+      },
+      {
+        "from": "pensativo2",
+        "to": "sleepy",
+        "condition": {
+          "input": "sleepy"
+        }
+      },
+      {
+        "from": "talking",
+        "to": "idle",
+        "condition": {
+          "input": "idle"
+        }
+      },
+      {
+        "from": "talking",
+        "to": "thinking",
+        "condition": {
+          "input": "thinking"
+        }
+      },
+      {
+        "from": "talking",
+        "to": "pensativo2",
+        "condition": {
+          "input": "pensativo2"
+        }
+      },
+      {
+        "from": "talking",
+        "to": "notify",
+        "condition": {
+          "input": "notify"
+        }
+      },
+      {
+        "from": "talking",
+        "to": "error",
+        "condition": {
+          "input": "error"
+        }
+      },
+      {
+        "from": "talking",
+        "to": "listening",
+        "condition": {
+          "input": "listening"
+        }
+      },
+      {
+        "from": "talking",
+        "to": "reading",
+        "condition": {
+          "input": "reading"
+        }
+      },
+      {
+        "from": "talking",
+        "to": "sleepy",
+        "condition": {
+          "input": "sleepy"
+        }
+      },
+      {
+        "from": "notify",
+        "to": "idle",
+        "condition": {
+          "input": "idle"
+        }
+      },
+      {
+        "from": "notify",
+        "to": "thinking",
+        "condition": {
+          "input": "thinking"
+        }
+      },
+      {
+        "from": "notify",
+        "to": "pensativo2",
+        "condition": {
+          "input": "pensativo2"
+        }
+      },
+      {
+        "from": "notify",
+        "to": "talking",
+        "condition": {
+          "input": "talking"
+        }
+      },
+      {
+        "from": "notify",
+        "to": "error",
+        "condition": {
+          "input": "error"
+        }
+      },
+      {
+        "from": "notify",
+        "to": "listening",
+        "condition": {
+          "input": "listening"
+        }
+      },
+      {
+        "from": "notify",
+        "to": "reading",
+        "condition": {
+          "input": "reading"
+        }
+      },
+      {
+        "from": "notify",
+        "to": "sleepy",
+        "condition": {
+          "input": "sleepy"
+        }
+      },
+      {
+        "from": "error",
+        "to": "idle",
+        "condition": {
+          "input": "idle"
+        }
+      },
+      {
+        "from": "error",
+        "to": "thinking",
+        "condition": {
+          "input": "thinking"
+        }
+      },
+      {
+        "from": "error",
+        "to": "pensativo2",
+        "condition": {
+          "input": "pensativo2"
+        }
+      },
+      {
+        "from": "error",
+        "to": "talking",
+        "condition": {
+          "input": "talking"
+        }
+      },
+      {
+        "from": "error",
+        "to": "notify",
+        "condition": {
+          "input": "notify"
+        }
+      },
+      {
+        "from": "error",
+        "to": "listening",
+        "condition": {
+          "input": "listening"
+        }
+      },
+      {
+        "from": "error",
+        "to": "reading",
+        "condition": {
+          "input": "reading"
+        }
+      },
+      {
+        "from": "error",
+        "to": "sleepy",
+        "condition": {
+          "input": "sleepy"
+        }
+      },
+      {
+        "from": "listening",
+        "to": "idle",
+        "condition": {
+          "input": "idle"
+        }
+      },
+      {
+        "from": "listening",
+        "to": "thinking",
+        "condition": {
+          "input": "thinking"
+        }
+      },
+      {
+        "from": "listening",
+        "to": "pensativo2",
+        "condition": {
+          "input": "pensativo2"
+        }
+      },
+      {
+        "from": "listening",
+        "to": "talking",
+        "condition": {
+          "input": "talking"
+        }
+      },
+      {
+        "from": "listening",
+        "to": "notify",
+        "condition": {
+          "input": "notify"
+        }
+      },
+      {
+        "from": "listening",
+        "to": "error",
+        "condition": {
+          "input": "error"
+        }
+      },
+      {
+        "from": "listening",
+        "to": "reading",
+        "condition": {
+          "input": "reading"
+        }
+      },
+      {
+        "from": "listening",
+        "to": "sleepy",
+        "condition": {
+          "input": "sleepy"
+        }
+      },
+      {
+        "from": "reading",
+        "to": "idle",
+        "condition": {
+          "input": "idle"
+        }
+      },
+      {
+        "from": "reading",
+        "to": "thinking",
+        "condition": {
+          "input": "thinking"
+        }
+      },
+      {
+        "from": "reading",
+        "to": "pensativo2",
+        "condition": {
+          "input": "pensativo2"
+        }
+      },
+      {
+        "from": "reading",
+        "to": "talking",
+        "condition": {
+          "input": "talking"
+        }
+      },
+      {
+        "from": "reading",
+        "to": "notify",
+        "condition": {
+          "input": "notify"
+        }
+      },
+      {
+        "from": "reading",
+        "to": "error",
+        "condition": {
+          "input": "error"
+        }
+      },
+      {
+        "from": "reading",
+        "to": "listening",
+        "condition": {
+          "input": "listening"
+        }
+      },
+      {
+        "from": "reading",
+        "to": "sleepy",
+        "condition": {
+          "input": "sleepy"
+        }
+      },
+      {
+        "from": "sleepy",
+        "to": "idle",
+        "condition": {
+          "input": "idle"
+        }
+      },
+      {
+        "from": "sleepy",
+        "to": "thinking",
+        "condition": {
+          "input": "thinking"
+        }
+      },
+      {
+        "from": "sleepy",
+        "to": "pensativo2",
+        "condition": {
+          "input": "pensativo2"
+        }
+      },
+      {
+        "from": "sleepy",
+        "to": "talking",
+        "condition": {
+          "input": "talking"
+        }
+      },
+      {
+        "from": "sleepy",
+        "to": "notify",
+        "condition": {
+          "input": "notify"
+        }
+      },
+      {
+        "from": "sleepy",
+        "to": "error",
+        "condition": {
+          "input": "error"
+        }
+      },
+      {
+        "from": "sleepy",
+        "to": "listening",
+        "condition": {
+          "input": "listening"
+        }
+      },
+      {
+        "from": "sleepy",
+        "to": "reading",
+        "condition": {
+          "input": "reading"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,915 @@
+{
+  "artboard": {
+    "name": "Ikari",
+    "width": 256,
+    "height": 256
+  },
+  "backgroundColor": "#00000000",
+  "groups": [
+    {
+      "id": "rig",
+      "x": 128.0,
+      "y": 128.0
+    },
+    {
+      "id": "poses",
+      "x": 0,
+      "y": 0,
+      "parent": "rig",
+      "solo": true,
+      "active": "f01"
+    }
+  ],
+  "images": [
+    {
+      "id": "f01",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f01.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f02",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f02.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f03",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f03.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f04",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f04.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f05",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f05.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f06",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f06.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f07",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f07.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f08",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f08.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f09",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f09.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f10",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f10.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f11",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f11.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f12",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f12.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f13",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f13.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f14",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f14.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f15",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f15.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f16",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f16.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f17",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f17.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f18",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f18.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f19",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f19.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f20",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f20.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f21",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f21.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f22",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f22.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f23",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f23.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "f24",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/idle/riv-seq/f24.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t01",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t01.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t02",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t02.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t03",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t03.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t04",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t04.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t05",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t05.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t06",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t06.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t07",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t07.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t08",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t08.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t09",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t09.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t10",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t10.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t11",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t11.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t12",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t12.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t13",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t13.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t14",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t14.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t15",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t15.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t16",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t16.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t17",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t17.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t18",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t18.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t19",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t19.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t20",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t20.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t21",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t21.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t22",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t22.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t23",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t23.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "t24",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/think/riv-seq/t24.png",
+      "x": 0,
+      "y": 0,
+      "scale": 1.12,
+      "parent": "poses"
+    },
+    {
+      "id": "notify-badge",
+      "pngPath": "C:/Users/Vitor/Desktop/projects/wisp/src/mascot/notify-badge.png",
+      "x": 74,
+      "y": -110,
+      "scale": 0.48,
+      "parent": "rig",
+      "opacity": 0,
+      "z": 99990
+    }
+  ],
+  "animations": [
+    {
+      "name": "idle",
+      "fps": 60,
+      "duration": 264,
+      "loop": "loop",
+      "tracks": [
+        {
+          "target": "poses",
+          "property": "soloActive",
+          "keyframes": [
+            {
+              "frame": 0,
+              "ref": "f01",
+              "easing": "hold"
+            },
+            {
+              "frame": 11,
+              "ref": "f02",
+              "easing": "hold"
+            },
+            {
+              "frame": 22,
+              "ref": "f03",
+              "easing": "hold"
+            },
+            {
+              "frame": 33,
+              "ref": "f04",
+              "easing": "hold"
+            },
+            {
+              "frame": 44,
+              "ref": "f05",
+              "easing": "hold"
+            },
+            {
+              "frame": 55,
+              "ref": "f06",
+              "easing": "hold"
+            },
+            {
+              "frame": 66,
+              "ref": "f07",
+              "easing": "hold"
+            },
+            {
+              "frame": 77,
+              "ref": "f08",
+              "easing": "hold"
+            },
+            {
+              "frame": 88,
+              "ref": "f09",
+              "easing": "hold"
+            },
+            {
+              "frame": 99,
+              "ref": "f10",
+              "easing": "hold"
+            },
+            {
+              "frame": 110,
+              "ref": "f11",
+              "easing": "hold"
+            },
+            {
+              "frame": 121,
+              "ref": "f12",
+              "easing": "hold"
+            },
+            {
+              "frame": 132,
+              "ref": "f13",
+              "easing": "hold"
+            },
+            {
+              "frame": 143,
+              "ref": "f14",
+              "easing": "hold"
+            },
+            {
+              "frame": 154,
+              "ref": "f15",
+              "easing": "hold"
+            },
+            {
+              "frame": 165,
+              "ref": "f16",
+              "easing": "hold"
+            },
+            {
+              "frame": 176,
+              "ref": "f17",
+              "easing": "hold"
+            },
+            {
+              "frame": 187,
+              "ref": "f18",
+              "easing": "hold"
+            },
+            {
+              "frame": 198,
+              "ref": "f19",
+              "easing": "hold"
+            },
+            {
+              "frame": 209,
+              "ref": "f20",
+              "easing": "hold"
+            },
+            {
+              "frame": 220,
+              "ref": "f21",
+              "easing": "hold"
+            },
+            {
+              "frame": 231,
+              "ref": "f22",
+              "easing": "hold"
+            },
+            {
+              "frame": 242,
+              "ref": "f23",
+              "easing": "hold"
+            },
+            {
+              "frame": 253,
+              "ref": "f24",
+              "easing": "hold"
+            }
+          ]
+        },
+        {
+          "target": "notify-badge",
+          "property": "opacity",
+          "keyframes": [
+            {
+              "frame": 0,
+              "value": 0,
+              "easing": "hold"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "thinking",
+      "fps": 60,
+      "duration": 120,
+      "loop": "loop",
+      "tracks": [
+        {
+          "target": "poses",
+          "property": "soloActive",
+          "keyframes": [
+            {
+              "frame": 0,
+              "ref": "t01",
+              "easing": "hold"
+            },
+            {
+              "frame": 5,
+              "ref": "t02",
+              "easing": "hold"
+            },
+            {
+              "frame": 10,
+              "ref": "t03",
+              "easing": "hold"
+            },
+            {
+              "frame": 15,
+              "ref": "t04",
+              "easing": "hold"
+            },
+            {
+              "frame": 20,
+              "ref": "t05",
+              "easing": "hold"
+            },
+            {
+              "frame": 25,
+              "ref": "t06",
+              "easing": "hold"
+            },
+            {
+              "frame": 30,
+              "ref": "t07",
+              "easing": "hold"
+            },
+            {
+              "frame": 35,
+              "ref": "t08",
+              "easing": "hold"
+            },
+            {
+              "frame": 40,
+              "ref": "t09",
+              "easing": "hold"
+            },
+            {
+              "frame": 45,
+              "ref": "t10",
+              "easing": "hold"
+            },
+            {
+              "frame": 50,
+              "ref": "t11",
+              "easing": "hold"
+            },
+            {
+              "frame": 55,
+              "ref": "t12",
+              "easing": "hold"
+            },
+            {
+              "frame": 60,
+              "ref": "t13",
+              "easing": "hold"
+            },
+            {
+              "frame": 65,
+              "ref": "t14",
+              "easing": "hold"
+            },
+            {
+              "frame": 70,
+              "ref": "t15",
+              "easing": "hold"
+            },
+            {
+              "frame": 75,
+              "ref": "t16",
+              "easing": "hold"
+            },
+            {
+              "frame": 80,
+              "ref": "t17",
+              "easing": "hold"
+            },
+            {
+              "frame": 85,
+              "ref": "t18",
+              "easing": "hold"
+            },
+            {
+              "frame": 90,
+              "ref": "t19",
+              "easing": "hold"
+            },
+            {
+              "frame": 95,
+              "ref": "t20",
+              "easing": "hold"
+            },
+            {
+              "frame": 100,
+              "ref": "t21",
+              "easing": "hold"
+            },
+            {
+              "frame": 105,
+              "ref": "t22",
+              "easing": "hold"
+            },
+            {
+              "frame": 110,
+              "ref": "t23",
+              "easing": "hold"
+            },
+            {
+              "frame": 115,
+              "ref": "t24",
+              "easing": "hold"
+            }
+          ]
+        },
+        {
+          "target": "notify-badge",
+          "property": "opacity",
+          "keyframes": [
+            {
+              "frame": 0,
+              "value": 0,
+              "easing": "hold"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "alert",
+      "fps": 60,
+      "duration": 90,
+      "loop": "loop",
+      "presets": [
+        {
+          "preset": "shake",
+          "target": "rig",
+          "intensity": 0.55,
+          "cycleSeconds": 0.42
+        }
+      ],
+      "tracks": [
+        {
+          "target": "poses",
+          "property": "soloActive",
+          "keyframes": [
+            {
+              "frame": 0,
+              "ref": "f01",
+              "easing": "hold"
+            },
+            {
+              "frame": 12,
+              "ref": "f14",
+              "easing": "hold"
+            },
+            {
+              "frame": 28,
+              "ref": "f01",
+              "easing": "hold"
+            },
+            {
+              "frame": 40,
+              "ref": "f15",
+              "easing": "hold"
+            },
+            {
+              "frame": 55,
+              "ref": "f01",
+              "easing": "hold"
+            },
+            {
+              "frame": 68,
+              "ref": "f14",
+              "easing": "hold"
+            }
+          ]
+        },
+        {
+          "target": "notify-badge",
+          "property": "opacity",
+          "keyframes": [
+            {
+              "frame": 0,
+              "value": 0,
+              "easing": "hold"
+            },
+            {
+              "frame": 8,
+              "value": 1,
+              "easing": "ease-out"
+            },
+            {
+              "frame": 90,
+              "value": 1,
+              "easing": "smooth"
+            }
+          ]
+        },
+        {
+          "target": "notify-badge",
+          "property": "scaleX",
+          "keyframes": [
+            {
+              "frame": 0,
+              "value": 0.16799999999999998,
+              "easing": "hold"
+            },
+            {
+              "frame": 14,
+              "value": 0.48,
+              "easing": "ease-out-back"
+            },
+            {
+              "frame": 52,
+              "value": 0.5088,
+              "easing": "ease-in-out"
+            },
+            {
+              "frame": 90,
+              "value": 0.48,
+              "easing": "ease-in-out"
+            }
+          ]
+        },
+        {
+          "target": "notify-badge",
+          "property": "scaleY",
+          "keyframes": [
+            {
+              "frame": 0,
+              "value": 0.16799999999999998,
+              "easing": "hold"
+            },
+            {
+              "frame": 14,
+              "value": 0.48,
+              "easing": "ease-out-back"
+            },
+            {
+              "frame": 52,
+              "value": 0.5088,
+              "easing": "ease-in-out"
+            },
+            {
+              "frame": 90,
+              "value": 0.48,
+              "easing": "ease-in-out"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "stateMachine": {
+    "name": "Pet",
+    "inputs": [
+      {
+        "name": "idle",
+        "type": "bool"
+      },
+      {
+        "name": "thinking",
+        "type": "bool"
+      },
+      {
+        "name": "alert",
+        "type": "bool"
+      }
+    ],
+    "states": [
+      {
+        "name": "idle",
+        "animation": "idle"
+      },
+      {
+        "name": "thinking",
+        "animation": "thinking"
+      },
+      {
+        "name": "alert",
+        "animation": "alert"
+      }
+    ],
+    "transitions": [
+      {
+        "from": "entry",
+        "to": "idle"
+      },
+      {
+        "from": "idle",
+        "to": "thinking",
+        "condition": {
+          "input": "thinking"
+        }
+      },
+      {
+        "from": "idle",
+        "to": "alert",
+        "condition": {
+          "input": "alert"
+        }
+      },
+      {
+        "from": "thinking",
+        "to": "idle",
+        "condition": {
+          "input": "idle"
+        }
+      },
+      {
+        "from": "thinking",
+        "to": "alert",
+        "condition": {
+          "input": "alert"
+        }
+      },
+      {
+        "from": "alert",
+        "to": "idle",
+        "condition": {
+          "input": "idle"
+        }
+      },
+      {
+        "from": "alert",
+        "to": "thinking",
+        "condition": {
+          "input": "thinking"
+        }
+      }
+    ]
+  }
+}
