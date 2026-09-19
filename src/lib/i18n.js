@@ -14,6 +14,26 @@ const DICTIONARIES = {
     engineAntigravity: "Antigravity",
     engineOpenCode: "OpenCode",
 
+    compatTitle: "Tested stack",
+    compatLead: "Wisp {version} was tested with the exact versions below. Other versions may cause errors.",
+    compatWarnBanner:
+      "You are not on the tested version for this engine. Failures and errors are more likely.",
+    compatColComponent: "Component",
+    compatColTested: "Tested",
+    compatColYours: "Yours",
+    compatRefresh: "Check versions",
+    compatStatusOk: "match",
+    compatStatusMismatch: "different — may break",
+    compatStatusMissing: "not installed",
+    compatStatusPending: "checking…",
+    compatStatusBundledUnknown: "bundled (version unreadable)",
+    compatComponentWisp: "Wisp",
+    compatComponentCursorSdk: "@cursor/sdk",
+    compatComponentElectron: "Electron",
+    compatComponentAgy: "Antigravity CLI (agy)",
+    compatComponentOpenCode: "OpenCode CLI",
+    compatChatBanner: "Untested stack for this engine — errors are more likely. Open Settings → Tested stack.",
+
     // Project & Chats
     project: "Project",
     chooseFolder: "choose folder",
@@ -232,6 +252,27 @@ const DICTIONARIES = {
     engineCursor: "Cursor",
     engineAntigravity: "Antigravity",
     engineOpenCode: "OpenCode",
+
+    compatTitle: "Stack testado",
+    compatLead: "O Wisp {version} foi testado com as versões exatas abaixo. Outras versões podem causar erros.",
+    compatWarnBanner:
+      "Você não está na versão testada para este motor. Falhas e erros são mais prováveis.",
+    compatColComponent: "Componente",
+    compatColTested: "Testado",
+    compatColYours: "Seu ambiente",
+    compatRefresh: "Verificar versões",
+    compatStatusOk: "ok",
+    compatStatusMismatch: "diferente — pode quebrar",
+    compatStatusMissing: "não instalado",
+    compatStatusPending: "verificando…",
+    compatStatusBundledUnknown: "embutido (versão não lida)",
+    compatComponentWisp: "Wisp",
+    compatComponentCursorSdk: "@cursor/sdk",
+    compatComponentElectron: "Electron",
+    compatComponentAgy: "CLI Antigravity (agy)",
+    compatComponentOpenCode: "CLI OpenCode",
+    compatChatBanner:
+      "Stack fora do testado para este motor — erros são mais prováveis. Abra Configurações → Stack testado.",
 
     // Project & Chats
     project: "Projeto",

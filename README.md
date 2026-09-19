@@ -18,7 +18,7 @@
 
   <br />
 
-  <img src="assets/readme-hero.png" alt="Wisp in action: docked chat and floating pet with live agent feedback" width="720" />
+  <img src="assets/readme-hero.png" alt="Wisp in action: docked chat and floating pet with live agent feedback" width="1280" />
 </div>
 
 <a id="english"></a>
@@ -168,9 +168,24 @@ npm start
 
 On first launch, click the settings gear in the chat, choose your engine, configure your credentials/paths, and select your project workspace.
 
+### Tested stack (this release)
+
+Versions in [`compat.json`](compat.json) are what this Wisp release was built and smoke-tested against. The app compares your environment at runtime and warns if something differs (especially for the active engine).
+
+| Component | Tested version |
+| :--- | :--- |
+| Wisp | 0.1.0 |
+| @cursor/sdk | 1.0.31 |
+| Electron | 44.3.0 |
+| Antigravity CLI (`agy`) | 1.2.7 |
+| OpenCode CLI (`opencode`) | 1.18.31 |
+
+For maintainers: after bumping dependencies or re-testing CLIs, update `compat.json`, run `npm run check`, and paste `npm run compat:release-notes` into the GitHub release body.
+
 ### Useful scripts
 
-- `npm run check` — Runs self-checks for internal modules.
+- `npm run check` — Runs self-checks for internal modules (includes `compat.json` vs lockfile).
+- `npm run compat:release-notes` — Markdown table for GitHub Releases.
 - `npm run pack` — Packages the application directory without creating an installer.
 - `npm run dist` — Builds installers for your current platform.
 
@@ -305,9 +320,24 @@ npm start
 
 Na primeira inicialização, clique na engrenagem no chat (configurações), escolha seu motor de IA, informe as chaves ou caminhos necessários e selecione a pasta do projeto em que deseja trabalhar.
 
+### Stack testado (esta release)
+
+As versões em [`compat.json`](compat.json) são as usadas no build e no smoke test desta release do Wisp. O app compara seu ambiente em tempo de execução e avisa se algo diverge (principalmente no motor ativo).
+
+| Componente | Versão testada |
+| :--- | :--- |
+| Wisp | 0.1.0 |
+| @cursor/sdk | 1.0.31 |
+| Electron | 44.3.0 |
+| CLI Antigravity (`agy`) | 1.2.7 |
+| CLI OpenCode (`opencode`) | 1.18.31 |
+
+Manutenção: ao atualizar dependências ou re-testar CLIs, atualize `compat.json`, rode `npm run check` e cole `npm run compat:release-notes` na descrição do release no GitHub.
+
 ### Scripts úteis
 
-- `npm run check` — Executa as validações e testes rápidos das bibliotecas internas.
+- `npm run check` — Executa as validações e testes rápidos das bibliotecas internas (inclui `compat.json` vs lockfile).
+- `npm run compat:release-notes` — Tabela em Markdown para GitHub Releases.
 - `npm run pack` — Compila a aplicação localmente sem empacotar instalador.
 - `npm run dist` — Gera os instaladores para o sistema operacional atual.
 

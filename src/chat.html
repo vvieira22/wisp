@@ -38,6 +38,7 @@
       </header>
 
       <div id="page-chat">
+        <p id="compat-banner" class="compat-banner" hidden role="status"></p>
         <div class="session">
           <button id="folder" type="button" title="Choose project folder" data-i18n-title="chooseProjectFolder">
             <span class="field-label" data-i18n="project">Project</span>
@@ -131,6 +132,23 @@
         </div>
 
         <div id="settings-view-general">
+          <div class="account-block compat-block">
+            <p class="field-label" data-i18n="compatTitle">Tested stack</p>
+            <p class="hint" id="compat-lead" data-i18n="compatLead">This Wisp release was tested with the exact versions below. Other versions may cause errors.</p>
+            <p id="compat-warn" class="setup-warn compat-warn" hidden data-i18n="compatWarnBanner">You are not on the tested version for this engine. Failures and errors are more likely.</p>
+            <table class="compat-table" id="compat-table">
+              <thead>
+                <tr>
+                  <th scope="col" data-i18n="compatColComponent">Component</th>
+                  <th scope="col" data-i18n="compatColTested">Tested</th>
+                  <th scope="col" data-i18n="compatColYours">Yours</th>
+                </tr>
+              </thead>
+              <tbody id="compat-rows"></tbody>
+            </table>
+            <button type="button" id="compat-refresh" class="setup-check" data-i18n="compatRefresh">Check versions</button>
+          </div>
+
           <div class="account-block">
             <p class="field-label" data-i18n="language">Language</p>
             <label class="field">
