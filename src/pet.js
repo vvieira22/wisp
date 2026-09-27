@@ -1,6 +1,7 @@
 const stage = document.getElementById("stage");
 const ghost = document.getElementById("ghost");
 const canvas = document.getElementById("canvas");
+const petBadge = document.getElementById("pet-badge");
 const bubble = document.getElementById("bubble");
 const eyebrow = document.getElementById("eyebrow");
 const feedLines = [...document.querySelectorAll("#feed .feed-line")];
@@ -11,6 +12,7 @@ let feedSig = "";
 let state = "idle";
 let compact = false;
 let runActive = false;
+let busyCount = 0;
 let unread = false;
 let hasError = false;
 let live = "";
@@ -203,7 +205,7 @@ function syncFeed() {
     pushFeed(live || (isPt() ? "Falhou" : "Failed"), "error");
     return;
   }
-  const copy = bubbleCopy({ live, tool, runActive, lang: currentLang });
+  const copy = bubbleCopy({ live, tool, runActive, lang: currentLang, busyCount });
   if (copy.kind === "live") {
     const label = isPt() ? "Escrevendo" : "Writing";
     const last = feedItems[feedItems.length - 1];
@@ -227,9 +229,13 @@ function syncFeed() {
 function paint() {
   const show = !compact && (runActive || (unread && state === "alert"));
   bubble.hidden = !show;
+  if (petBadge) {
+    petBadge.hidden = busyCount <= 0;
+    petBadge.textContent = String(busyCount);
+  }
   if (show) {
     syncFeed();
-    const copy = bubbleCopy({ live, tool, runActive, lang: currentLang });
+    const copy = bubbleCopy({ live, tool, runActive, lang: currentLang, busyCount });
     eyebrow.textContent = hasError ? (isPt() ? "Erro" : "Error") : copy.eyebrow;
     bubble.classList.toggle("working", copy.kind === "working" && !hasError);
     bubble.classList.toggle("tool", copy.kind === "tool" && !hasError);
@@ -267,8 +273,20 @@ function setFace(payload) {
   stage.classList.toggle("bubble-right", bubbleRight);
 }
 
-window.wisp.onPetState(setState);
-window.wisp.onPetPreview(setState);
+window.wisp.onPetState((next, meta) => {
+  if (meta && typeof meta.busyCount === "number") {
+    busyCount = meta.busyCount;
+    runActive = busyCount > 0;
+  }
+  setState(next);
+});
+window.wisp.onPetPreview((next, meta) => {
+  if (meta && typeof meta.busyCount === "number") {
+    busyCount = meta.busyCount;
+    runActive = busyCount > 0;
+  }
+  setState(next);
+});
 window.wisp.onPetFace(setFace);
 window.wisp.onCompact((open) => {
   compact = !!open;
@@ -277,8 +295,12 @@ window.wisp.onCompact((open) => {
 });
 
 window.wisp.onChat((event) => {
+  if (typeof event.busyCount === "number") {
+    busyCount = event.busyCount;
+    runActive = busyCount > 0;
+  }
   if (event.type === "session-reset" || event.type === "ack") {
-    runActive = event.type === "session-reset" ? false : runActive;
+    runActive = event.type === "session-reset" ? false : (busyCount > 0);
     live = event.type === "session-reset" || !runActive ? "" : live;
     tool = event.type === "session-reset" ? "" : tool;
     unread = false;
@@ -307,16 +329,16 @@ window.wisp.onChat((event) => {
     paint();
   }
   if (event.type === "run-error") {
-    runActive = false;
+    runActive = busyCount > 0;
     live = event.text || "falhou";
     hasError = true;
     unread = !compact;
     paint();
   }
   if (event.type === "run-end" || event.type === "run-cancel") {
-    runActive = false;
+    runActive = busyCount > 0;
     unread = event.type === "run-end" && !compact;
-    if (compact || event.type === "run-cancel") {
+    if (compact || event.type === "run-cancel" || !runActive) {
       live = "";
       tool = "";
     }
@@ -347,9 +369,9 @@ function setIgnore(next) {
 
 function petHit(el) {
   if (!el) return false;
-  if (el.id === "canvas" || el.id === "bubble") return true;
+  if (el.id === "canvas" || el.id === "bubble" || el.id === "pet-badge") return true;
   if (el.classList && el.classList.contains("hit")) return true;
-  return typeof el.closest === "function" && !!(el.closest("#bubble") || el.closest("#canvas"));
+  return typeof el.closest === "function" && !!(el.closest("#bubble") || el.closest("#canvas") || el.closest("#pet-badge"));
 }
 
 function beginDrag(event) {

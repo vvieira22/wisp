@@ -44,6 +44,8 @@ const DICTIONARIES = {
     chatName: "Chat name",
     clearCurrentChat: "Clear current chat",
     clearThisChatPrompt: "Clear this chat?",
+    deleteChat: "Delete chat",
+    deleteChatPrompt: "Delete this chat?",
     clear: "Clear",
     no: "No",
     yes: "Yes",
@@ -84,6 +86,7 @@ const DICTIONARIES = {
     stop: "Stop",
     sendMessage: "Send message",
     stopResponse: "Stop response",
+    queueMessage: "Queue message",
     thinking: "thinking…",
 
     // Settings Navigation
@@ -284,6 +287,8 @@ const DICTIONARIES = {
     chatName: "Nome da conversa",
     clearCurrentChat: "Limpar conversa atual",
     clearThisChatPrompt: "Limpar esta conversa?",
+    deleteChat: "Excluir conversa",
+    deleteChatPrompt: "Deseja realmente excluir?",
     clear: "Limpar",
     no: "Não",
     yes: "Sim",
@@ -324,6 +329,7 @@ const DICTIONARIES = {
     stop: "Parar",
     sendMessage: "Enviar mensagem",
     stopResponse: "Parar a resposta",
+    queueMessage: "Adicionar à fila",
     thinking: "pensando…",
 
     // Settings Navigation

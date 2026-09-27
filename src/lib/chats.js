@@ -65,6 +65,32 @@ function titleFrom(messages) {
   return words.join(" ") || "conversa";
 }
 
+function normCwd(cwd) {
+  const raw = String(cwd || "").trim();
+  if (!raw) return "";
+  let s = raw.replace(/[\\/]+/g, "/").replace(/\/+$/, "");
+  const isWin =
+    (typeof process !== "undefined" && process.platform === "win32") ||
+    (typeof navigator !== "undefined" && /win/i.test(navigator.platform || "")) ||
+    /^[a-zA-Z]:(?:\/|$)/.test(s);
+  if (isWin) s = s.toLowerCase();
+  return s;
+}
+
+function sameCwd(a, b) {
+  const left = normCwd(a);
+  const right = normCwd(b);
+  if (!left && !right) return true;
+  if (!left || !right) return false;
+  return left === right;
+}
+
+function itemsForCwd(store, cwd) {
+  if (!store || !Array.isArray(store.items)) return [];
+  if (cwd === undefined) return store.items;
+  return store.items.filter((chat) => sameCwd(chat.cwd, cwd));
+}
+
 function isFresh(chat) {
   return !chat.messages.some((m) => m.role === "user");
 }
@@ -72,7 +98,7 @@ function isFresh(chat) {
 function resetFresh(chat, partial, lang = "en") {
   chat.messages = [];
   chat.agentId = "";
-  chat.cwd = "";
+  if (partial && partial.cwd !== undefined) chat.cwd = partial.cwd;
   chat.usageLabel = "0 / 200k";
   chat.usage = null;
   chat.turnAt = 0;
@@ -86,11 +112,37 @@ function resetFresh(chat, partial, lang = "en") {
   }
 }
 
-function pruneEmpty(store) {
-  const fresh = store.items.filter(isFresh);
-  if (fresh.length <= 1) return store;
-  const keepId = fresh.some((c) => c.id === store.currentId) ? store.currentId : fresh[0].id;
-  store.items = store.items.filter((c) => !isFresh(c) || c.id === keepId);
+function pruneEmpty(store, cwd) {
+  if (!store || !Array.isArray(store.items)) return store;
+  if (cwd !== undefined) {
+    const forProj = itemsForCwd(store, cwd);
+    const fresh = forProj.filter(isFresh);
+    if (fresh.length <= 1) return store;
+    const keepId = fresh.some((c) => c.id === store.currentId) ? store.currentId : fresh[0].id;
+    store.items = store.items.filter((c) => !sameCwd(c.cwd, cwd) || !isFresh(c) || c.id === keepId);
+    return store;
+  }
+  const seenFreshCwd = new Set();
+  const keepIds = new Set();
+  for (const c of store.items) {
+    if (isFresh(c)) {
+      const key = normCwd(c.cwd);
+      if (c.id === store.currentId) {
+        keepIds.add(c.id);
+        seenFreshCwd.add(key);
+      }
+    }
+  }
+  for (const c of store.items) {
+    if (isFresh(c)) {
+      const key = normCwd(c.cwd);
+      if (!seenFreshCwd.has(key)) {
+        keepIds.add(c.id);
+        seenFreshCwd.add(key);
+      }
+    }
+  }
+  store.items = store.items.filter((c) => !isFresh(c) || keepIds.has(c.id));
   return store;
 }
 
@@ -115,42 +167,82 @@ function blank(partial, lang = "en") {
   );
 }
 
-function emptyStore() {
-  const item = blank();
-  return { currentId: item.id, items: [item] };
+function emptyStore(cwd = "", lang = "en") {
+  const item = blank({ cwd }, lang);
+  const currentByCwd = {};
+  if (cwd) currentByCwd[normCwd(cwd)] = item.id;
+  return { currentId: item.id, currentByCwd, items: [item] };
 }
 
 function normalize(raw) {
   if (!raw || !Array.isArray(raw.items) || !raw.items.length) return emptyStore();
-  const items = raw.items
-    .map((chat) =>
-      blank({
-        id: chat.id || nid(),
-        title: chat.title || "conversa",
-        titleLocked: Boolean(chat.titleLocked),
-        messages: clipMessages(chat.messages),
-        agentId: chat.agentId || "",
-        cwd: chat.cwd || "",
-        usageLabel: chat.usageLabel || "0 / 200k",
-        usage: clipUsage(chat.usage) || lastUsage(clipMessages(chat.messages)),
-        turnAt: 0,
-        mode: normalizeMode(chat.mode),
-        model: String(chat.model || ""),
-        params: Array.isArray(chat.params) ? chat.params : [],
-        at: chat.at || Date.now(),
-      }),
-    )
-    .slice(0, 40);
-  const currentId = items.some((chat) => chat.id === raw.currentId) ? raw.currentId : items[0].id;
-  return { currentId, items };
+  const currentByCwd =
+    raw.currentByCwd && typeof raw.currentByCwd === "object" ? Object.assign({}, raw.currentByCwd) : {};
+  let items = raw.items.map((chat) =>
+    blank({
+      id: chat.id || nid(),
+      title: chat.title || "conversa",
+      titleLocked: Boolean(chat.titleLocked),
+      messages: clipMessages(chat.messages),
+      agentId: chat.agentId || "",
+      cwd: chat.cwd || "",
+      usageLabel: chat.usageLabel || "0 / 200k",
+      usage: clipUsage(chat.usage) || lastUsage(clipMessages(chat.messages)),
+      turnAt: 0,
+      mode: normalizeMode(chat.mode),
+      model: String(chat.model || ""),
+      params: Array.isArray(chat.params) ? chat.params : [],
+      at: chat.at || Date.now(),
+    }),
+  );
+  // ponytail: limit to 40 per workspace/cwd so one project never truncates another
+  const counts = new Map();
+  items = items.filter((chat) => {
+    const key = normCwd(chat.cwd);
+    const count = (counts.get(key) || 0) + 1;
+    counts.set(key, count);
+    return count <= 40;
+  });
+  const currentId = items.some((chat) => chat.id === raw.currentId) ? raw.currentId : (items[0] && items[0].id) || "";
+  return { currentId, currentByCwd, items };
 }
 
-function current(store) {
-  return store.items.find((chat) => chat.id === store.currentId) || store.items[0];
+function current(store, cwd, lang = "en") {
+  if (!store || !Array.isArray(store.items)) return blank({ cwd }, lang);
+  if (cwd === undefined) {
+    return store.items.find((chat) => chat.id === store.currentId) || store.items[0] || blank({}, lang);
+  }
+  const projectItems = itemsForCwd(store, cwd);
+  if (store.currentId) {
+    const active = projectItems.find((chat) => chat.id === store.currentId);
+    if (active) return active;
+  }
+  if (store.currentByCwd) {
+    const savedId = store.currentByCwd[normCwd(cwd)];
+    if (savedId) {
+      const saved = projectItems.find((chat) => chat.id === savedId);
+      if (saved) {
+        store.currentId = saved.id;
+        return saved;
+      }
+    }
+  }
+  if (projectItems.length) {
+    store.currentId = projectItems[0].id;
+    if (!store.currentByCwd) store.currentByCwd = {};
+    store.currentByCwd[normCwd(cwd)] = store.currentId;
+    return projectItems[0];
+  }
+  const fresh = blank({ cwd: cwd || "" }, lang);
+  store.items.unshift(fresh);
+  store.currentId = fresh.id;
+  if (!store.currentByCwd) store.currentByCwd = {};
+  store.currentByCwd[normCwd(cwd)] = fresh.id;
+  return fresh;
 }
 
-function putMessages(store, messages, usageLabel) {
-  const chat = current(store);
+function putMessages(store, messages, usageLabel, cwd) {
+  const chat = current(store, cwd);
   chat.messages = keepUsage(chat.messages, clipMessages(messages));
   const usage = lastUsage(chat.messages);
   if (usage) chat.usage = usage;
@@ -160,33 +252,44 @@ function putMessages(store, messages, usageLabel) {
   return chat;
 }
 
-function startNew(store, messages, usageLabel, lang = "en") {
-  putMessages(store, messages, usageLabel);
-  const chat = current(store);
+function startNew(store, messages, usageLabel, lang = "en", cwd) {
+  const cur = current(store, cwd, lang);
+  const targetCwd = cwd !== undefined ? cwd : cur.cwd;
+  if (messages && messages.length) putMessages(store, messages, usageLabel, targetCwd);
   const carry = {
-    mode: chat.mode,
-    model: chat.model,
-    params: Array.isArray(chat.params) ? chat.params.slice() : [],
+    mode: cur.mode,
+    model: cur.model,
+    params: Array.isArray(cur.params) ? cur.params.slice() : [],
+    cwd: targetCwd,
   };
-  if (isFresh(chat)) {
-    resetFresh(chat, null, lang);
-    return pruneEmpty(store);
+  if (isFresh(cur)) {
+    resetFresh(cur, carry, lang);
+    return pruneEmpty(store, targetCwd);
   }
-  const existing = store.items.find((c) => c.id !== chat.id && isFresh(c));
+  const existing = itemsForCwd(store, targetCwd).find((c) => c.id !== cur.id && isFresh(c));
   if (existing) {
     store.currentId = existing.id;
+    if (!store.currentByCwd) store.currentByCwd = {};
+    store.currentByCwd[normCwd(targetCwd)] = existing.id;
     resetFresh(existing, carry, lang);
-    return pruneEmpty(store);
+    return pruneEmpty(store, targetCwd);
   }
   const next = blank(carry, lang);
   store.items.unshift(next);
-  store.items = store.items.slice(0, 40);
+  let count = 0;
+  store.items = store.items.filter((chat) => {
+    if (!sameCwd(chat.cwd, targetCwd)) return true;
+    count++;
+    return count <= 40;
+  });
   store.currentId = next.id;
-  return pruneEmpty(store);
+  if (!store.currentByCwd) store.currentByCwd = {};
+  store.currentByCwd[normCwd(targetCwd)] = next.id;
+  return pruneEmpty(store, targetCwd);
 }
 
-function clearCurrent(store, lang = "en") {
-  const chat = current(store);
+function clearCurrent(store, lang = "en", cwd) {
+  const chat = current(store, cwd, lang);
   chat.messages = [];
   chat.agentId = "";
   chat.usageLabel = "0 / 200k";
@@ -198,21 +301,47 @@ function clearCurrent(store, lang = "en") {
 }
 
 function open(store, id) {
-  if (store.items.some((chat) => chat.id === id)) store.currentId = id;
-  return pruneEmpty(store);
+  const chat = store.items.find((item) => item.id === id);
+  if (chat) {
+    store.currentId = id;
+    if (!store.currentByCwd) store.currentByCwd = {};
+    store.currentByCwd[normCwd(chat.cwd)] = id;
+    pruneEmpty(store, chat.cwd);
+  }
+  return store;
 }
 
-function removeCurrentIfEmpty(store) {
-  const chat = current(store);
-  if (!isFresh(chat) || store.items.length <= 1) return null;
+function removeCurrentIfEmpty(store, cwd) {
+  const chat = current(store, cwd);
+  const targetCwd = cwd !== undefined ? cwd : chat.cwd;
+  const projectItems = itemsForCwd(store, targetCwd);
+  if (!isFresh(chat) || projectItems.length <= 1) return null;
   const idx = store.items.findIndex((c) => c.id === chat.id);
   store.items.splice(idx, 1);
-  store.currentId = store.items[Math.min(idx, store.items.length - 1)].id;
+  const remaining = itemsForCwd(store, targetCwd);
+  store.currentId = remaining[0].id;
+  if (store.currentByCwd) store.currentByCwd[normCwd(targetCwd)] = store.currentId;
   return chat.id;
 }
 
-function rename(store, title) {
-  const chat = current(store);
+function deleteChat(store, id, lang = "en", cwd) {
+  if (!store || !Array.isArray(store.items)) return null;
+  const idx = store.items.findIndex((c) => c.id === id);
+  if (idx < 0) return null;
+  const [removed] = store.items.splice(idx, 1);
+  const targetCwd = cwd !== undefined ? cwd : removed.cwd;
+  if (store.currentByCwd && store.currentByCwd[normCwd(removed.cwd)] === id) {
+    delete store.currentByCwd[normCwd(removed.cwd)];
+  }
+  if (store.currentId === id) {
+    store.currentId = "";
+    current(store, targetCwd, lang);
+  }
+  return removed;
+}
+
+function rename(store, title, cwd) {
+  const chat = current(store, cwd);
   const t = clipTitle(title);
   if (!t) {
     chat.titleLocked = false;
@@ -314,19 +443,22 @@ function applyRunEvent(store, chatId, event) {
   return chat;
 }
 
-function publicState(store, busyIds) {
+function publicState(store, busyIds, cwd, lang = "en") {
   const busy = busyIds instanceof Set ? busyIds : new Set(busyIds || []);
-  const cur = current(store);
+  const cur = current(store, cwd, lang);
+  const list = cwd !== undefined ? itemsForCwd(store, cwd) : store.items;
   return {
-    currentId: store.currentId,
-    items: store.items.map((chat) => ({
+    currentId: cur.id,
+    busyCount: busy.size,
+    items: list.map((chat) => ({
       id: chat.id,
       title:
-        chat.titleLocked || !(chat.id === store.currentId && !chat.messages.some((m) => m.role === "user"))
+        chat.titleLocked || !(chat.id === cur.id && !chat.messages.some((m) => m.role === "user"))
           ? chat.title
-          : FRESH_TITLE,
+          : freshTitle(lang),
       at: chat.at,
       busy: busy.has(chat.id),
+      cwd: chat.cwd || "",
     })),
     current: Object.assign({}, cur, { busy: busy.has(cur.id) }),
   };
@@ -345,6 +477,10 @@ const api = {
   startNew,
   clearCurrent,
   removeCurrentIfEmpty,
+  deleteChat,
+  normCwd,
+  sameCwd,
+  itemsForCwd,
   open,
   rename,
   findChat,
