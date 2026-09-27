@@ -35,8 +35,14 @@ contextBridge.exposeInMainWorld("wisp", {
   listChats: () => ipcRenderer.invoke("chats:list"),
   saveChat: (payload) => ipcRenderer.invoke("chats:save", payload),
   openChat: (id, payload) => ipcRenderer.invoke("chats:open", id, payload),
+  deleteChat: (id) => ipcRenderer.invoke("chats:delete", id),
   renameChat: (title) => ipcRenderer.invoke("chats:rename", title),
   patchChat: (partial) => ipcRenderer.invoke("chats:patch", partial),
+  onChats: (cb) => {
+    const fn = (_event, payload) => cb(payload);
+    ipcRenderer.on("chats:update", fn);
+    return () => ipcRenderer.removeListener("chats:update", fn);
+  },
   listSkills: () => ipcRenderer.invoke("skills:list"),
   petPointer: (payload) => ipcRenderer.send("pet:pointer", payload),
   petLayout: (payload) => ipcRenderer.send("pet:layout", payload),
@@ -48,12 +54,12 @@ contextBridge.exposeInMainWorld("wisp", {
     return () => ipcRenderer.removeListener("chat:dock", fn);
   },
   onPetState: (cb) => {
-    const fn = (_event, state) => cb(state);
+    const fn = (_event, state, meta) => cb(state, meta);
     ipcRenderer.on("pet:state", fn);
     return () => ipcRenderer.removeListener("pet:state", fn);
   },
   onPetPreview: (cb) => {
-    const fn = (_event, state) => cb(state);
+    const fn = (_event, state, meta) => cb(state, meta);
     ipcRenderer.on("pet:preview", fn);
     return () => ipcRenderer.removeListener("pet:preview", fn);
   },
