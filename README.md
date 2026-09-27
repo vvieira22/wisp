@@ -1,7 +1,7 @@
 <div align="center">
   <img src="assets/mascot-idle.apng" alt="Wisp mascot" width="120" />
   <h1>Wisp</h1>
-  <p><b>Your desktop AI coding companion. Lightweight, draggable, and focused on your workflow.</b></p>
+  <p><b>The unobtrusive desktop companion for AI coding. Floats alongside your windows, keeps you in flow, and makes interacting with AI agents effortless while you work.</b></p>
 
   <p>
     <img src="https://img.shields.io/badge/Electron-339933?style=flat&logo=electron&logoColor=white" alt="Electron" />
@@ -25,13 +25,16 @@
 ## English
 
 
-**Wisp** is a desktop AI companion that lives on your screen as a floating pet. Instead of switching back and forth between browser tabs or keeping terminal windows hidden, you get a lightweight pet sitting in the corner of your screen that visually reacts to whatever the AI agent is doing and opens a docked chat window when clicked.
+**Wisp** was born to solve a daily friction: using AI coding agents freely without fighting your window layout or breaking your flow.
 
-### The Idea
+Instead of sacrificing screen space to bloated sidebars, constantly juggling browser tabs, or Alt-Tabbing back and forth to check hidden terminal outputs, Wisp lives as a lightweight, floating desktop pet. It sits quietly alongside your code editor, browser, terminal, and documentation, giving you instant visual feedback on what the agent is doing and letting you chat with it on demand. When you're done, a single click outside or `Escape` key tucks it away completely — leaving your screen 100% yours.
 
-The goal behind Wisp is straightforward: bring visual presence and quick access to AI coding agents in your daily workflow.
+### Why Wisp?
 
-- **Always within reach, never in the way** — Floats transparently on your screen and can be dragged anywhere. Click it to open the docked chat panel; click outside or press `Escape` to tuck it away.
+The motivation is simple: AI should adapt to your workspace, not force you to rearrange it.
+
+- **Multitask freely alongside your windows** — Keep coding in your IDE, reading docs, or running tests while Wisp floats in the corner, never stealing your focus or window estate.
+- **Always within reach, never in the way** — Fully draggable, transparent, and dockable. Click the pet to pull up the chat; press `Escape` or click away to tuck it back.
 - **Immediate visual feedback** — Glance at the pet and instantly know what the agent is doing without reading logs:
   - **Thinking** — Formulating ideas and reasoning.
   - **Reading / Tools** — Inspecting project files or running terminal commands.
@@ -207,13 +210,16 @@ For maintainers: after bumping dependencies or re-testing CLIs, update `compat.j
 <a id="português"></a>
 ## Português
 
-O **Wisp** é um companheiro de código que fica na sua área de trabalho como um mascote (*desktop pet*). Em vez de ficar alternando entre abas do navegador ou manter janelas de terminal escondidas, você tem um mascote flutuante no canto da tela que reage visualmente ao que o agente de IA está fazendo e abre um painel de chat ao ser clicado.
+O **Wisp** nasceu para resolver um atrito real do dia a dia: usar agentes de IA para programar com total liberdade, sem ter que ficar brigando com o layout das suas janelas ou quebrando o seu fluxo de raciocínio.
+
+Em vez de perder metade da tela com barras laterais pesadas, ficar alternando infinitamente entre abas do navegador ou dando Alt-Tab toda hora para ver se um comando terminou no terminal, o Wisp fica flutuando como um mascote discreto no seu desktop. Ele convive lado a lado com seu editor de código, navegador, terminal e documentação, permitindo que você consulte e acione a IA a qualquer instante. Quando terminar, um simples clique fora ou tecla `Escape` recolhe o chat na hora, deixando sua tela 100% livre.
 
 ### A proposta
 
-A ideia do Wisp é simples: trazer presença visual e agilidade ao uso de agentes de IA no dia a dia de desenvolvimento.
+A motivação do Wisp é direta: a IA deve se adaptar ao seu espaço de trabalho, e não exigir que você reorganize todas as suas janelas para usá-la.
 
-- **Sempre à mão sem atrapalhar** — Fica no canto da tela, transparente e arrastável. Clicou nele, o chat abre colado ao mascote; clicou fora ou pressionou `Escape`, ele recolhe.
+- **Multitarefa livre com todas as suas janelas** — Continue codando, testando ou navegando enquanto o Wisp acompanha o trabalho no canto da tela, sem disputar espaço nem roubar seu foco.
+- **Sempre à mão sem atrapalhar** — Transparente, flutuante e arrastável para onde preferir. Clicou nele, o chat abre acoplado; clicou fora ou pressionou `Escape`, ele recolhe imediatamente.
 - **Feedback visual imediato** — Você bate o olho no pet e já sabe o que a IA está fazendo sem precisar ler logs:
   - **Pensando** — Formulando ideias e raciocínio.
   - **Lendo / Ferramentas** — Examinando arquivos do projeto ou rodando comandos no terminal.
