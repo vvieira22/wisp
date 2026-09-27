@@ -1391,15 +1391,19 @@ async function sendNow(text, chatId) {
     startTick();
   }
   try {
-    await window.wisp.send(text, id);
+    const out = await window.wisp.send(text, id);
+    if (out && out.terminal === "run-end") await drainQueue(id);
   } catch (err) {
     if (here && id === viewId) {
       const ms = stopTick();
-      setRunning(false);
       addMsg("error", err && err.message ? err.message : String(err));
       const el = lastAssistant || [...log.querySelectorAll(".msg.user")].pop();
       if (el) paintMsgUsage(el, { ms });
     }
+    return;
+  } finally {
+    // ponytail: run-end IPC can arrive before main clears agent.busy; keep "running" until send() returns
+    if (here && id === viewId) setRunning(false);
   }
 }
 
@@ -2333,12 +2337,7 @@ window.wisp.onChat((event) => {
   if (event.type === "run-start" || event.type === "run-end" || event.type === "run-error" || event.type === "run-cancel") {
     window.wisp.listChats().then(fillChats).catch(() => {});
   }
-  if (!here) {
-    if (event.type === "run-end" || event.type === "run-error" || event.type === "run-cancel") {
-      void drainQueue(event.chatId || viewId);
-    }
-    return;
-  }
+  if (!here) return;
   if (event.type === "run-start") {
     lastAssistant = null;
     setRunning(true);
@@ -2397,8 +2396,6 @@ window.wisp.onChat((event) => {
       liveUsage = event.usage;
       paintMeter();
     }
-    setRunning(false);
-    void drainQueue(event.chatId || viewId);
   }
 });
 

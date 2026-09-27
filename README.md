@@ -50,7 +50,7 @@ Wisp lets you switch between three core agent engines seamlessly from the top ta
 #### 1. Cursor
 - **Integration**: Native integration via `@cursor/sdk`.
 - **How it works**: Leverages Cursor's agent backend to inspect, read, and edit code within your selected workspace.
-- **Supported models**: All cursor avaiable models.
+- **Supported models**: All Cursor available models.
 - **Configuration**: Requires a Cursor API key (`cursor.apiKey`), encrypted locally in your OS keyring.
 
 #### 2. Antigravity
@@ -65,9 +65,9 @@ Wisp lets you switch between three core agent engines seamlessly from the top ta
 - **Integration**: Subprocess integration via the open-source `opencode` CLI.
 - **How it works**: Offers multi-provider flexibility with real-time tool calling, streaming reasoning (*thinking*), and interactive in-chat permission prompts before dangerous operations (file modifications or terminal execution).
 - **Supported providers**:
-  - **DeepSeek** (`DEEPSEEK_API_KEY`): Deepseek avaiable models.
-  - **GLM / Zhipu AI** (`ZAI_API_KEY`): Zhipu AI avaiable models.
-  - **Kimi / Moonshot AI** (`MOONSHOT_API_KEY`): Kimi avaiable models.
+  - **DeepSeek** (`DEEPSEEK_API_KEY`): DeepSeek available models.
+  - **GLM / Zhipu AI** (`ZAI_API_KEY`): Zhipu AI available models.
+  - **Kimi / Moonshot AI** (`MOONSHOT_API_KEY`): Kimi available models.
 - **Configuration**: Requires the `opencode` CLI installed on your `PATH` and the respective API key for your chosen provider.
 
 ### Where are conversations saved?
@@ -117,8 +117,10 @@ Your API keys and credentials are never saved in plain text. Wisp implements a m
 ### Key features
 
 - **Encrypted credentials** — API keys are encrypted at rest using OS-native vaults (Windows DPAPI, macOS Keychain, Linux Secret Service) with AES-256-GCM fallback.
+- **Workspace-isolated history** — Conversations are organized per workspace folder; switching projects instantly restores relevant threads without mixing history, with support for quick conversation deletion.
+- **Message queuing & multi-tasking** — Send messages while the agent is busy to queue them naturally; the desktop pet and chat header show live counters for parallel running tasks.
 - **Automatic skills indexing** — Discovers `SKILL.md` files across your project and system directories (`.cursor`, `.agents`, `.claude`, etc.) and lets you invoke them with `/` in the chat.
-- **Multiple conversations** — Create, rename, and switch between chat sessions on the fly.
+- **Multiple conversations** — Create, rename, delete, and switch between chat sessions on the fly.
 - **Customizable mascot** — Ships with a default Canvas/SVG ghost, but natively supports custom Rive (`.riv`) state machines.
 - **Smart window docking** — Chat panel snaps seamlessly beside the pet, adapting across multiple screens and positions.
 - **Context meter** — Real-time token tracking relative to the active model's limits.
@@ -297,8 +299,10 @@ Suas chaves de API e credenciais nunca ficam salvas em texto puro. O Wisp possui
 ### Recursos
 
 - **Credenciais criptografadas** — Chaves de API armazenadas em disco sob criptografia nativa do SO (DPAPI, Keychain, Secret Service) com fallback AES-256-GCM.
+- **Histórico isolado por workspace** — Conversas organizadas por pasta de projeto; alternar entre projetos restaura instantaneamente as sessões correspondentes sem misturar históricos, com suporte a exclusão rápida de chats.
+- **Fila de mensagens e multitarefa** — Envie mensagens enquanto o agente trabalha para colocá-las em fila automaticamente; o mascote e o chat exibem contadores em tempo real para tarefas paralelas.
 - **Skills automáticas** — Detecta automaticamente arquivos `SKILL.md` existentes no projeto ou no sistema (pastas `.cursor`, `.agents`, `.claude`, etc.) e permite ativá-las usando `/` no chat.
-- **Múltiplas conversas** — Crie novas conversas, renomeie ou alterne entre sessões a qualquer momento.
+- **Múltiplas conversas** — Crie novas conversas, renomeie, exclua ou alterne entre sessões a qualquer momento.
 - **Mascote personalizável** — Vem por padrão com um fantasma animado em SVG/Canvas, com suporte nativo a arquivos Rive (`.riv`) com máquina de estados.
 - **Janela acoplada** — O painel de chat se posiciona e se ajusta automaticamente ao lado do mascote em qualquer monitor.
 - **Monitor de contexto** — Contador visual de tokens consumidos no turno em relação ao limite do modelo.

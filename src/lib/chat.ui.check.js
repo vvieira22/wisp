@@ -12,6 +12,11 @@ const html = fs.readFileSync(htmlPath, "utf8");
 // Regression: bare clipQueueText/isPt blew up the chat UI (ReferenceError).
 assert.match(chat, /function queueClip\s*\(/, "chat.js must define queueClip");
 assert.doesNotMatch(chat, /\bclipQueueText\s*\(/, "chat.js must not call bare clipQueueText");
+assert.doesNotMatch(
+  chat,
+  /run-end[\s\S]{0,120}void drainQueue/,
+  "do not drain queue on run-end IPC; wait for chat:send to finish",
+);
 assert.match(chat, /function isPt\s*\(/, "chat.js must define isPt for badge tooltip");
 assert.match(chat, /function paintProcessCount\s*\(/, "paintProcessCount required for busy badge");
 

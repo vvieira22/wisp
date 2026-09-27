@@ -1194,21 +1194,28 @@ ipcMain.handle("chat:send", async (_event, text, chatId) => {
     mode: chat.mode,
   });
   logger.info(currentEngine, `Enviando mensagem para o modelo ${chat.model}`, { chatId: chat.id, cwd });
+  let terminal = null;
   try {
     await sess.send(
       runCfg,
       prompt,
-      (event) => applyEvent(chat.id, event),
+      (event) => {
+        applyEvent(chat.id, event);
+        if (event.type === "run-end" || event.type === "run-cancel" || event.type === "run-error") {
+          terminal = event.type;
+        }
+      },
     );
   } catch (err) {
     const msg = err && err.message ? err.message : String(err);
     logger.error(currentEngine, `Falha durante execução do modelo: ${msg}`, { stack: err && err.stack, model: chat.model });
-    applyEvent(chat.id, { type: "run-error", text: msg });
-    throw err;
+    if (terminal !== "run-error") applyEvent(chat.id, { type: "run-error", text: msg });
+    return { terminal: terminal || "run-error" };
   }
   chat.agentId = sess.agentId || "";
   chat.cwd = sess.cwd || cwd;
   saveChats();
+  return { terminal };
 });
 
 ipcMain.handle("logs:get", (_event, filter) => {
