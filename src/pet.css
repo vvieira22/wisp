@@ -328,7 +328,35 @@ body {
   transition: transform 0.55s var(--ease);
 }
 
+.pet-badge {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--ember);
+  color: var(--night);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  pointer-events: auto;
+  z-index: 10;
+}
+
+.pet-badge[hidden] {
+  display: none;
+}
+
 #stage.flip #ghost {
+  transform: scaleX(-1);
+}
+
+#stage.flip .pet-badge {
   transform: scaleX(-1);
 }
 

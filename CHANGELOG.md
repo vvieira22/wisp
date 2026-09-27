@@ -5,6 +5,23 @@ All notable changes to the Wisp project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-09-27
+
+### Added
+- **Workspace-Scoped Conversations**:
+  - Chat history is now organized cleanly per workspace folder (`cwd`). Switching projects seamlessly brings up the relevant conversation threads and preserves your position without cross-project clutter.
+  - History is safely capped at 40 conversations per workspace, preventing active projects from ever trimming or interfering with history from other repositories.
+  - Individual conversations can now be deleted directly from the chat dropdown, featuring an intuitive inline confirmation prompt (`Yes`/`No`) to avoid accidental deletions.
+- **Multi-Tasking & Live Process Counter**:
+  - The desktop pet mascot now features a live badge counter displaying how many background tasks are running simultaneously across your chats.
+  - The mascot stays actively thinking until the very last background run finishes, transitioning to the alert/notification state once all parallel tasks are complete.
+  - The chat window header displays an active process badge next to the session selector, and in-progress chats feature gentle animated indicators inside the picker menu.
+- **Natural Message Queuing**:
+  - If you send a message while the agent is already working, it now flows directly into an execution queue rather than popping interrupting dialogs or blocking input.
+  - The stop-response control has been moved directly into the active assistant turn bubble for quick and frictionless cancellation.
+- **Automated Verification Suites**:
+  - Added runnable self-checks for FIFO message queuing (`queue.check.js`) and multi-workspace chat lifecycle management (`chats.check.js`).
+
 ## [1.0.0] - 2026-09-19
 
 ### Added

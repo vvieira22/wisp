@@ -63,6 +63,7 @@ const {
   startNew,
   clearCurrent,
   removeCurrentIfEmpty,
+  deleteChat,
   open,
   rename,
   publicState,
@@ -257,9 +258,13 @@ function session(chatId) {
   return sMap.get(id);
 }
 
-function busySet() {
+function busySet(startingChatId, endingChatId) {
   const ids = new Set();
-  for (const [id, sess] of getSessions()) if (sess.busy) ids.add(id);
+  for (const [id, sess] of getSessions()) {
+    if (sess.busy && id !== endingChatId) ids.add(id);
+  }
+  if (startingChatId) ids.add(startingChatId);
+  if (endingChatId) ids.delete(endingChatId);
   return ids;
 }
 
@@ -307,27 +312,31 @@ function publicSkills() {
 }
 
 function chatState() {
-  return publicState(chats, busySet());
+  const c = cfg();
+  const lang = (c && c.lang) || "en";
+  return publicState(chats, busySet(), c.cwd, lang);
 }
 
 function stashChat(payload) {
   if (!chats.items.length) loadChats();
-  const chat = current(chats);
+  const c = cfg();
+  const chat = current(chats, c.cwd);
   const sess = getSessions().get(chat.id);
   if (!(sess && sess.busy) && payload && Array.isArray(payload.messages)) {
-    putMessages(chats, payload.messages, payload.usageLabel);
+    putMessages(chats, payload.messages, payload.usageLabel, c.cwd);
   }
   if (sess && sess.agentId) chat.agentId = sess.agentId;
   if (sess && sess.cwd) chat.cwd = sess.cwd;
+  else if (c.cwd && !chat.cwd) chat.cwd = c.cwd;
   saveChats();
   return chat;
 }
 
-function pinChatToCwd(cwd) {
+function switchProjectCwd(cwd) {
   if (!chats.items.length) loadChats();
-  const chat = current(chats);
-  if (!sameCwd(chat.cwd, cwd)) chat.agentId = "";
-  chat.cwd = cwd || "";
+  const lang = (cfg() && cfg().lang) || "en";
+  const chat = current(chats, cwd, lang);
+  if (cwd && !chat.cwd) chat.cwd = cwd;
   saveChats();
   return chat;
 }
@@ -465,10 +474,11 @@ function clearMascot() {
   return cfg();
 }
 
-function broadcastPet(next) {
+function broadcastPet(next, meta) {
   petState = next;
-  if (petWin && !petWin.isDestroyed()) petWin.webContents.send("pet:state", next);
-  if (chatWin && !chatWin.isDestroyed()) chatWin.webContents.send("pet:state", next);
+  const payload = Object.assign({ busyCount: busySet().size }, meta);
+  if (petWin && !petWin.isDestroyed()) petWin.webContents.send("pet:state", next, payload);
+  if (chatWin && !chatWin.isDestroyed()) chatWin.webContents.send("pet:state", next, payload);
 }
 
 function usageView(chat, usage) {
@@ -490,7 +500,11 @@ function tellUsage(chat, usage) {
 
 function applyEvent(chatId, event) {
   const id = chatId || current(chats).id;
-  const tagged = Object.assign({ chatId: id }, event);
+  const isStart = event.type === "run-start";
+  const isEnd = event.type === "run-end" || event.type === "run-error" || event.type === "run-cancel";
+  const activeIds = isStart ? busySet(id, null) : isEnd ? busySet(null, id) : busySet(id, null);
+  const busyCount = activeIds.size;
+  const tagged = Object.assign({ chatId: id, busyCount }, event);
   const chat = findChat(chats, id);
   applyRunEvent(chats, id, tagged);
   if (chat && (event.type === "run-end" || event.type === "usage")) {
@@ -510,16 +524,24 @@ function applyEvent(chatId, event) {
   } else if (event.type === "session-gap") {
     logger.warn(currentEngine, `Aviso de sessão: ${event.text}`);
   }
-  if (focused) {
-    let next = reducePet(petState, event);
-    if (event.type === "run-end" && chatOpen) next = "idle";
-    broadcastPet(next);
-    if (petWin && !petWin.isDestroyed()) petWin.webContents.send("chat:event", tagged);
+
+  // ponytail: track busy processes count across all chats; when it drops to 0 on run-end, notify
+  let next = reducePet(petState, event, busyCount);
+  if (event.type === "run-end" && chatOpen && focused && busyCount === 0) next = "idle";
+  broadcastPet(next, { busyCount });
+
+  if (petWin && !petWin.isDestroyed()) {
+    if (focused || !activeIds.has(current(chats).id)) {
+      petWin.webContents.send("chat:event", tagged);
+    }
   }
   if (chatWin && !chatWin.isDestroyed()) {
     chatWin.webContents.send("chat:event", tagged);
     if (focused && (event.type === "run-end" || event.type === "usage")) {
       tellUsage(chat, event.usage || (getSessions().get(id) && getSessions().get(id).lastUsage));
+    }
+    if (isStart || isEnd) {
+      chatWin.webContents.send("chats:update", chatState());
     }
   }
   if (event.type === "run-end" || event.type === "run-error" || event.type === "run-cancel" || event.type === "run-start" || event.type === "permission-request" || event.type === "permission-resolved") {
@@ -648,6 +670,7 @@ function createPet() {
     tellPetChat(chatOpen);
     tellPetMascot();
     tellPetFace();
+    broadcastPet(petState, { busyCount: busySet().size });
     if (!petWin.isDestroyed()) petWin.setIgnoreMouseEvents(true, { forward: true });
   });
 }
@@ -821,13 +844,14 @@ function hideChat() {
 
 async function resetSession(payload) {
   stashChat(payload);
-  const prev = current(chats);
+  const c = cfg();
+  const lang = (c && c.lang) || "en";
+  const prev = current(chats, c.cwd, lang);
   const prevId = prev.id;
   const hadUser = prev.messages.some((m) => m.role === "user");
-  const lang = (cfg() && cfg().lang) || "en";
-  startNew(chats, prev.messages, prev.usageLabel, lang);
+  startNew(chats, prev.messages, prev.usageLabel, lang, c.cwd);
   saveChats();
-  const next = current(chats);
+  const next = current(chats, c.cwd, lang);
   if (!hadUser) await dropSession(prevId);
   applyEvent(next.id, { type: "session-reset" });
   tellUsage(next, null);
@@ -835,19 +859,20 @@ async function resetSession(payload) {
 }
 
 async function clearSession() {
-  const chat = current(chats);
-  const removedId = removeCurrentIfEmpty(chats);
+  const c = cfg();
+  const lang = (c && c.lang) || "en";
+  const chat = current(chats, c.cwd, lang);
+  const removedId = removeCurrentIfEmpty(chats, c.cwd);
   if (removedId) {
     await dropSession(removedId);
     saveChats();
-    const next = current(chats);
+    const next = current(chats, c.cwd, lang);
     applyEvent(next.id, { type: "session-reset" });
-    tellUsage(next, null);
+    tellUsage(next, next.usage);
     return chatState();
   }
   await dropSession(chat.id);
-  const lang = (cfg() && cfg().lang) || "en";
-  clearCurrent(chats, lang);
+  clearCurrent(chats, lang, c.cwd);
   saveChats();
   applyEvent(chat.id, { type: "session-reset" });
   tellUsage(chat, null);
@@ -964,13 +989,19 @@ ipcMain.handle("config:set", async (_event, partial) => {
   }
   writeCfg(next);
   if (partial && (partial.cwd || partial.riv !== undefined)) tellPetMascot();
-  if (partial && partial.cwd && !sameCwd(prev.cwd, next.cwd)) pinChatToCwd(next.cwd);
+  if (partial && partial.cwd && !sameCwd(prev.cwd, next.cwd)) {
+    switchProjectCwd(next.cwd);
+    tellUsage(current(chats, next.cwd));
+    if (chatWin && !chatWin.isDestroyed()) {
+      chatWin.webContents.send("chats:update", chatState());
+    }
+  }
   if (partial && partial.lang) {
     updateTrayMenu();
     if (petWin && !petWin.isDestroyed()) petWin.webContents.send("config:lang", next.lang);
     if (chatWin && !chatWin.isDestroyed()) chatWin.webContents.send("config:lang", next.lang);
   }
-  tellUsage(current(chats));
+  tellUsage(current(chats, cfg().cwd));
   return cfg();
 });
 
@@ -1062,14 +1093,19 @@ ipcMain.handle("config:pick-folder", async () => {
     title: t("dialogPickFolder", null, lang),
     properties: ["openDirectory"],
   });
-  if (result.canceled || !result.filePaths[0]) return cfg();
+  if (result.canceled || !result.filePaths[0]) return { config: cfg(), chats: chatState() };
   const cwd = resolveCwd(result.filePaths[0]);
   const next = { cwd };
   writeCfg(next);
-  pinChatToCwd(cwd);
+  switchProjectCwd(cwd);
   tellPetMascot();
+  tellUsage(current(chats, cwd));
   prewarmWorkspace(cfg()).catch((err) => console.error(err));
-  return cfg();
+  const state = chatState();
+  if (chatWin && !chatWin.isDestroyed()) {
+    chatWin.webContents.send("chats:update", state);
+  }
+  return { config: cfg(), chats: state };
 });
 
 ipcMain.handle("mascot:get", () => mascotPayload());
@@ -1080,8 +1116,9 @@ ipcMain.handle("pet:preview", (_event, state) => {
   const next = forcePet(state);
   if (next) {
     petState = next;
-    if (petWin && !petWin.isDestroyed()) petWin.webContents.send("pet:preview", next);
-    if (chatWin && !chatWin.isDestroyed()) chatWin.webContents.send("pet:state", next);
+    const meta = { busyCount: busySet().size };
+    if (petWin && !petWin.isDestroyed()) petWin.webContents.send("pet:preview", next, meta);
+    if (chatWin && !chatWin.isDestroyed()) chatWin.webContents.send("pet:state", next, meta);
   }
   return { state: petState, states: STATES };
 });
@@ -1209,14 +1246,36 @@ ipcMain.handle("chats:open", async (_event, id, payload) => {
   stashChat(payload);
   open(chats, id);
   saveChats();
-  const chat = current(chats);
+  const chat = current(chats, cfg().cwd);
   tellUsage(chat, chat.usage);
+  const busyCount = busySet().size;
+  if (busyCount > 0) {
+    broadcastPet("thinking", { busyCount });
+  } else if (petState === "alert") {
+    broadcastPet("idle", { busyCount: 0 });
+  }
   return chatState();
+});
+
+ipcMain.handle("chats:delete", async (_event, id) => {
+  if (!chats.items.length) loadChats();
+  const c = cfg();
+  const lang = (c && c.lang) || "en";
+  await dropSession(id);
+  deleteChat(chats, id, lang, c.cwd);
+  saveChats();
+  const chat = current(chats, c.cwd, lang);
+  tellUsage(chat, chat.usage);
+  const state = chatState();
+  if (chatWin && !chatWin.isDestroyed()) {
+    chatWin.webContents.send("chats:update", state);
+  }
+  return state;
 });
 
 ipcMain.handle("chats:patch", (_event, partial) => {
   if (!chats.items.length) loadChats();
-  const chat = patch(chats, partial);
+  const chat = patch(chats, partial, current(chats, cfg().cwd).id);
   if (partial && partial.model) {
     chat.model = resolveModel(chat.model, null, currentEngine);
   }
@@ -1233,7 +1292,7 @@ ipcMain.handle("chats:patch", (_event, partial) => {
 
 ipcMain.handle("chats:rename", (_event, title) => {
   if (!chats.items.length) loadChats();
-  rename(chats, title);
+  rename(chats, title, cfg().cwd);
   saveChats();
   return chatState();
 });

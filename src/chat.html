@@ -45,7 +45,10 @@
             <span class="field-value" data-i18n="chooseFolder">choose folder</span>
           </button>
           <div class="session-chat">
-            <span class="field-label" id="chats-label" data-i18n="chat">Chat</span>
+            <div class="session-chat-label-row">
+              <span class="field-label" id="chats-label" data-i18n="chat">Chat</span>
+              <span id="chats-busy-badge" class="process-count-badge" hidden></span>
+            </div>
             <div class="session-chat-row">
               <select id="chats" class="pick" aria-labelledby="chats-label">
                 <option value="" data-i18n="newChat">New chat</option>
@@ -314,6 +317,7 @@
     <script src="lib/markdown.js"></script>
     <script src="lib/attachments.js"></script>
     <script src="lib/logs.js"></script>
+    <script src="lib/queue.js"></script>
     <script src="chat.js"></script>
   </body>
 </html>
