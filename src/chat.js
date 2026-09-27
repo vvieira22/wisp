@@ -103,6 +103,10 @@ function busyMark() {
   return typeof t === "function" ? t("busyMark", null, currentLang) : " (busy)";
 }
 
+function isPt() {
+  return currentLang === "pt-BR" || currentLang === "pt";
+}
+
 function setAppLanguage(lang) {
   currentLang = typeof normalizeLang === "function" ? normalizeLang(lang) : "en";
   if (typeof setLanguage === "function") setLanguage(currentLang);
@@ -128,6 +132,7 @@ function setAppLanguage(lang) {
       if (typeof pick.paint === "function") pick.paint();
     });
   }
+  paintProcessCount(lastBusyCount);
 }
 
 let lastAssistant = null;
@@ -538,11 +543,46 @@ function paintRiv() {
   rivClear.hidden = mascot.source !== "config";
 }
 
+function paintTurnStop(on) {
+  let wrap = document.getElementById("turn-stop-wrap");
+  if (!on) {
+    if (wrap) wrap.remove();
+    return;
+  }
+  if (!wrap) {
+    wrap = document.createElement("div");
+    wrap.id = "turn-stop-wrap";
+    wrap.className = "turn-stop-wrap";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "turn-stop-btn";
+    btn.className = "turn-stop-btn";
+    btn.innerHTML = `<svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true"><rect x="5.5" y="5.5" width="13" height="13" rx="2" fill="currentColor"/></svg><span class="turn-stop-text"></span>`;
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      window.wisp.cancel(viewId);
+    });
+    wrap.appendChild(btn);
+  }
+  const btn = wrap.querySelector("#turn-stop-btn");
+  const textEl = wrap.querySelector(".turn-stop-text");
+  const stopLabel = t("stop", null, currentLang);
+  const stopTitle = t("stopResponse", null, currentLang);
+  if (btn) {
+    btn.title = stopTitle;
+    btn.setAttribute("aria-label", stopTitle);
+  }
+  if (textEl) textEl.textContent = stopLabel;
+  log.appendChild(wrap);
+}
+
 function setRunning(on) {
   running = !!on;
-  goBtn.textContent = running ? t("stop", null, currentLang) : t("send", null, currentLang);
-  goBtn.classList.toggle("stop", running);
-  goBtn.title = running ? t("stopResponse", null, currentLang) : t("sendMessage", null, currentLang);
+  goBtn.textContent = t("send", null, currentLang);
+  goBtn.classList.remove("stop");
+  goBtn.title = running ? t("queueMessage", null, currentLang) : t("sendMessage", null, currentLang);
+  paintTurnStop(running);
   if (!running) {
     setThinking(false);
     hidePermissionAsk();
@@ -562,12 +602,14 @@ function setThinking(on, text) {
   }
   if (prev) {
     setMsgText(msgBody(prev), label, false);
+    if (running) paintTurnStop(true);
     log.scrollTop = log.scrollHeight;
     return;
   }
   const el = addMsg("system", label);
   el.classList.add("thinking");
   paintTick();
+  if (running) paintTurnStop(true);
   log.scrollTop = log.scrollHeight;
 }
 
@@ -582,7 +624,7 @@ function closePicks() {
   return true;
 }
 
-function placePickMenu(btn, menu, box) {
+function placePickMenu(btn, menu, box, select) {
   const b = btn.getBoundingClientRect();
   const p = box.getBoundingClientRect();
   const gap = 4;
@@ -590,9 +632,11 @@ function placePickMenu(btn, menu, box) {
   const spaceAbove = b.top - p.top - 8;
   const openUp = spaceBelow < 140 && spaceAbove > spaceBelow;
   const maxH = Math.max(96, Math.min(240, openUp ? spaceAbove : spaceBelow));
-  const left = Math.max(8, Math.min(b.left - p.left, p.width - Math.max(b.width, 140) - 8));
+  const minW = select === chatsSelect ? 240 : 140;
+  const targetW = Math.min(p.width - 16, Math.max(b.width, minW));
+  const left = Math.max(8, Math.min(b.left - p.left, p.width - targetW - 8));
   menu.style.left = `${left}px`;
-  menu.style.width = `${Math.max(b.width, 140)}px`;
+  menu.style.width = `${targetW}px`;
   menu.style.maxHeight = `${maxH}px`;
   if (openUp) {
     menu.style.top = "auto";
@@ -639,7 +683,20 @@ function decoratePick(select) {
 
   function paint() {
     const opt = selectedOpt();
-    label.textContent = opt ? opt.textContent : "";
+    if (select === chatsSelect && opt && opt.dataset.busy === "true") {
+      label.innerHTML = "";
+      const text = document.createElement("span");
+      text.className = "pick-title-text";
+      text.textContent = opt.dataset.title || opt.textContent;
+      const dots = document.createElement("span");
+      dots.className = "busy-dots";
+      dots.setAttribute("aria-label", "busy");
+      dots.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+      label.appendChild(text);
+      label.appendChild(dots);
+    } else {
+      label.textContent = opt ? (opt.dataset.title || opt.textContent) : "";
+    }
     btn.disabled = select.disabled;
     wrap.hidden = !!select.hidden;
     if (wrap.hidden || wrap.closest("[hidden]")) close();
@@ -650,13 +707,52 @@ function decoratePick(select) {
     const current = select.value;
     menu.innerHTML = "";
     for (const opt of select.options) {
-      const item = document.createElement("button");
-      item.type = "button";
-      item.setAttribute("role", "option");
-      item.dataset.value = opt.value;
-      item.textContent = opt.textContent;
-      if (opt.value === current) item.setAttribute("aria-selected", "true");
-      menu.appendChild(item);
+      if (select === chatsSelect) {
+        const row = document.createElement("div");
+        row.className = "pick-item-row";
+        row.dataset.value = opt.value;
+
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "pick-item-title";
+        item.setAttribute("role", "option");
+        item.dataset.value = opt.value;
+        const isBusy = opt.dataset.busy === "true";
+        if (isBusy) {
+          const text = document.createElement("span");
+          text.className = "pick-title-text";
+          text.textContent = opt.dataset.title || opt.textContent;
+          const dots = document.createElement("span");
+          dots.className = "busy-dots";
+          dots.setAttribute("aria-label", "busy");
+          dots.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+          item.appendChild(text);
+          item.appendChild(dots);
+        } else {
+          item.textContent = opt.textContent;
+        }
+        if (opt.value === current) item.setAttribute("aria-selected", "true");
+        row.appendChild(item);
+
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "pick-item-del";
+        del.setAttribute("aria-label", t("deleteChat", null, currentLang));
+        del.title = t("deleteChat", null, currentLang);
+        del.innerHTML =
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7h8M9.5 7V5.5h5V7M9 10.5v6M12 10.5v6M15 10.5v6M8.5 7l.7 12h5.6l.7-12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>';
+        row.appendChild(del);
+
+        menu.appendChild(row);
+      } else {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.setAttribute("role", "option");
+        item.dataset.value = opt.value;
+        item.textContent = opt.textContent;
+        if (opt.value === current) item.setAttribute("aria-selected", "true");
+        menu.appendChild(item);
+      }
     }
   }
 
@@ -672,7 +768,7 @@ function decoratePick(select) {
     paintItems();
     menu.hidden = false;
     btn.setAttribute("aria-expanded", "true");
-    placePickMenu(btn, menu, panel);
+    placePickMenu(btn, menu, panel, select);
     openPick = api;
     const active = menu.querySelector("[aria-selected='true']") || menu.firstElementChild;
     if (active) active.focus();
@@ -689,8 +785,58 @@ function decoratePick(select) {
     event.preventDefault();
     open();
   });
-  menu.addEventListener("click", (event) => {
-    const item = event.target.closest("[data-value]");
+  menu.addEventListener("click", async (event) => {
+    const delBtn = event.target.closest(".pick-item-del");
+    if (delBtn) {
+      event.preventDefault();
+      event.stopPropagation();
+      const row = delBtn.closest(".pick-item-row");
+      if (!row) return;
+      menu.querySelectorAll(".pick-item-confirm").forEach((c) => c.remove());
+      const confirmBox = document.createElement("div");
+      confirmBox.className = "pick-item-confirm";
+      confirmBox.innerHTML = `
+        <span class="pick-confirm-prompt">${t("deleteChatPrompt", null, currentLang)}</span>
+        <div class="pick-confirm-actions">
+          <button type="button" class="pick-confirm-btn pick-confirm-yes">${t("yes", null, currentLang)}</button>
+          <button type="button" class="pick-confirm-btn pick-confirm-no">${t("no", null, currentLang)}</button>
+        </div>
+      `;
+      row.appendChild(confirmBox);
+      const yesBtn = confirmBox.querySelector(".pick-confirm-yes");
+      if (yesBtn) yesBtn.focus();
+      return;
+    }
+
+    const confirmYes = event.target.closest(".pick-confirm-yes");
+    if (confirmYes) {
+      event.preventDefault();
+      event.stopPropagation();
+      const row = confirmYes.closest(".pick-item-row");
+      const chatId = row ? row.dataset.value : null;
+      if (chatId && window.wisp && typeof window.wisp.deleteChat === "function") {
+        try {
+          const state = await window.wisp.deleteChat(chatId);
+          applyState(state);
+          paintItems();
+          placePickMenu(btn, menu, panel, select);
+        } catch (err) {
+          console.error("deleteChat error", err);
+        }
+      }
+      return;
+    }
+
+    const confirmNo = event.target.closest(".pick-confirm-no");
+    if (confirmNo) {
+      event.preventDefault();
+      event.stopPropagation();
+      const confirmBox = confirmNo.closest(".pick-item-confirm");
+      if (confirmBox) confirmBox.remove();
+      return;
+    }
+
+    const item = event.target.closest(".pick-item-title, [role='option'], [data-value]");
     if (!item) return;
     event.preventDefault();
     const next = item.dataset.value;
@@ -703,7 +849,7 @@ function decoratePick(select) {
     btn.focus();
   });
   menu.addEventListener("keydown", (event) => {
-    const items = [...menu.querySelectorAll("[data-value]")];
+    const items = [...menu.querySelectorAll(".pick-item-title, [role='option'], [data-value]")];
     const i = items.indexOf(document.activeElement);
     if (event.key === "ArrowDown") {
       event.preventDefault();
@@ -720,6 +866,11 @@ function decoratePick(select) {
     } else if (event.key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
+      const confirmBox = menu.querySelector(".pick-item-confirm");
+      if (confirmBox) {
+        confirmBox.remove();
+        return;
+      }
       close();
       btn.focus();
     }
@@ -904,8 +1055,9 @@ function addMsg(role, text, usage) {
   el.appendChild(body);
   paintMsgUsage(el, usage);
   log.appendChild(el);
-  log.scrollTop = log.scrollHeight;
   if (role === "assistant") lastAssistant = el;
+  if (running) paintTurnStop(true);
+  log.scrollTop = log.scrollHeight;
   return el;
 }
 
@@ -1000,17 +1152,32 @@ function paintLog(messages) {
   }
 }
 
+const chatsBusyBadge = document.getElementById("chats-busy-badge");
+let lastBusyCount = 0;
+
+function paintProcessCount(count) {
+  if (!chatsBusyBadge) return;
+  const n = Math.max(0, Number(count) || 0);
+  lastBusyCount = n;
+  chatsBusyBadge.hidden = n <= 0;
+  chatsBusyBadge.textContent = String(n);
+  chatsBusyBadge.title = isPt() ? `${n} processo(s) rodando` : `${n} running process(es)`;
+}
+
 function fillChats(state) {
   if (!state || !state.items) return;
   chatsSelect.innerHTML = "";
-  const mark = busyMark();
   for (const item of state.items) {
     const opt = document.createElement("option");
     opt.value = item.id;
-    opt.textContent = item.busy ? item.title + mark : item.title;
+    opt.textContent = item.title;
+    opt.dataset.busy = item.busy ? "true" : "false";
+    opt.dataset.title = item.title;
     chatsSelect.appendChild(opt);
   }
-  chatsSelect.value = state.currentId;
+  chatsSelect.value = viewId || state.currentId;
+  const count = typeof state.busyCount === "number" ? state.busyCount : state.items.filter((i) => i.busy).length;
+  paintProcessCount(count);
   const api = picks.get(chatsSelect);
   if (api) api.paint();
 }
@@ -1025,19 +1192,10 @@ function stopRename(save) {
 
 function startRename() {
   const current = chatsSelect.selectedOptions[0];
-  let text = current ? current.textContent : "";
+  let text = current ? (current.dataset.title || current.textContent) : "";
   const mark = busyMark();
   if (mark && text.endsWith(mark)) {
     text = text.slice(0, -mark.length);
-  } else if (typeof BUSY_MARK !== "undefined" && text.endsWith(BUSY_MARK)) {
-    text = text.slice(0, -BUSY_MARK.length);
-  } else if (typeof BUSY_MARK_BY_LANG !== "undefined") {
-    for (const m of Object.values(BUSY_MARK_BY_LANG)) {
-      if (text.endsWith(m)) {
-        text = text.slice(0, -m.length);
-        break;
-      }
-    }
   }
   chatName.value = text;
   chatsSelect.hidden = true;
@@ -1051,27 +1209,35 @@ function growInput() {
   input.style.height = Math.min(Math.max(input.scrollHeight, 36), 120) + "px";
 }
 
-function clipQueueText(text) {
+const queueStore = typeof createQueueStore === "function" ? createQueueStore() : null;
+
+function queueClip(text) {
+  const fn = globalThis.clipQueueText;
+  if (typeof fn === "function") return fn(text);
   const clean = String(text || "").replace(/\s+/g, " ").trim();
   if (!clean) return "";
   return clean.length > 72 ? clean.slice(0, 69) + "…" : clean;
 }
 
 function queueFor(chatId) {
+  if (queueStore) return queueStore.queueFor(chatId || viewId);
   const id = chatId || viewId;
   if (!queues.has(id)) queues.set(id, []);
   return queues.get(id);
 }
 
 function clearQueue(chatId) {
-  queues.delete(chatId || viewId);
+  if (queueStore) queueStore.clear(chatId || viewId);
+  else queues.delete(chatId || viewId);
   paintQueue();
 }
 
 function removeQueueItem(index, chatId) {
-  const items = queueFor(chatId);
-  if (index < 0 || index >= items.length) return;
-  items.splice(index, 1);
+  if (queueStore) queueStore.removeAt(chatId || viewId, index);
+  else {
+    const items = queueFor(chatId);
+    if (index >= 0 && index < items.length) items.splice(index, 1);
+  }
   paintQueue();
 }
 
@@ -1084,7 +1250,7 @@ function paintQueue() {
     const li = document.createElement("li");
     const label = document.createElement("span");
     label.className = "queue-item-text";
-    label.textContent = clipQueueText(text);
+    label.textContent = queueClip(text);
     label.title = text;
     const btn = document.createElement("button");
     btn.type = "button";
@@ -1204,7 +1370,7 @@ function showQueueAsk(text) {
   if (!queueAsk) return;
   queueDraft = text;
   if (queueAskText) {
-    queueAskText.textContent = t("queueAskFormat", { text: clipQueueText(text) }, currentLang);
+    queueAskText.textContent = t("queueAskFormat", { text: queueClip(text) }, currentLang);
   }
   queueAsk.hidden = false;
 }
@@ -1283,6 +1449,7 @@ function applyState(state) {
   fillChats(state);
   paintMode();
   fillModels(targetModels, view.model);
+  running = false;
   paintLog(state.current.messages);
   liveUsage = state.current.usage || null;
   usageLabel = state.current.usageLabel || "0 / 200k";
@@ -1609,7 +1776,10 @@ async function loadSkills() {
 }
 
 document.getElementById("folder").onclick = async () => {
-  config = await window.wisp.pickFolder();
+  const res = await window.wisp.pickFolder();
+  config = (res && res.config) || res || config;
+  if (res && res.chats) applyState(res.chats);
+  else if (window.wisp && typeof window.wisp.listChats === "function") applyState(await window.wisp.listChats());
   paintFolder();
   paintRiv();
   warned = false;
@@ -2010,6 +2180,13 @@ if (window.wisp.onCompat) {
   window.wisp.onCompat((report) => paintCompatReport(report));
 }
 
+if (window.wisp.onChats) {
+  window.wisp.onChats((chats) => {
+    if (chats && chats.currentId === viewId) applyState(chats);
+    else fillChats(chats);
+  });
+}
+
 modelSelect.addEventListener("change", saveModel);
 effortSelect.addEventListener("change", saveEffort);
 fastInput.addEventListener("change", saveEffort);
@@ -2038,38 +2215,10 @@ if (document.getElementById("permission-once")) {
   document.getElementById("permission-reject").onclick = () => void respondPermission("reject");
 }
 
-goBtn.addEventListener("click", (event) => {
-  if (!running || input.value.trim() || attachments.length) return;
-  event.preventDefault();
-  window.wisp.cancel(viewId);
-});
-
 composer.addEventListener("submit", async (event) => {
   event.preventDefault();
   hideSkills();
   const rawText = input.value.trim();
-  if (running) {
-    if (!rawText && !attachments.length) {
-      if (pendingPermission) {
-        void respondPermission("once");
-        return;
-      }
-      try {
-        await window.wisp.cancel(viewId);
-      } catch (err) {
-        addMsg("error", err && err.message ? err.message : String(err));
-      }
-      return;
-    }
-    const queuedText = typeof formatAttachmentReference === "function"
-      ? formatAttachmentReference(attachments, rawText, currentLang)
-      : rawText;
-    clearAttachments();
-    input.value = "";
-    growInput();
-    showQueueAsk(queuedText);
-    return;
-  }
   if (!rawText && !attachments.length) return;
   const prompt = typeof formatAttachmentReference === "function"
     ? formatAttachmentReference(attachments, rawText, currentLang)
@@ -2077,6 +2226,13 @@ composer.addEventListener("submit", async (event) => {
   input.value = "";
   clearAttachments();
   growInput();
+
+  if (running) {
+    // ponytail: queue directly like modern AI chats; the stop button lives on the active response block
+    queueFor(viewId).push(prompt);
+    paintQueue();
+    return;
+  }
   await sendNow(prompt, viewId);
 });
 
@@ -2173,6 +2329,7 @@ window.wisp.onChat((event) => {
     return;
   }
   const here = mine(event);
+  if (typeof event.busyCount === "number") paintProcessCount(event.busyCount);
   if (event.type === "run-start" || event.type === "run-end" || event.type === "run-error" || event.type === "run-cancel") {
     window.wisp.listChats().then(fillChats).catch(() => {});
   }
@@ -2226,6 +2383,7 @@ window.wisp.onChat((event) => {
     if (!lastAssistant) lastAssistant = addMsg("assistant", "");
     setMsgText(msgBody(lastAssistant), next, true);
     paintTick();
+    if (running) paintTurnStop(true);
     log.scrollTop = log.scrollHeight;
   }
   if (event.type === "run-cancel") addMsg("system", t("runStopped", null, currentLang));
@@ -2327,6 +2485,7 @@ window.addEventListener("drop", async (event) => {
         const targetDir = (att && att.dir) || fullPath;
         if (targetDir) {
           config = await window.wisp.setConfig({ cwd: targetDir });
+          if (typeof window.wisp.listChats === "function") applyState(await window.wisp.listChats());
           paintFolder();
           paintRiv();
           warned = false;
@@ -2356,6 +2515,7 @@ if (folderBtn) {
     if (!fullPath && file.path) fullPath = file.path;
     if (fullPath && window.wisp && typeof window.wisp.setConfig === "function") {
       config = await window.wisp.setConfig({ cwd: fullPath });
+      if (typeof window.wisp.listChats === "function") applyState(await window.wisp.listChats());
       paintFolder();
       paintRiv();
       warned = false;

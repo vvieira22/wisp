@@ -35,10 +35,12 @@ assert.equal(t("appTitle", null, "en"), "Wisp");
 assert.equal(t("send", null, "en"), "Send");
 assert.equal(t("newChat", null, "en"), "New chat");
 assert.equal(t("emptyTitle", null, "en"), "No messages yet");
+assert.equal(t("queueMessage", null, "en"), "Queue message");
 assert.equal(t("tabGeneral", null, "en"), "General");
 
 // Check Portuguese translations
 assert.equal(t("send", null, "pt-BR"), "Enviar");
+assert.equal(t("queueMessage", null, "pt-BR"), "Adicionar à fila");
 assert.equal(t("newChat", null, "pt-BR"), "Nova conversa");
 assert.equal(t("emptyTitle", null, "pt-BR"), "Nenhuma mensagem ainda");
 assert.equal(t("tabGeneral", null, "pt-BR"), "Geral");
