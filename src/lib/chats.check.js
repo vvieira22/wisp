@@ -10,6 +10,8 @@ assert.equal(chats.sameCwd("C:\\project\\a", "c:/project/a/"), true);
 assert.equal(chats.sameCwd("C:\\project\\a", "C:\\project\\b"), false);
 assert.equal(chats.sameCwd("C:\\project\\a", ""), false);
 assert.equal(chats.sameCwd("", "C:\\project\\a"), false);
+assert.equal(chats.sameCwd("/home/project/a", "/home/project/a/"), true);
+assert.equal(chats.sameCwd("/home/project/a", "/home/project/b"), false);
 
 // 2. Multi-project store normalization and isolation
 const rawStore = {
