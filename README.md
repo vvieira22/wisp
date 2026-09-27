@@ -24,6 +24,7 @@
 <a id="english"></a>
 ## English
 
+
 **Wisp** is a desktop AI companion that lives on your screen as a floating pet. Instead of switching back and forth between browser tabs or keeping terminal windows hidden, you get a lightweight pet sitting in the corner of your screen that visually reacts to whatever the AI agent is doing and opens a docked chat window when clicked.
 
 ### The Idea

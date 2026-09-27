@@ -71,7 +71,8 @@ function normCwd(cwd) {
   let s = raw.replace(/[\\/]+/g, "/").replace(/\/+$/, "");
   const isWin =
     (typeof process !== "undefined" && process.platform === "win32") ||
-    (typeof navigator !== "undefined" && /win/i.test(navigator.platform || ""));
+    (typeof navigator !== "undefined" && /win/i.test(navigator.platform || "")) ||
+    /^[a-zA-Z]:(?:\/|$)/.test(s);
   if (isWin) s = s.toLowerCase();
   return s;
 }
