@@ -38,3 +38,8 @@ Not lazy about: understanding the problem (read it fully and trace the real flow
 (Yes, this file also applies to agents working on the ponytail repo itself. Especially to them.)
 ```
 
+# Wisp
+
+- The model the user selected stays selected until they select another one. Probe, catalog refresh, and send must not swap it for the first listed model or the engine default.
+- While a turn is running, the stop control shows the model that turn is using, not whatever is picked for the next message.
+
