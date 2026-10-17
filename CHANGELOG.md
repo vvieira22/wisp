@@ -5,6 +5,17 @@ All notable changes to the Wisp project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Selected model stays put**:
+  - Picking a model, especially on Antigravity, no longer flips to another one when the connection probe finishes or when that id is missing from the built-in catalog.
+  - The choice stays until you pick a different model.
+
+### Added
+- **Running model beside Stop**:
+  - While a response is in progress, the model that turn is using is shown next to the stop control.
+
 ## [1.1.0] - 2026-09-27
 
 ### Added

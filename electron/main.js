@@ -1021,7 +1021,7 @@ ipcMain.handle("account:probe", async (_event, payload) => {
     logger.info("antigravity", `Conexão Antigravity testada com sucesso (${(result.models || []).length} modelos)`);
     const partial = {
       provider,
-      model: result.models[0] ? result.models[0].id : "gemini-3.8-flash-high",
+      model: resolveModel(cfg().model, result.models, "antigravity"),
     };
     if (provider === "api") partial.geminiApiKey = geminiKey;
     writeCfg(partial);
