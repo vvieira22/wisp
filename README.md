@@ -176,7 +176,7 @@ Versions in [`compat.json`](compat.json) are what this Wisp release was built an
 
 | Component | Tested version |
 | :--- | :--- |
-| Wisp | 1.1.0 |
+| Wisp | 1.1.1 |
 | @cursor/sdk | 1.0.31 |
 | Electron | 44.3.0 |
 | Antigravity CLI (`agy`) | 1.2.7 |
