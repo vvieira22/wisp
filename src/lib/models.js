@@ -71,6 +71,14 @@ function modelIds(models) {
   return (models || []).map((m) => (typeof m === "string" ? m : m && m.id)).filter(Boolean);
 }
 
+function foreignModel(raw, engine) {
+  if (engine === "antigravity") return raw.startsWith("composer") || raw === "auto";
+  if (engine === "opencode") {
+    return raw.startsWith("composer") || raw.startsWith("gemini") || raw === "auto" || !raw.includes("/");
+  }
+  return raw.startsWith("gemini") || raw.startsWith("gpt-oss") || raw.includes("/");
+}
+
 function resolveModel(id, models, engine) {
   const isAg = engine === "antigravity";
   const isOc = engine === "opencode";
@@ -80,20 +88,10 @@ function resolveModel(id, models, engine) {
   const ids = modelIds(list);
   const raw = String(id || "").trim();
 
-  if (isAg && (raw.startsWith("composer") || raw === "auto" || raw.includes("/"))) {
-    return ids.includes(def) ? def : ids[0] || def;
-  }
-  if (isOc && (raw.startsWith("composer") || raw.startsWith("gemini") || raw === "auto" || !raw.includes("/"))) {
-    return ids.includes(def) ? def : ids[0] || def;
-  }
-  if (!isAg && !isOc && (raw.startsWith("gemini") || raw.startsWith("gpt-oss") || raw.includes("/"))) {
-    return ids.includes(def) ? def : ids[0] || def;
-  }
+  // Explicit pick sticks until the user changes it, even when the live catalog
+  // hasn't listed that id yet. Only blank / cross-engine junk falls back.
+  if (raw && raw !== "default" && !foreignModel(raw, engine)) return raw;
 
-  if (raw && raw !== "default" && ids.includes(raw)) return raw;
-  if (isOc && raw.includes("/") && !raw.startsWith("composer") && !raw.startsWith("gemini")) {
-    return ids.length ? ids[0] : raw;
-  }
   if (def && ids.includes(def)) return def;
   if (!isAg && !isOc && ids.includes("auto")) return "auto";
   return ids[0] || def;
