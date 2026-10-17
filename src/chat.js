@@ -138,6 +138,7 @@ function setAppLanguage(lang) {
 let lastAssistant = null;
 let warned = false;
 let running = false;
+let runningModelLabel = "";
 let pendingPermission = null;
 let usageLabel = "0 / 200k";
 let usageTitle = "contexto da sessão";
@@ -543,6 +544,11 @@ function paintRiv() {
   rivClear.hidden = mascot.source !== "config";
 }
 
+function modelCaption(id) {
+  const hit = models.find((m) => m && m.id === id);
+  return (hit && (hit.displayName || hit.id)) || String(id || "");
+}
+
 function paintTurnStop(on) {
   let wrap = document.getElementById("turn-stop-wrap");
   if (!on) {
@@ -563,10 +569,13 @@ function paintTurnStop(on) {
       e.stopPropagation();
       window.wisp.cancel(viewId);
     });
-    wrap.appendChild(btn);
+    const modelEl = document.createElement("span");
+    modelEl.className = "turn-stop-model";
+    wrap.append(btn, modelEl);
   }
   const btn = wrap.querySelector("#turn-stop-btn");
   const textEl = wrap.querySelector(".turn-stop-text");
+  const modelEl = wrap.querySelector(".turn-stop-model");
   const stopLabel = t("stop", null, currentLang);
   const stopTitle = t("stopResponse", null, currentLang);
   if (btn) {
@@ -574,11 +583,19 @@ function paintTurnStop(on) {
     btn.setAttribute("aria-label", stopTitle);
   }
   if (textEl) textEl.textContent = stopLabel;
+  if (modelEl) {
+    modelEl.textContent = runningModelLabel;
+    modelEl.title = runningModelLabel;
+    modelEl.hidden = !runningModelLabel;
+  }
   log.appendChild(wrap);
 }
 
 function setRunning(on) {
-  running = !!on;
+  const next = !!on;
+  if (next && !running) runningModelLabel = modelCaption(view.model || (modelSelect && modelSelect.value));
+  if (!next) runningModelLabel = "";
+  running = next;
   goBtn.textContent = t("send", null, currentLang);
   goBtn.classList.remove("stop");
   goBtn.title = running ? t("queueMessage", null, currentLang) : t("sendMessage", null, currentLang);
@@ -924,26 +941,36 @@ function paintMode() {
 }
 
 function fillModels(list, selected) {
+  const prev = models.find((m) => m && m.id === selected);
   const fallback = typeof defaultModelsForEngine === "function" ? defaultModelsForEngine(currentEngine) : [];
-  models = collapseModels(list && list.length ? list : fallback);
+  const catalog = collapseModels(list && list.length ? list : fallback);
+  models = catalog;
   if (!models.length && currentEngine === "opencode" && selected && String(selected).includes("/")) {
     const name = typeof prettyModelName === "function" ? prettyModelName(selected) : selected;
     models = [{ id: String(selected), displayName: name }];
   }
   setModelsForEngine(currentEngine, models);
 
+  const chosen = resolveModel(selected, models, currentEngine);
+  const shown = models.slice();
+  if (chosen && !shown.some((m) => m.id === chosen)) {
+    const name = (prev && prev.displayName) || chosen;
+    shown.push({ id: chosen, displayName: name });
+    models = shown;
+  }
+
   const counts = {};
-  for (const model of models) counts[model.displayName] = (counts[model.displayName] || 0) + 1;
+  for (const model of shown) counts[model.displayName] = (counts[model.displayName] || 0) + 1;
   modelSelect.innerHTML = "";
-  for (const model of models) {
+  for (const model of shown) {
     const opt = document.createElement("option");
     opt.value = model.id;
     opt.textContent =
       counts[model.displayName] > 1 ? `${model.displayName} (${model.id})` : model.displayName || model.id;
     modelSelect.appendChild(opt);
   }
-  modelSelect.value = resolveModel(selected, models, currentEngine);
-  view.model = modelSelect.value;
+  modelSelect.value = chosen;
+  view.model = chosen;
   modelSelect.disabled = false;
   fillEffort();
   const api = picks.get(modelSelect);
@@ -1657,8 +1684,17 @@ async function probeAccount(targetPayload) {
   }
 }
 
-async function saveModel() {
+let modelSaveChain = Promise.resolve();
+
+function saveModel() {
+  const job = modelSaveChain.then(commitModel);
+  modelSaveChain = job.catch(() => {});
+  return job;
+}
+
+async function commitModel() {
   view.model = resolveModel(modelSelect.value, models, currentEngine);
+  if (modelSelect.value !== view.model) modelSelect.value = view.model;
   fillEffort();
   view.params = paramsFromUi();
   const state = await window.wisp.patchChat({

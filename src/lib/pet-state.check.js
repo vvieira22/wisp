@@ -95,8 +95,18 @@ assert.equal(
 );
 assert.equal(
   require("./models.js").resolveModel("deepseek/gone", [{ id: "deepseek/live" }], "opencode"),
-  "deepseek/live",
+  "deepseek/gone",
 );
+assert.equal(
+  require("./models.js").resolveModel("gemini-3.1-pro-low", [{ id: "gemini-3.8-flash-high" }], "antigravity"),
+  "gemini-3.1-pro-low",
+);
+assert.equal(
+  require("./models.js").resolveModel("google/gemini-3.1-pro", null, "antigravity"),
+  "google/gemini-3.1-pro",
+);
+assert.equal(require("./models.js").resolveModel("composer-2.5", null, "antigravity"), "gemini-3.8-flash-high");
+assert.equal(require("./models.js").resolveModel("", null, "antigravity"), "gemini-3.8-flash-high");
 assert.equal(require("./models.js").collapseModels([{ id: "default" }, { id: "composer-2.5" }]).length, 1);
 assert.equal(formatUsage(null), "0 / 200k");
 assert.equal(formatUsage({ inputTokens: 3200 }, "composer-2.5"), "3.2k / 200k");

@@ -1653,6 +1653,18 @@ select:disabled {
   color: var(--ember);
 }
 
+.turn-stop-model {
+  margin-left: 8px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--ui);
+  font-size: 11px;
+  color: var(--mist);
+  letter-spacing: 0.01em;
+}
+
 .attachments {
   display: flex;
   flex-direction: row;

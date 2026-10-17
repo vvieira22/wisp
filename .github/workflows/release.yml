@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    tags:
-      - "v*"
   workflow_dispatch:
     inputs:
       force_release:
@@ -35,10 +33,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FORCE_RELEASE: ${{ github.event.inputs.force_release }}
         run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::Tags and releases are created only from main (got $GITHUB_REF)."
+            exit 1
+          fi
+
           VERSION=$(node -p "require('./package.json').version")
           TAG_NAME="v$VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "Tagging $TAG_NAME at $GITHUB_SHA on main."
 
           if [ "$FORCE_RELEASE" = "true" ]; then
             echo "Force release requested."
@@ -126,7 +130,9 @@ jobs:
         run: |
           echo "Publishing release $TAG_NAME with assets:"
           ls -la release-assets/
+          echo "Tagging $TAG_NAME at $GITHUB_SHA"
           gh release create "$TAG_NAME" release-assets/* \
+            --target "$GITHUB_SHA" \
             --title "Wisp v$VERSION" \
             --notes-file release-notes.md \
             --verify-tag=false || \
