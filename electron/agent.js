@@ -362,6 +362,7 @@ class WispAgent {
       const agent = await this.ensure(cfg);
       if (this.sessionGap) onEvent({ type: "session-gap", text: SESSION_GAP });
       if (this.cancelling) {
+        this.busy = false;
         onEvent({ type: "run-cancel", ms: msOf() });
         return;
       }
@@ -410,15 +411,19 @@ class WispAgent {
         }
       }
       if (this.cancelling) await this.stopRun(run);
-      const result = await run.wait();
+      const result = typeof run.stream === "function" || this.cancelling
+        ? await withTimeout(run.wait(), 8000, "wait").catch(() => null)
+        : await run.wait();
       if (this.cancelling || (result && result.status === "cancelled")) {
         if (turnText) this.seen.add(turnText);
+        this.busy = false;
         onEvent({ type: "run-cancel", ms: msOf() });
         return;
       }
       if (result && result.status === "error") {
         const errText = result.result || (result.error && result.error.message) || "O run falhou.";
         logger.error("cursor", `Cursor run encerrou com status error: ${errText}`, result);
+        this.busy = false;
         onEvent({ type: "run-error", text: errText, ms: msOf() });
         return;
       }
@@ -429,6 +434,7 @@ class WispAgent {
       if (turnText) this.seen.add(turnText);
       const usage = turnUsage || slimUsage(result && result.usage) || slimUsage(run.usage);
       this.lastUsage = usage;
+      this.busy = false;
       onEvent({ type: "run-end", status: result && result.status, usage, ms: msOf() });
     } catch (err) {
       const run = this.run;
@@ -445,12 +451,14 @@ class WispAgent {
       await this.dropAgent();
       if (this.cancelling) {
         logger.warn("cursor", "Run cancelado pelo usuário.");
+        this.busy = false;
         onEvent({ type: "run-cancel", ms: msOf() });
         return;
       }
       const message = err && err.message ? err.message : String(err);
       logger.error("cursor", `Erro no SDK Cursor: ${message}`, { stack: err && err.stack });
       console.error("[wisp send]", message);
+      this.busy = false;
       onEvent({ type: "run-error", text: message, ms: msOf() });
     } finally {
       this.run = null;

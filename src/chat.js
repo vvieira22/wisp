@@ -60,6 +60,46 @@ const compatWarn = document.getElementById("compat-warn");
 const compatRows = document.getElementById("compat-rows");
 const compatLead = document.getElementById("compat-lead");
 const compatRefreshBtn = document.getElementById("compat-refresh");
+const compatUpdateAsk = document.getElementById("compat-update-ask");
+const compatUpdateAskText = document.getElementById("compat-update-ask-text");
+const compatUpdateYesBtn = document.getElementById("compat-update-yes");
+const compatUpdateNoBtn = document.getElementById("compat-update-no");
+const compatUpdateStatus = document.getElementById("compat-update-status");
+
+const isMobileClient = Boolean(window.wisp && window.wisp.isMobileClient);
+const mobileStatusPill = document.getElementById("mobile-status-pill");
+const mobilePcBtn = document.getElementById("mobile-pc-btn");
+const attachBtn = document.getElementById("attach-btn");
+const attachInput = document.getElementById("attach-input");
+const lanEnabledBtn = document.getElementById("lan-enabled");
+const lanHideDesktopBtn = document.getElementById("lan-hide-desktop");
+const lanQrEl = document.getElementById("lan-qr");
+const lanUrlEl = document.getElementById("lan-url");
+const lanCopyBtn = document.getElementById("lan-copy");
+const lanRegenBtn = document.getElementById("lan-regen");
+const lanClientsEl = document.getElementById("lan-clients");
+const lanClientsText = document.getElementById("lan-clients-text");
+const lanDisconnectBtn = document.getElementById("lan-disconnect");
+const lanInstallHint = document.getElementById("lan-install-hint");
+const lanHttpsBtn = document.getElementById("lan-https");
+const lanHttpsWarn = document.getElementById("lan-https-warn");
+const lanCertBlock = document.getElementById("lan-cert-block");
+const lanCaQr = document.getElementById("lan-ca-qr");
+const lanCaUrl = document.getElementById("lan-ca-url");
+const lanCaCopyBtn = document.getElementById("lan-ca-copy");
+const lanInstallLink = document.getElementById("lan-install-link");
+if (lanInstallHint && isMobileClient && window.isSecureContext === false) {
+  lanInstallHint.hidden = false;
+}
+const folderModal = document.getElementById("folder-modal");
+const folderModalClose = document.getElementById("folder-modal-close");
+const folderModalBackdrop = document.getElementById("folder-modal-backdrop");
+const folderRecentList = document.getElementById("folder-recent-list");
+const folderRootsEl = document.getElementById("folder-roots");
+const folderSearch = document.getElementById("folder-search");
+const folderCrumbs = document.getElementById("folder-crumbs");
+const folderListEl = document.getElementById("folder-list");
+const folderSelectCurrent = document.getElementById("folder-select-current");
 
 const tabBtnGeneral = document.getElementById("tab-btn-general");
 const tabBtnLogs = document.getElementById("tab-btn-logs");
@@ -133,6 +173,10 @@ function setAppLanguage(lang) {
     });
   }
   paintProcessCount(lastBusyCount);
+  if (lastCompatReport) paintCompatReport(lastCompatReport);
+  paintMobileStatus(mobileStatusState);
+  if (lanStatus) paintLanStatus(lanStatus);
+  if (folderState) paintFolderModal();
 }
 
 let lastAssistant = null;
@@ -189,9 +233,41 @@ function folderName(cwd) {
   return parts[parts.length - 1] || cwd;
 }
 
-function paintEngineTabs() {
+let lastBusyByEngine = { cursor: 0, antigravity: 0, opencode: 0 };
+const engineTabAlert = { cursor: "", antigravity: "", opencode: "" };
+let knownProjectsList = [];
+const projectAlertByKey = new Map();
+const chatAlertById = new Map();
+const folderBusyBadge = document.getElementById("folder-busy-badge");
+const taskToast = document.getElementById("task-toast");
+const taskToastText = document.getElementById("task-toast-text");
+const taskToastOpenBtn = document.getElementById("task-toast-open");
+const taskToastCloseBtn = document.getElementById("task-toast-close");
+let pendingToastTarget = null;
+
+function normFolderKey(cwd) {
+  return String(cwd || "").trim().replace(/[\\/]+/g, "/").replace(/\/+$/, "").toLowerCase();
+}
+
+function paintEngineTabs(busyByEngine) {
+  if (busyByEngine && typeof busyByEngine === "object") {
+    lastBusyByEngine = Object.assign({ cursor: 0, antigravity: 0, opencode: 0 }, busyByEngine);
+  }
+  engineTabAlert[currentEngine] = "";
   engineTabs.forEach((tab) => {
-    tab.classList.toggle("active", tab.dataset.engine === currentEngine);
+    const eng = tab.dataset.engine;
+    const isActive = eng === currentEngine;
+    tab.classList.toggle("active", isActive);
+    const alertKind = isActive ? "" : engineTabAlert[eng] || "";
+    tab.classList.toggle("tab-done", alertKind === "done");
+    tab.classList.toggle("tab-alert", alertKind === "alert");
+    const badge = tab.querySelector(".engine-tab-badge");
+    if (badge) {
+      const count = Math.max(0, Number(lastBusyByEngine[eng]) || 0);
+      badge.hidden = count <= 0;
+      badge.textContent = String(count);
+      badge.title = isPt() ? `${count} processo(s) rodando` : `${count} running process(es)`;
+    }
   });
 }
 
@@ -200,6 +276,18 @@ function paintProvider() {
   if (providerApiBtn) providerApiBtn.classList.toggle("active", activeProvider === "api");
   if (boxCli) boxCli.hidden = activeProvider !== "cli";
   if (boxApi) boxApi.hidden = activeProvider !== "api";
+}
+
+// Persist the pick even before a probe succeeds (no key yet / offline), so
+// reopening Wisp lands on the provider the user chose.
+function rememberProvider(id) {
+  config = Object.assign({}, config, { provider: id });
+  window.wisp
+    .setConfig({ provider: id })
+    .then((next) => {
+      if (next) config = next;
+    })
+    .catch(() => {});
 }
 
 function paintOpenCodeProvider() {
@@ -237,7 +325,85 @@ function compatYoursCell(row) {
   return `${val} (${compatStatusLabel(row.status)})`;
 }
 
+let lastCompatReport = null;
+let pendingCompatUpdate = null;
+let compatUpdatingId = "";
+
+function hideCompatUpdateAsk() {
+  pendingCompatUpdate = null;
+  if (compatUpdateAsk) compatUpdateAsk.hidden = true;
+}
+
+function askCompatUpdate(row, name) {
+  pendingCompatUpdate = { id: row.id, name, row };
+  if (compatUpdateStatus) compatUpdateStatus.hidden = true;
+  if (compatUpdateAskText) {
+    const target = row.latest ? ` (${row.latest})` : "";
+    compatUpdateAskText.textContent = t(
+      "compatUpdateConfirmText",
+      { name, target, tested: row.tested || "—" },
+      currentLang,
+    );
+  }
+  if (compatUpdateAsk) compatUpdateAsk.hidden = false;
+}
+
+async function confirmCompatUpdate() {
+  const item = pendingCompatUpdate;
+  hideCompatUpdateAsk();
+  if (!item || !window.wisp || typeof window.wisp.updateComponent !== "function") return;
+  compatUpdatingId = item.id;
+  if (lastCompatReport) paintCompatReport(lastCompatReport);
+  if (compatUpdateStatus) {
+    compatUpdateStatus.hidden = false;
+    compatUpdateStatus.classList.remove("ok", "error");
+    compatUpdateStatus.textContent = t("compatUpdating", { name: item.name }, currentLang);
+  }
+  try {
+    const res = await window.wisp.updateComponent(item.id);
+    compatUpdatingId = "";
+    if (res && res.report) paintCompatReport(res.report);
+    else await refreshCompatReport(true);
+    if (compatUpdateStatus) {
+      compatUpdateStatus.hidden = false;
+      compatUpdateStatus.classList.remove("ok", "error");
+      if (res && res.ok) {
+        compatUpdateStatus.classList.add("ok");
+        compatUpdateStatus.textContent = t("compatUpdateOk", { name: item.name }, currentLang);
+      } else {
+        compatUpdateStatus.classList.add("error");
+        compatUpdateStatus.textContent = t(
+          "compatUpdateFailed",
+          { name: item.name, error: (res && res.error) || "erro" },
+          currentLang,
+        );
+      }
+    }
+    if (res && res.ok) {
+      if (item.id === "opencode" && currentEngine === "opencode" && opencodeKeyFor(opencodeProvider)) {
+        void probeAccount();
+      } else if (item.id === "agy" && currentEngine === "antigravity" && activeProvider === "cli") {
+        void probeAccount();
+      }
+    }
+  } catch (err) {
+    compatUpdatingId = "";
+    if (lastCompatReport) paintCompatReport(lastCompatReport);
+    if (compatUpdateStatus) {
+      compatUpdateStatus.hidden = false;
+      compatUpdateStatus.classList.remove("ok");
+      compatUpdateStatus.classList.add("error");
+      compatUpdateStatus.textContent = t(
+        "compatUpdateFailed",
+        { name: item.name, error: (err && err.message) || String(err) },
+        currentLang,
+      );
+    }
+  }
+}
+
 function paintCompatReport(report) {
+  lastCompatReport = report;
   if (!report || !compatRows) return;
   if (compatLead) {
     compatLead.textContent = t("compatLead", { version: report.wisp || "?" }, currentLang);
@@ -252,7 +418,23 @@ function paintCompatReport(report) {
     const tdTested = document.createElement("td");
     tdTested.textContent = row.tested || "—";
     const tdYours = document.createElement("td");
-    tdYours.textContent = compatYoursCell(row);
+    const spanYours = document.createElement("span");
+    spanYours.textContent = compatYoursCell(row);
+    tdYours.appendChild(spanYours);
+    if (row.canUpdate) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "compat-update-btn";
+      btn.disabled = !!compatUpdatingId;
+      btn.textContent =
+        compatUpdatingId === row.id
+          ? t("compatUpdating", { name }, currentLang)
+          : row.latest
+            ? t("compatUpdateTo", { version: row.latest }, currentLang)
+            : t("compatUpdateBtn", null, currentLang);
+      btn.addEventListener("click", () => askCompatUpdate(row, name));
+      tdYours.appendChild(btn);
+    }
     if (row.status === "ok") tdYours.className = "compat-ok";
     else if (row.status === "pending") tdYours.className = "compat-missing";
     else if (row.status === "missing") tdYours.className = "compat-missing";
@@ -347,12 +529,9 @@ function setPage(name) {
     hideSkills();
     paintAccountFields();
     void refreshCompatReport(true);
+    if (setup) setup.scrollTop = 0;
     if (currentSettingsTab === "logs") {
       fetchAndRenderLogs();
-    } else {
-      if (currentEngine === "cursor") keyInput.focus();
-      else if (currentEngine === "opencode" && opencodeKeyInput) opencodeKeyInput.focus();
-      else if (activeProvider === "api" && geminiKeyInput) geminiKeyInput.focus();
     }
     return;
   }
@@ -365,6 +544,7 @@ function setSettingsTab(tabName) {
   if (tabBtnLogs) tabBtnLogs.classList.toggle("active", currentSettingsTab === "logs");
   if (settingsViewGeneral) settingsViewGeneral.hidden = currentSettingsTab !== "general";
   if (settingsViewLogs) settingsViewLogs.hidden = currentSettingsTab !== "logs";
+  if (setup) setup.scrollTop = 0;
 
   if (currentSettingsTab === "logs") {
     unreadLogErrors = 0;
@@ -385,19 +565,24 @@ function paintLogsBadge() {
 
 function copyToClipboard(text, btn, successLabel = (typeof t === "function" ? t("copied", null, currentLang) : "Copied!")) {
   const origText = btn ? btn.textContent : "";
+  // ponytail: LAN URLs are plain http, so the async clipboard API can reject
+  // (non-secure context). Fall back to execCommand for the phone copy button.
+  const legacyCopy = () => {
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.select();
+    document.execCommand("copy");
+    area.remove();
+    return Promise.resolve();
+  };
   const doCopy = () => {
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      return navigator.clipboard.writeText(text);
+      return navigator.clipboard.writeText(text).catch(legacyCopy);
     }
-    const t = document.createElement("textarea");
-    t.value = text;
-    t.style.position = "fixed";
-    t.style.opacity = "0";
-    document.body.appendChild(t);
-    t.select();
-    document.execCommand("copy");
-    t.remove();
-    return Promise.resolve();
+    return legacyCopy();
   };
 
   doCopy()
@@ -410,6 +595,373 @@ function copyToClipboard(text, btn, successLabel = (typeof t === "function" ? t(
       }
     })
     .catch(() => {});
+}
+
+let mobileStatusState = "ready";
+
+function paintMobileStatus(state) {
+  mobileStatusState = state || "ready";
+  if (!mobileStatusPill) return;
+  const key =
+    mobileStatusState === "thinking"
+      ? "mobileStatusThinking"
+      : mobileStatusState === "done"
+        ? "mobileStatusDone"
+        : mobileStatusState === "error"
+          ? "mobileStatusError"
+          : "mobileStatusReady";
+  mobileStatusPill.dataset.state = mobileStatusState;
+  mobileStatusPill.textContent = t(key, null, currentLang);
+}
+
+let lanStatus = null;
+
+function paintLanStatus(status) {
+  if (status) lanStatus = status;
+  if (!lanStatus) return;
+  const clients = Math.max(0, Number(lanStatus.clients) || 0);
+  if (lanEnabledBtn) lanEnabledBtn.setAttribute("aria-checked", lanStatus.enabled ? "true" : "false");
+  if (lanHttpsBtn) lanHttpsBtn.setAttribute("aria-checked", lanStatus.httpsConfigured ? "true" : "false");
+  if (lanHttpsWarn) {
+    lanHttpsWarn.hidden = !(lanStatus.enabled && lanStatus.httpsConfigured && !lanStatus.httpsAvailable);
+  }
+  if (lanInstallHint && isMobileClient && window.isSecureContext === false) {
+    lanInstallHint.hidden = false;
+    lanInstallHint.textContent = t(
+      lanStatus.https ? "lanInstallHttpsReady" : "lanInstallHttpHint",
+      null,
+      currentLang,
+    );
+  }
+  if (lanHideDesktopBtn) {
+    lanHideDesktopBtn.setAttribute("aria-checked", lanStatus.desktopHidden ? "true" : "false");
+  }
+  if (lanUrlEl) {
+    lanUrlEl.textContent = lanStatus.enabled
+      ? lanStatus.displayUrl || lanStatus.primaryUrl || ""
+      : t("lanEnableHint", null, currentLang);
+  }
+  if (lanQrEl) {
+    // ponytail: with HTTPS on there is exactly one QR: the install tutorial.
+    // It must stay visible even while a phone is connected over HTTP.
+    const showInstall = Boolean(lanStatus.enabled && lanStatus.https && lanStatus.installQrSvg);
+    const showApp = Boolean(lanStatus.enabled && !lanStatus.https && clients === 0 && lanStatus.qrSvg);
+    if (showInstall || showApp) {
+      lanQrEl.innerHTML = showInstall ? lanStatus.installQrSvg : lanStatus.qrSvg;
+      lanQrEl.hidden = false;
+    } else {
+      lanQrEl.replaceChildren();
+      lanQrEl.hidden = true;
+    }
+  }
+  const showCert = Boolean(lanStatus.enabled && lanStatus.https);
+  if (lanCertBlock) lanCertBlock.hidden = !showCert;
+  if (lanCaQr) {
+    lanCaQr.replaceChildren();
+    lanCaQr.hidden = true;
+  }
+  if (lanCaUrl) lanCaUrl.textContent = showCert ? lanStatus.installUrl || "" : "";
+  if (lanInstallLink) {
+    lanInstallLink.hidden = !(isMobileClient && lanStatus.https && window.isSecureContext === false);
+    lanInstallLink.href = "/install";
+  }
+  if (lanClientsEl) {
+    lanClientsEl.dataset.state = !lanStatus.enabled ? "off" : clients > 0 ? "online" : "waiting";
+  }
+  if (lanClientsText) {
+    lanClientsText.textContent = !lanStatus.enabled
+      ? ""
+      : clients > 0
+        ? t("lanClients", { count: clients }, currentLang)
+        : t("lanNoClients", null, currentLang);
+  }
+  if (lanDisconnectBtn) lanDisconnectBtn.hidden = clients === 0;
+  if (mobilePcBtn) {
+    mobilePcBtn.setAttribute("aria-pressed", lanStatus.desktopHidden ? "true" : "false");
+    mobilePcBtn.textContent = t(lanStatus.desktopHidden ? "mobilePcHide" : "mobilePcShow", null, currentLang);
+  }
+}
+
+async function refreshLanStatus() {
+  try {
+    paintLanStatus(await window.wisp.getLanStatus());
+  } catch {}
+}
+
+async function toggleLanEnabled() {
+  if (!lanStatus) await refreshLanStatus();
+  const next = !(lanStatus && lanStatus.enabled);
+  try {
+    paintLanStatus(await window.wisp.setLanConfig({ enabled: next }));
+  } catch (err) {
+    addMsg("error", err && err.message ? err.message : String(err));
+  }
+}
+
+async function toggleDesktopVisible() {
+  if (!lanStatus) await refreshLanStatus();
+  // IPC takes "visible"; the switch state is "desktopHidden", so flip it.
+  const makeVisible = Boolean(lanStatus && lanStatus.desktopHidden);
+  try {
+    paintLanStatus(await window.wisp.setDesktopVisible(makeVisible));
+  } catch (err) {
+    addMsg("error", err && err.message ? err.message : String(err));
+  }
+}
+
+async function toggleLanHttps() {
+  if (!lanStatus) await refreshLanStatus();
+  const next = !(lanStatus && lanStatus.httpsConfigured);
+  try {
+    paintLanStatus(await window.wisp.setLanConfig({ https: next }));
+  } catch (err) {
+    addMsg("error", err && err.message ? err.message : String(err));
+    void refreshLanStatus();
+  }
+}
+
+if (lanEnabledBtn) lanEnabledBtn.addEventListener("click", () => void toggleLanEnabled());
+if (lanHttpsBtn) lanHttpsBtn.addEventListener("click", () => void toggleLanHttps());
+if (lanHideDesktopBtn) lanHideDesktopBtn.addEventListener("click", () => void toggleDesktopVisible());
+if (mobilePcBtn) mobilePcBtn.addEventListener("click", () => void toggleDesktopVisible());
+if (lanCaCopyBtn) {
+  lanCaCopyBtn.addEventListener("click", () => {
+    const url = lanStatus && lanStatus.installUrl;
+    if (url) copyToClipboard(url, lanCaCopyBtn, t("lanCopied", null, currentLang));
+  });
+}
+if (lanCopyBtn) {
+  lanCopyBtn.addEventListener("click", () => {
+    const url = lanStatus && (lanStatus.primaryUrl || lanStatus.displayUrl);
+    if (url) copyToClipboard(url, lanCopyBtn, t("lanCopied", null, currentLang));
+  });
+}
+if (lanRegenBtn) {
+  lanRegenBtn.addEventListener("click", async () => {
+    try {
+      paintLanStatus(await window.wisp.regenerateLanToken());
+    } catch (err) {
+      addMsg("error", err && err.message ? err.message : String(err));
+    }
+  });
+}
+if (lanDisconnectBtn) {
+  lanDisconnectBtn.addEventListener("click", async () => {
+    try {
+      paintLanStatus(await window.wisp.disconnectLan());
+    } catch (err) {
+      addMsg("error", err && err.message ? err.message : String(err));
+    }
+  });
+}
+
+let folderState = null;
+let folderQuery = "";
+
+function folderChip(label, sub, onPick) {
+  const chip = document.createElement("button");
+  chip.type = "button";
+  chip.className = "folder-chip";
+  const name = document.createElement("span");
+  name.textContent = label;
+  chip.appendChild(name);
+  if (sub) {
+    const small = document.createElement("small");
+    small.textContent = sub;
+    chip.appendChild(small);
+  }
+  chip.addEventListener("click", onPick);
+  return chip;
+}
+
+function paintFolderRecents() {
+  if (!folderRecentList) return;
+  folderRecentList.replaceChildren();
+  for (const p of knownProjectsList) {
+    if (!p || !p.cwd) continue;
+    folderRecentList.appendChild(folderChip(folderName(p.cwd), p.cwd, () => void selectFolder(p.cwd)));
+  }
+}
+
+function paintFolderRoots() {
+  if (!folderRootsEl) return;
+  folderRootsEl.replaceChildren();
+  const roots = (folderState && folderState.roots) || [];
+  for (const root of roots) {
+    folderRootsEl.appendChild(folderChip(root.label, "", () => void loadFolder(root.path)));
+  }
+}
+
+function paintFolderCrumbs() {
+  if (!folderCrumbs) return;
+  folderCrumbs.replaceChildren();
+  const crumbs = (folderState && folderState.breadcrumbs) || [];
+  crumbs.forEach((crumb, index) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = crumb.label;
+    btn.addEventListener("click", () => void loadFolder(crumb.path));
+    folderCrumbs.appendChild(btn);
+    if (index < crumbs.length - 1) {
+      const sep = document.createElement("span");
+      sep.textContent = "›";
+      folderCrumbs.appendChild(sep);
+    }
+  });
+}
+
+function paintFolderRows() {
+  if (!folderListEl) return;
+  folderListEl.replaceChildren();
+  if (!folderState) {
+    const empty = document.createElement("p");
+    empty.className = "folder-empty";
+    empty.textContent = t("folderError", null, currentLang);
+    folderListEl.appendChild(empty);
+    return;
+  }
+  if (folderState.error) {
+    const err = document.createElement("p");
+    err.className = "folder-error";
+    err.textContent = folderState.error;
+    folderListEl.appendChild(err);
+  }
+  const query = folderQuery.trim().toLowerCase();
+  const folders = (folderState.folders || []).filter((f) => !query || f.name.toLowerCase().includes(query));
+  if (!folders.length) {
+    const empty = document.createElement("p");
+    empty.className = "folder-empty";
+    empty.textContent = t("folderEmpty", null, currentLang);
+    folderListEl.appendChild(empty);
+  }
+  for (const folder of folders) {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "folder-row";
+    row.title = folder.path;
+    const icon = document.createElement("span");
+    icon.textContent = folder.isProject ? "◆" : "▸";
+    const name = document.createElement("span");
+    name.className = "folder-name";
+    name.textContent = folder.name;
+    row.append(icon, name);
+    if (folder.projectKind) {
+      const badge = document.createElement("span");
+      badge.className = "folder-badge";
+      badge.textContent = folder.projectKind;
+      row.appendChild(badge);
+    }
+    row.addEventListener("click", () => void loadFolder(folder.path));
+    folderListEl.appendChild(row);
+  }
+}
+
+function paintFolderModal() {
+  if (!folderModal) return;
+  paintFolderRoots();
+  paintFolderCrumbs();
+  paintFolderRows();
+  if (folderSelectCurrent) {
+    const name = folderState && folderState.name ? folderState.name : "";
+    folderSelectCurrent.textContent = name
+      ? t("folderSelectNamed", { name }, currentLang)
+      : t("folderSelectCurrent", null, currentLang);
+  }
+}
+
+async function loadFolder(dir) {
+  if (folderListEl) {
+    folderListEl.replaceChildren();
+    const loading = document.createElement("p");
+    loading.className = "folder-empty";
+    loading.textContent = t("folderLoading", null, currentLang);
+    folderListEl.appendChild(loading);
+  }
+  try {
+    folderState = await window.wisp.listFolders(dir || null);
+    folderQuery = "";
+    if (folderSearch) folderSearch.value = "";
+  } catch (err) {
+    folderState = null;
+    if (folderListEl) {
+      folderListEl.replaceChildren();
+      const failed = document.createElement("p");
+      failed.className = "folder-error";
+      failed.textContent = (err && err.message) || t("folderError", null, currentLang);
+      folderListEl.appendChild(failed);
+    }
+    return;
+  }
+  paintFolderModal();
+}
+
+function openFolderModal() {
+  if (!folderModal) return;
+  paintFolderRecents();
+  folderModal.hidden = false;
+  void loadFolder(config.cwd || null);
+}
+
+function closeFolderModal() {
+  if (folderModal) folderModal.hidden = true;
+}
+
+async function selectFolder(targetCwd) {
+  if (!targetCwd) return;
+  config = await window.wisp.setConfig({ cwd: targetCwd });
+  if (window.wisp && typeof window.wisp.listChats === "function") applyState(await window.wisp.listChats());
+  paintFolder();
+  paintRiv();
+  warned = false;
+  loadComposerLists();
+  closeFolderModal();
+}
+
+if (folderModalClose) folderModalClose.addEventListener("click", closeFolderModal);
+if (folderModalBackdrop) folderModalBackdrop.addEventListener("click", closeFolderModal);
+if (folderSelectCurrent) {
+  folderSelectCurrent.addEventListener("click", () => {
+    if (folderState && folderState.path) void selectFolder(folderState.path);
+  });
+}
+if (folderSearch) {
+  folderSearch.addEventListener("input", () => {
+    folderQuery = folderSearch.value || "";
+    paintFolderRows();
+  });
+}
+if (attachBtn && attachInput) {
+  attachBtn.addEventListener("click", () => attachInput.click());
+  attachInput.addEventListener("change", async () => {
+    const files = Array.from(attachInput.files || []);
+    attachInput.value = "";
+    for (const file of files) {
+      let fullPath = "";
+      try {
+        if (window.wisp && typeof window.wisp.uploadFile === "function") {
+          fullPath = await window.wisp.uploadFile(file);
+        } else if (window.wisp && typeof window.wisp.getPathForFile === "function") {
+          fullPath = window.wisp.getPathForFile(file);
+        }
+      } catch (err) {
+        addMsg("error", err && err.message ? err.message : String(err));
+        continue;
+      }
+      if (!fullPath && file.path) fullPath = file.path;
+      if (!fullPath) continue;
+      addAttachment(fullPath);
+      if (!config.cwd && typeof parseAttachment === "function") {
+        const att = parseAttachment(fullPath);
+        if (att && att.dir) {
+          config = await window.wisp.setConfig({ cwd: att.dir });
+          if (typeof window.wisp.listChats === "function") applyState(await window.wisp.listChats());
+          paintFolder();
+          paintRiv();
+          loadComposerLists();
+        }
+      }
+    }
+  });
 }
 
 async function fetchAndRenderLogs() {
@@ -534,6 +1086,26 @@ function renderLogsList(logs) {
 function paintFolder() {
   folderValue.textContent = config.cwd ? folderName(config.cwd) : t("chooseFolder", null, currentLang);
   folderBtn.title = config.cwd || t("chooseProjectFolder", null, currentLang);
+  const curKey = normFolderKey(config.cwd);
+  if (curKey) projectAlertByKey.delete(curKey);
+  let bgBusy = 0;
+  for (const p of knownProjectsList) {
+    if (normFolderKey(p.cwd) !== curKey) bgBusy += Math.max(0, Number(p.busy) || 0);
+  }
+  if (folderBusyBadge) {
+    folderBusyBadge.hidden = bgBusy <= 0;
+    folderBusyBadge.textContent = String(bgBusy);
+    folderBusyBadge.title = isPt() ? `${bgBusy} processo(s) em outro(s) projeto(s)` : `${bgBusy} running in other project(s)`;
+  }
+  let hasAlert = false;
+  let hasDone = false;
+  for (const [k, kind] of projectAlertByKey.entries()) {
+    if (k === curKey) continue;
+    if (kind === "alert") hasAlert = true;
+    else if (kind === "done") hasDone = true;
+  }
+  folderBtn.classList.toggle("tab-alert", hasAlert);
+  folderBtn.classList.toggle("tab-done", !hasAlert && hasDone);
 }
 
 function paintRiv() {
@@ -596,10 +1168,15 @@ function setRunning(on) {
   if (next && !running) runningModelLabel = modelCaption(view.model || (modelSelect && modelSelect.value));
   if (!next) runningModelLabel = "";
   running = next;
+  paintMobileStatus(next ? "thinking" : "ready");
   goBtn.textContent = t("send", null, currentLang);
   goBtn.classList.remove("stop");
   goBtn.title = running ? t("queueMessage", null, currentLang) : t("sendMessage", null, currentLang);
   paintTurnStop(running);
+  if (!running) {
+    view.busy = false;
+    if (tickId) stopTick();
+  }
   if (!running) {
     setThinking(false);
     hidePermissionAsk();
@@ -714,6 +1291,7 @@ function decoratePick(select) {
     } else {
       label.textContent = opt ? (opt.dataset.title || opt.textContent) : "";
     }
+    if (select === modelSelect) btn.title = opt ? opt.dataset.title || opt.textContent : "";
     btn.disabled = select.disabled;
     wrap.hidden = !!select.hidden;
     if (wrap.hidden || wrap.closest("[hidden]")) close();
@@ -748,6 +1326,8 @@ function decoratePick(select) {
         } else {
           item.textContent = opt.textContent;
         }
+        if (opt.dataset.alert === "done") item.classList.add("tab-done");
+        else if (opt.dataset.alert === "alert") item.classList.add("tab-alert");
         if (opt.value === current) item.setAttribute("aria-selected", "true");
         row.appendChild(item);
 
@@ -946,7 +1526,7 @@ function fillModels(list, selected) {
   const catalog = collapseModels(list && list.length ? list : fallback);
   models = catalog;
   if (!models.length && currentEngine === "opencode" && selected && String(selected).includes("/")) {
-    const name = typeof prettyModelName === "function" ? prettyModelName(selected) : selected;
+    const name = String(selected);
     models = [{ id: String(selected), displayName: name }];
   }
   setModelsForEngine(currentEngine, models);
@@ -1173,7 +1753,7 @@ function paintLog(messages) {
     return;
   }
   for (const msg of list) addMsg(msg.role, msg.text, msg.usage);
-  if (view.busy) {
+  if (view.busy && list.length && list[list.length - 1].role === "assistant") {
     const last = [...log.querySelectorAll(".msg.assistant")].pop();
     if (last) lastAssistant = last;
   }
@@ -1193,16 +1773,24 @@ function paintProcessCount(count) {
 
 function fillChats(state) {
   if (!state || !state.items) return;
+  const activeId = viewId || state.currentId;
+  if (activeId) chatAlertById.delete(activeId);
+  if (Array.isArray(state.projects)) {
+    knownProjectsList = state.projects;
+    paintFolder();
+  }
+  if (state.busyByEngine) paintEngineTabs(state.busyByEngine);
   chatsSelect.innerHTML = "";
   for (const item of state.items) {
     const opt = document.createElement("option");
     opt.value = item.id;
     opt.textContent = item.title;
     opt.dataset.busy = item.busy ? "true" : "false";
+    opt.dataset.alert = item.id === activeId ? "" : chatAlertById.get(item.id) || "";
     opt.dataset.title = item.title;
     chatsSelect.appendChild(opt);
   }
-  chatsSelect.value = viewId || state.currentId;
+  chatsSelect.value = activeId;
   const count = typeof state.busyCount === "number" ? state.busyCount : state.items.filter((i) => i.busy).length;
   paintProcessCount(count);
   const api = picks.get(chatsSelect);
@@ -1246,23 +1834,29 @@ function queueClip(text) {
   return clean.length > 72 ? clean.slice(0, 69) + "…" : clean;
 }
 
-function queueFor(chatId) {
-  if (queueStore) return queueStore.queueFor(chatId || viewId);
-  const id = chatId || viewId;
-  if (!queues.has(id)) queues.set(id, []);
-  return queues.get(id);
+function queueKey(chatId, engine) {
+  return `${engine || currentEngine}:${chatId || viewId}`;
 }
 
-function clearQueue(chatId) {
-  if (queueStore) queueStore.clear(chatId || viewId);
-  else queues.delete(chatId || viewId);
+function queueFor(chatId, engine) {
+  const key = queueKey(chatId, engine);
+  if (queueStore) return queueStore.queueFor(key);
+  if (!queues.has(key)) queues.set(key, []);
+  return queues.get(key);
+}
+
+function clearQueue(chatId, engine) {
+  const key = queueKey(chatId, engine);
+  if (queueStore) queueStore.clear(key);
+  else queues.delete(key);
   paintQueue();
 }
 
-function removeQueueItem(index, chatId) {
-  if (queueStore) queueStore.removeAt(chatId || viewId, index);
+function removeQueueItem(index, chatId, engine) {
+  const key = queueKey(chatId, engine);
+  if (queueStore) queueStore.removeAt(key, index);
   else {
-    const items = queueFor(chatId);
+    const items = queueFor(chatId, engine);
     if (index >= 0 && index < items.length) items.splice(index, 1);
   }
   paintQueue();
@@ -1402,9 +1996,10 @@ function showQueueAsk(text) {
   queueAsk.hidden = false;
 }
 
-async function sendNow(text, chatId) {
+async function sendNow(text, chatId, engine) {
+  const runEngine = engine || currentEngine;
   const id = chatId || viewId;
-  const here = id === viewId;
+  const here = id === viewId && runEngine === currentEngine;
   if (here) {
     const activeModel = resolveModel(modelSelect.value, models, currentEngine);
     if (view.model !== activeModel) {
@@ -1418,10 +2013,10 @@ async function sendNow(text, chatId) {
     startTick();
   }
   try {
-    const out = await window.wisp.send(text, id);
-    if (out && out.terminal === "run-end") await drainQueue(id);
+    const out = await window.wisp.send(text, id, runEngine);
+    if (out && out.terminal === "run-end") await drainQueue(id, runEngine);
   } catch (err) {
-    if (here && id === viewId) {
+    if (id === viewId && runEngine === currentEngine) {
       const ms = stopTick();
       addMsg("error", err && err.message ? err.message : String(err));
       const el = lastAssistant || [...log.querySelectorAll(".msg.user")].pop();
@@ -1430,18 +2025,20 @@ async function sendNow(text, chatId) {
     return;
   } finally {
     // ponytail: run-end IPC can arrive before main clears agent.busy; keep "running" until send() returns
-    if (here && id === viewId) setRunning(false);
+    if (id === viewId && runEngine === currentEngine) setRunning(false);
+    window.wisp.listChats().then(fillChats).catch(() => {});
   }
 }
 
-async function drainQueue(chatId) {
+async function drainQueue(chatId, engine) {
   if (holdDrain) return;
+  const runEngine = engine || currentEngine;
   const id = chatId || viewId;
-  const items = queueFor(id);
+  const items = queueFor(id, runEngine);
   if (!items.length) return;
   const text = items.shift();
   paintQueue();
-  await sendNow(text, id);
+  await sendNow(text, id, runEngine);
 }
 
 async function cancelAndSend(text) {
@@ -1489,9 +2086,21 @@ function applyState(state) {
   setRunning(view.busy);
   if (view.busy) {
     stopTick();
-    setThinking(true);
+    if (!lastAssistant) setThinking(true);
+    const livePerm = [...(state.current.messages || [])].reverse().find((m) => m && m.role === "permission" && m.live);
+    if (livePerm) {
+      showPermissionAsk({
+        permissionId: livePerm.permissionId || "",
+        sessionId: livePerm.sessionId || "",
+        title: livePerm.text || "",
+        engine: currentEngine,
+      });
+    } else {
+      hidePermissionAsk();
+    }
     startTick(state.current.turnAt || Date.now());
   } else {
+    hidePermissionAsk();
     stopTick();
   }
   paintQueue();
@@ -1510,7 +2119,7 @@ function addSystemOnce(text) {
 }
 
 function mine(event) {
-  return !event.chatId || event.chatId === viewId;
+  return (!event.engine || event.engine === currentEngine) && (!event.chatId || event.chatId === viewId);
 }
 
 async function refresh() {
@@ -1551,7 +2160,8 @@ async function refresh() {
     if (activeProvider === "api" && !config.geminiApiKey) setPage("account");
     else probeAccount();
   }
-  loadSkills();
+  loadComposerLists();
+  void refreshLanStatus();
   window.wisp.previewPet().then((pose) => {
     if (pose && pose.state) poseSelect.value = pose.state;
   }).catch(() => {});
@@ -1730,81 +2340,119 @@ async function saveMode(mode) {
 }
 
 let skills = [];
+let files = [];
 let skillOpen = false;
 let skillIndex = 0;
+let mentionKey = "";
 
-function slashQuery(value) {
-  const match = /^\/([^\s]*)$/.exec(String(value || ""));
-  return match ? match[1].toLowerCase() : null;
+function activeMention() {
+  if (typeof mentionAt !== "function") return null;
+  return mentionAt(input.value, input.selectionStart);
 }
 
-function matchingSkills() {
-  const query = slashQuery(input.value);
-  if (query === null) return [];
-  if (!query) return skills;
+function matchingMentions() {
+  const hit = activeMention();
+  if (!hit) return [];
+  if (hit.trigger === "@") return typeof rankFiles === "function" ? rankFiles(files, hit.query) : [];
+  if (!hit.query) return skills;
   return skills.filter(
-    (skill) => skill.name.includes(query) || String(skill.description || "").toLowerCase().includes(query),
+    (skill) => skill.name.includes(hit.query) || String(skill.description || "").toLowerCase().includes(hit.query),
   );
 }
 
 function hideSkills() {
   skillOpen = false;
+  mentionKey = "";
   skillList.hidden = true;
   skillList.innerHTML = "";
 }
 
 function paintSkillList() {
-  const query = slashQuery(input.value);
-  if (query === null) {
+  const hit = activeMention();
+  if (!hit) {
     hideSkills();
     return;
   }
+  const key = hit.trigger + "\0" + hit.query;
+  if (key !== mentionKey) {
+    mentionKey = key;
+    skillIndex = 0;
+  }
   skillOpen = true;
-  const items = matchingSkills();
+  const items = matchingMentions();
   skillList.innerHTML = "";
   skillList.hidden = false;
   if (!items.length) {
     const empty = document.createElement("p");
     empty.className = "empty";
-    empty.textContent = skills.length ? t("nothingWithName", null, currentLang) : t("noSkillsInFolders", null, currentLang);
+    const none = hit.trigger === "@" ? !files.length : !skills.length;
+    const emptyKey = none ? (hit.trigger === "@" ? "noFilesInFolder" : "noSkillsInFolders") : "nothingWithName";
+    empty.textContent = t(emptyKey, null, currentLang);
     skillList.appendChild(empty);
     return;
   }
   if (skillIndex < 0) skillIndex = items.length - 1;
   if (skillIndex >= items.length) skillIndex = 0;
-  items.forEach((skill, i) => {
+  items.forEach((item, i) => {
+    const file = hit.trigger === "@";
     const li = document.createElement("li");
     const btn = document.createElement("button");
     btn.type = "button";
     if (i === skillIndex) btn.className = "active";
     const name = document.createElement("span");
     name.className = "skill-name";
-    name.textContent = "/" + skill.name;
     const meta = document.createElement("span");
     meta.className = "skill-meta";
-    meta.textContent = [
-      skill.description,
-      skill.family,
-      skill.source === "project" ? t("skillSourceProject", null, currentLang) : t("skillSourceUser", null, currentLang),
-    ]
-      .filter(Boolean)
-      .join(" · ");
+    if (file) {
+      const slash = item.lastIndexOf("/");
+      name.textContent = "@" + (slash >= 0 ? item.slice(slash + 1) : item);
+      meta.textContent = slash >= 0 ? item.slice(0, slash) : "";
+    } else {
+      name.textContent = "/" + item.name;
+      meta.textContent = [
+        item.description,
+        item.family,
+        item.source === "project" ? t("skillSourceProject", null, currentLang) : t("skillSourceUser", null, currentLang),
+      ]
+        .filter(Boolean)
+        .join(" · ");
+    }
     btn.appendChild(name);
-    btn.appendChild(meta);
+    if (meta.textContent) btn.appendChild(meta);
     btn.addEventListener("pointerdown", (event) => {
       event.preventDefault();
-      pickSkill(skill.name);
+      if (file) pickFile(item);
+      else pickSkill(item.name);
     });
     li.appendChild(btn);
     skillList.appendChild(li);
+    if (i === skillIndex) {
+      const top = btn.offsetTop;
+      const bottom = top + btn.offsetHeight;
+      if (top < skillList.scrollTop) skillList.scrollTop = top;
+      else if (bottom > skillList.scrollTop + skillList.clientHeight) skillList.scrollTop = bottom - skillList.clientHeight;
+    }
   });
 }
 
-function pickSkill(name) {
-  input.value = "/" + name + " ";
+function applyMention(insert) {
+  const next = typeof spliceMention === "function"
+    ? spliceMention(input.value, input.selectionStart, insert)
+    : { text: insert, caret: insert.length };
+  input.value = next.text;
   hideSkills();
   growInput();
   input.focus();
+  input.setSelectionRange(next.caret, next.caret);
+}
+
+function pickSkill(name) {
+  applyMention("/" + name + " ");
+}
+
+function pickFile(rel) {
+  const body = /\s/.test(rel) ? `"${String(rel).replace(/"/g, "")}"` : rel;
+  applyMention("@" + body + " ");
 }
 
 async function loadSkills() {
@@ -1813,9 +2461,34 @@ async function loadSkills() {
   } catch {
     skills = [];
   }
+  if (skillOpen) paintSkillList();
 }
 
-document.getElementById("folder").onclick = async () => {
+async function loadFiles() {
+  try {
+    files = await window.wisp.listFiles();
+  } catch {
+    files = [];
+  }
+  if (skillOpen) paintSkillList();
+}
+
+function loadComposerLists() {
+  loadSkills();
+  loadFiles();
+}
+
+const projectMenu = document.createElement("div");
+projectMenu.className = "pick-menu";
+projectMenu.hidden = true;
+projectMenu.setAttribute("role", "listbox");
+if (panel) panel.appendChild(projectMenu);
+
+async function pickNativeFolder() {
+  if (isMobileClient) {
+    openFolderModal();
+    return;
+  }
   const res = await window.wisp.pickFolder();
   config = (res && res.config) || res || config;
   if (res && res.chats) applyState(res.chats);
@@ -1823,7 +2496,90 @@ document.getElementById("folder").onclick = async () => {
   paintFolder();
   paintRiv();
   warned = false;
-  loadSkills();
+  loadComposerLists();
+}
+
+async function switchFolderQuick(targetCwd) {
+  if (!targetCwd) return;
+  config = await window.wisp.setConfig({ cwd: targetCwd });
+  if (window.wisp && typeof window.wisp.listChats === "function") applyState(await window.wisp.listChats());
+  paintFolder();
+  paintRiv();
+  warned = false;
+  loadComposerLists();
+}
+
+const projectMenuApi = {
+  btn: folderBtn,
+  menu: projectMenu,
+  close() {
+    if (openPick === projectMenuApi) openPick = null;
+    projectMenu.hidden = true;
+  },
+};
+
+function openProjectMenu() {
+  closePicks();
+  projectMenu.innerHTML = "";
+  const curKey = normFolderKey(config.cwd);
+  for (const p of knownProjectsList) {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "project-menu-row";
+    item.setAttribute("role", "option");
+    item.title = p.cwd;
+    const pKey = normFolderKey(p.cwd);
+    if (pKey === curKey) item.setAttribute("aria-selected", "true");
+    const alertKind = pKey === curKey ? "" : projectAlertByKey.get(pKey) || "";
+    if (alertKind === "done") item.classList.add("tab-done");
+    else if (alertKind === "alert") item.classList.add("tab-alert");
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "project-menu-name";
+    nameSpan.textContent = folderName(p.cwd);
+    item.appendChild(nameSpan);
+    const busyN = Math.max(0, Number(p.busy) || 0);
+    if (busyN > 0) {
+      const badge = document.createElement("span");
+      badge.className = "process-count-badge";
+      badge.textContent = String(busyN);
+      item.appendChild(badge);
+    }
+    item.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      projectMenuApi.close();
+      void switchFolderQuick(p.cwd);
+    });
+    projectMenu.appendChild(item);
+  }
+  const browseBtn = document.createElement("button");
+  browseBtn.type = "button";
+  browseBtn.setAttribute("role", "option");
+  browseBtn.textContent = t("chooseOtherFolder", null, currentLang);
+  browseBtn.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    projectMenuApi.close();
+    if (isMobileClient) openFolderModal();
+    else void pickNativeFolder();
+  });
+  projectMenu.appendChild(browseBtn);
+  projectMenu.hidden = false;
+  placePickMenu(folderBtn, projectMenu, panel, chatsSelect);
+  openPick = projectMenuApi;
+}
+
+document.getElementById("folder").onclick = async () => {
+  if (isMobileClient) {
+    openFolderModal();
+    return;
+  }
+  if (knownProjectsList.length > 1) {
+    if (projectMenu.hidden) openProjectMenu();
+    else projectMenuApi.close();
+    return;
+  }
+  await pickNativeFolder();
 };
 
 rivBtn.onclick = async () => {
@@ -2070,12 +2826,14 @@ window.addEventListener("unhandledrejection", (event) => {
 if (providerCliBtn) {
   providerCliBtn.addEventListener("click", () => {
     activeProvider = "cli";
+    rememberProvider("cli");
     paintProvider();
   });
 }
 if (providerApiBtn) {
   providerApiBtn.addEventListener("click", () => {
     activeProvider = "api";
+    rememberProvider("api");
     paintProvider();
   });
 }
@@ -2085,6 +2843,7 @@ opencodeProviderBtns.forEach((btn) => {
     const next = btn.dataset.ocProvider;
     if (!next || next === opencodeProvider) return;
     opencodeProvider = typeof normalizeProvider === "function" ? normalizeProvider(next) : next;
+    rememberProvider(opencodeProvider);
     if (opencodeKeyInput) opencodeKeyInput.value = "";
     paintOpenCodeProvider();
     paintOpenCodeSetup(null);
@@ -2157,16 +2916,60 @@ if (engineAsk) {
   });
 }
 
+function hideTaskToast() {
+  if (taskToast) taskToast.hidden = true;
+  pendingToastTarget = null;
+}
+
+function showTaskToast(event) {
+  if (!taskToast || !taskToastText || !event) return;
+  const eng = event.engine || currentEngine;
+  const engName = engineLabel(eng);
+  const projName = event.cwd ? folderName(event.cwd) : "";
+  const prefix = projName ? `${engName} · ${projName}` : engName;
+  const chatTitle = event.chatTitle || t("newChat", null, currentLang);
+  const bodyKey =
+    event.type === "run-error"
+      ? "notifyErrorBody"
+      : event.type === "permission-request"
+        ? "notifyPermissionBody"
+        : "notifyDoneBody";
+  taskToastText.textContent = `${prefix} — ${t(bodyKey, { chat: chatTitle }, currentLang)}`;
+  taskToast.classList.toggle("alert", event.type === "run-error" || event.type === "permission-request");
+  pendingToastTarget = {
+    engine: eng,
+    cwd: event.cwd || "",
+    chatId: event.chatId || "",
+  };
+  taskToast.hidden = false;
+}
+
+if (taskToastOpenBtn) {
+  taskToastOpenBtn.addEventListener("click", async () => {
+    const target = pendingToastTarget;
+    hideTaskToast();
+    if (!target || !window.wisp || typeof window.wisp.jumpChat !== "function") return;
+    try {
+      const payload = await window.wisp.jumpChat(target);
+      if (payload) handleEngineChanged(payload);
+    } catch (err) {
+      console.error("[jumpChat]", err);
+    }
+  });
+}
+
+if (taskToastCloseBtn) {
+  taskToastCloseBtn.addEventListener("click", hideTaskToast);
+}
+
 async function switchEngine(target) {
   if (target === currentEngine) return;
-  if (running) {
-    try {
-      await window.wisp.cancel(viewId);
-    } catch {}
-  }
+  // ponytail: do not cancel running turn when switching engine tabs; sessions run in parallel
   const payload = await window.wisp.setEngine(target);
   handleEngineChanged(payload);
 }
+
+const probedEngines = new Set();
 
 function handleEngineChanged(payload) {
   if (!payload) return;
@@ -2175,10 +2978,14 @@ function handleEngineChanged(payload) {
   config = payload.config || config;
   activeProvider = config.provider || "cli";
   if (currentEngine === "opencode") {
-    opencodeProvider = typeof normalizeProvider === "function"
+    const nextProv = typeof normalizeProvider === "function"
       ? normalizeProvider(config.provider)
       : (config.provider || "deepseek");
-    opencodeModels = [];
+    if (nextProv !== opencodeProvider) {
+      opencodeProvider = nextProv;
+      opencodeModels = [];
+      probedEngines.delete("opencode");
+    }
   }
   paintEngineTabs();
   paintAccountFields();
@@ -2188,14 +2995,34 @@ function handleEngineChanged(payload) {
   applyState(payload.chats);
   paintFolder();
   paintRiv();
+  loadComposerLists();
   warned = false;
-  if (currentEngine === "cursor") {
-    if (config.apiKey) probeAccount(config.apiKey);
-  } else if (currentEngine === "opencode") {
-    if (opencodeKeyFor(opencodeProvider)) probeAccount();
-  } else {
-    probeAccount();
+  if (!probedEngines.has(currentEngine)) {
+    if (currentEngine === "cursor") {
+      if (config.apiKey) {
+        probedEngines.add("cursor");
+        probeAccount(config.apiKey);
+      }
+    } else if (currentEngine === "opencode") {
+      if (opencodeKeyFor(opencodeProvider)) {
+        probedEngines.add("opencode");
+        probeAccount();
+      }
+    } else {
+      probedEngines.add("antigravity");
+      probeAccount();
+    }
   }
+}
+
+if (compatUpdateYesBtn) {
+  compatUpdateYesBtn.addEventListener("click", () => {
+    void confirmCompatUpdate();
+  });
+}
+
+if (compatUpdateNoBtn) {
+  compatUpdateNoBtn.addEventListener("click", hideCompatUpdateAsk);
 }
 
 if (compatRefreshBtn) {
@@ -2208,7 +3035,7 @@ engineTabs.forEach((tab) => {
   tab.addEventListener("click", () => {
     const target = tab.dataset.engine;
     if (target === currentEngine) return;
-    showEngineAsk(target);
+    void switchEngine(target);
   });
 });
 
@@ -2222,7 +3049,11 @@ if (window.wisp.onCompat) {
 
 if (window.wisp.onChats) {
   window.wisp.onChats((chats) => {
-    if (chats && chats.currentId === viewId) applyState(chats);
+    if (chats && chats.currentId && chats.currentId !== viewId) applyState(chats);
+    else if (chats && chats.current && !chats.current.busy && running) {
+      fillChats(chats);
+      setRunning(false);
+    }
     else fillChats(chats);
   });
 }
@@ -2295,10 +3126,13 @@ input.addEventListener("keydown", (event) => {
       return;
     }
     if (event.key === "Enter" || event.key === "Tab") {
-      const items = matchingSkills();
-      if (items.length) {
+      const items = matchingMentions();
+      const hit = activeMention();
+      if (items.length && hit) {
         event.preventDefault();
-        pickSkill(items[skillIndex] ? items[skillIndex].name : items[0].name);
+        const item = items[skillIndex] || items[0];
+        if (hit.trigger === "@") pickFile(item);
+        else pickSkill(item.name);
         return;
       }
     }
@@ -2370,6 +3204,26 @@ window.wisp.onChat((event) => {
   }
   const here = mine(event);
   if (typeof event.busyCount === "number") paintProcessCount(event.busyCount);
+  if (event.busyByEngine) paintEngineTabs(event.busyByEngine);
+  if (Array.isArray(event.projects)) {
+    knownProjectsList = event.projects;
+    paintFolder();
+  }
+  if (!here && (event.type === "run-end" || event.type === "run-error" || event.type === "permission-request")) {
+    const kind = event.type === "run-end" ? "done" : "alert";
+    if (event.engine && event.engine !== currentEngine) {
+      engineTabAlert[event.engine] = kind;
+      paintEngineTabs();
+    }
+    if (event.cwd && normFolderKey(event.cwd) !== normFolderKey(config.cwd)) {
+      projectAlertByKey.set(normFolderKey(event.cwd), kind);
+      paintFolder();
+    }
+    if (event.chatId && event.chatId !== viewId) {
+      chatAlertById.set(event.chatId, kind);
+    }
+    showTaskToast(event);
+  }
   if (event.type === "run-start" || event.type === "run-end" || event.type === "run-error" || event.type === "run-cancel") {
     window.wisp.listChats().then(fillChats).catch(() => {});
   }
@@ -2425,7 +3279,9 @@ window.wisp.onChat((event) => {
   if (event.type === "run-error") addMsg("error", event.text || t("runFailed", null, currentLang));
   if (event.type === "run-end" || event.type === "run-error" || event.type === "run-cancel") {
     const ms = stopTick(event.ms);
+    setRunning(false);
     setThinking(false);
+    paintMobileStatus(event.type === "run-error" ? "error" : event.type === "run-end" ? "done" : "ready");
     const el = lastAssistant || [...log.querySelectorAll(".msg.user, .msg.tool")].pop();
     if (el) paintMsgUsage(el, Object.assign({}, event.usage || {}, { ms }));
     if (event.usage) {
@@ -2463,6 +3319,10 @@ window.wisp.onDock((info) => {
 
 if (window.wisp && typeof window.wisp.onLang === "function") {
   window.wisp.onLang((l) => setAppLanguage(l));
+}
+
+if (window.wisp && typeof window.wisp.onLanStatus === "function") {
+  window.wisp.onLanStatus((status) => paintLanStatus(status));
 }
 
 let dragCounter = 0;
@@ -2522,7 +3382,7 @@ window.addEventListener("drop", async (event) => {
           paintFolder();
           paintRiv();
           warned = false;
-          loadSkills();
+          loadComposerLists();
         }
       }
     }
@@ -2552,7 +3412,7 @@ if (folderBtn) {
       paintFolder();
       paintRiv();
       warned = false;
-      loadSkills();
+      loadComposerLists();
     }
   });
 }

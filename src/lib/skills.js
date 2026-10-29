@@ -151,27 +151,54 @@ function listSkills(cwd, home) {
   return uniq;
 }
 
+function skillMentions(text) {
+  const raw = String(text || "");
+  const re = /(?:^|\s)\/([a-z0-9][\w-]*)/gi;
+  const hits = [];
+  let match;
+  while ((match = re.exec(raw))) {
+    hits.push({ name: slug(match[1]), index: match.index, length: match[0].length });
+  }
+  return hits;
+}
+
 function slashSkill(text) {
-  const raw = String(text || "").trim();
-  const match = /^\/([a-z0-9][\w-]*)(?:\s+([\s\S]*))?$/i.exec(raw);
-  if (!match) return null;
-  return { name: slug(match[1]), rest: String(match[2] || "").trim() };
+  const raw = String(text || "");
+  const hit = skillMentions(raw)[0];
+  if (!hit) return null;
+  const rest = (raw.slice(0, hit.index) + " " + raw.slice(hit.index + hit.length)).replace(/\s+/g, " ").trim();
+  return { name: hit.name, rest };
 }
 
 function attachSkill(text, skills) {
-  const hit = slashSkill(text);
-  if (!hit) return String(text || "");
-  const skill = (skills || []).find((item) => item.name === hit.name);
-  if (!skill) return String(text || "");
-  let body = "";
-  try {
-    body = fs.readFileSync(skill.file, "utf8");
-  } catch {
-    return String(text || "");
+  const raw = String(text || "");
+  const hits = skillMentions(raw);
+  if (!hits.length) return raw;
+  const byName = new Map((skills || []).map((item) => [item.name, item]));
+  const blocks = [];
+  const used = new Set();
+  for (const hit of hits) {
+    if (used.has(hit.name)) continue;
+    const skill = byName.get(hit.name);
+    if (!skill) continue;
+    let body = "";
+    try {
+      body = fs.readFileSync(skill.file, "utf8");
+    } catch {
+      continue;
+    }
+    used.add(hit.name);
+    if (body.length > 12000) body = body.slice(0, 12000) + "\n…";
+    blocks.push(`Skill /${skill.name} (${skill.file})\n\n${body}`);
   }
-  if (body.length > 12000) body = body.slice(0, 12000) + "\n…";
-  const rest = hit.rest || String(text || "").trim();
-  return `Skill /${skill.name} (${skill.file})\n\n${body}\n\nPedido:\n${rest}`;
+  if (!blocks.length) return raw;
+  let rest = raw;
+  for (const hit of hits.filter((item) => used.has(item.name)).reverse()) {
+    const lead = rest[hit.index] === "/" ? "" : rest[hit.index];
+    rest = rest.slice(0, hit.index) + lead + rest.slice(hit.index + hit.length);
+  }
+  rest = rest.replace(/[ \t]{2,}/g, " ").trim();
+  return `${blocks.join("\n\n")}\n\nPedido:\n${rest}`;
 }
 
 const api = { FAMILIES, parseFrontmatter, slug, listSkills, slashSkill, attachSkill, skillRoots };

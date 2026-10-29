@@ -28,11 +28,50 @@ function providerHasThinking(id) {
   return !!providerById(normalizeProvider(id)).thinking;
 }
 
+function providerEnv(providerId, key, baseEnv) {
+  const p = providerById(normalizeProvider(providerId));
+  const out = Object.assign({}, baseEnv || {});
+  out[p.env] = key;
+  // ponytail: models.dev switched zai from ZAI_API_KEY to ZHIPU_API_KEY; set both.
+  if (p.id === "zai") out.ZHIPU_API_KEY = key;
+  return out;
+}
+
+function opencodeModelsArgs(providerId, refresh = true, verbose = true) {
+  const args = ["models", normalizeProvider(providerId)];
+  if (refresh) args.push("--refresh");
+  // --verbose prints the catalog metadata after each id, including the real
+  // display name ("DeepSeek V4.1 Flash 1017" instead of "deepseek-flash").
+  if (verbose) args.push("--verbose");
+  return args;
+}
+
 function prettyModelName(id) {
-  const slug = String(id || "")
-    .split("/")
-    .pop() || String(id || "");
-  return slug.replace(/^deepseek-/i, "").replace(/-/g, " ").replace(/\b[a-z]/g, (c) => c.toUpperCase());
+  return String(id || "").trim();
+}
+
+function prettyVariant(key) {
+  const raw = String(key || "").trim();
+  return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : "";
+}
+
+// reasoning variants offered by the model's catalog entry (low/high/max/...)
+function modelVariants(parsed) {
+  const map = parsed && parsed.variants && typeof parsed.variants === "object" ? parsed.variants : null;
+  const keys = map ? Object.keys(map).filter(Boolean) : [];
+  if (!keys.length) return [];
+  const out = [];
+  // ponytail: the catalog only lists effort levels; `none` is the off switch
+  // Wisp already sends for DeepSeek. Offer it explicitly instead of hiding it.
+  if (!keys.includes("none")) out.push({ displayName: "None", isDefault: true, params: [{ id: "variant", value: "none" }] });
+  for (const key of keys) {
+    out.push({
+      displayName: prettyVariant(key),
+      isDefault: key === "none",
+      params: [{ id: "variant", value: String(key) }],
+    });
+  }
+  return out;
 }
 
 function parseOpenCodeModels(cliText, providerId) {
@@ -40,13 +79,36 @@ function parseOpenCodeModels(cliText, providerId) {
   const thinking = providerHasThinking(provider) ? [THINKING_PARAM] : [];
   const seen = new Set();
   const out = [];
+  let pending = null;
+  const flush = () => {
+    if (!pending) return;
+    let name = pending.id;
+    let variants = [];
+    const raw = pending.meta.join("\n").trim();
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        const named = parsed && typeof parsed.name === "string" ? parsed.name.trim() : "";
+        if (named) name = named;
+        variants = modelVariants(parsed);
+      } catch {
+        // plain `opencode models` output has no metadata; keep the id.
+      }
+    }
+    if (variants.length) out.push({ id: pending.id, displayName: name, parameters: [], variants });
+    else out.push({ id: pending.id, displayName: name, parameters: thinking.slice(), variants: [] });
+  };
   for (const line of String(cliText || "").split(/\r?\n/)) {
     const id = line.trim().split(/\s+/)[0] || "";
-    if (!id.startsWith(provider + "/")) continue;
-    if (seen.has(id)) continue;
-    seen.add(id);
-    out.push({ id, displayName: prettyModelName(id), parameters: thinking.slice() });
+    if (id.startsWith(provider + "/")) {
+      flush();
+      pending = seen.has(id) ? null : { id, meta: [] };
+      if (pending) seen.add(id);
+      continue;
+    }
+    if (pending) pending.meta.push(line);
   }
+  flush();
   return out;
 }
 
@@ -89,12 +151,22 @@ function thinkingOn(params) {
   return (params || []).some((p) => p && p.id === "thinking" && /^(true|on|1|yes)$/i.test(String(p.value)));
 }
 
+function variantOn(params) {
+  const hit = (params || []).find((p) => p && p.id === "variant" && String(p.value || "").trim());
+  return hit ? String(hit.value).trim() : "";
+}
+
 function openCodeRunOpts(modelId, params) {
+  const variant = variantOn(params);
+  if (variant) {
+    // `--thinking` only shows blocks; the variant carries the real effort.
+    return { thinking: variant !== "none", variant };
+  }
   const thinking = thinkingOn(params);
   const id = String(modelId || "");
   // ponytail: `--thinking` only shows blocks. DeepSeek still thinks unless variant none.
-  const variant = !thinking && id.startsWith("deepseek/") ? "none" : "";
-  return { thinking, variant };
+  const off = !thinking && id.startsWith("deepseek/") ? "none" : "";
+  return { thinking, variant: off };
 }
 
 function toolLabel(part) {
@@ -150,7 +222,7 @@ function usageFromPart(part) {
  */
 function mapOpenCodeJson(ev, acc) {
   const out = [];
-  if (!ev || typeof ev !== "object") return out;
+  if (!ev || typeof ev !== "object" || (acc && acc.finished)) return out;
   const type = String(ev.type || "");
   const part = ev.part && typeof ev.part === "object" ? ev.part : {};
   const sessionId = ev.sessionID || ev.sessionId || part.sessionID || "";
@@ -278,6 +350,8 @@ const opencodeApi = {
   providerById,
   normalizeProvider,
   providerHasThinking,
+  providerEnv,
+  opencodeModelsArgs,
   prettyModelName,
   parseOpenCodeModels,
   providerFromModel,

@@ -148,7 +148,7 @@ function toolLabel(su) {
 
 function mapAgyEvent(ev, acc) {
   const out = [];
-  if (!ev || typeof ev !== "object" || !acc) return out;
+  if (!ev || typeof ev !== "object" || !acc || acc.finished) return out;
   const id = conversationIdOf(ev);
   if (id) {
     if (acc.wantId && id !== acc.wantId && !acc.gapEmitted) {
@@ -322,11 +322,13 @@ class AntigravityAgent {
       }
     } catch (err) {
       if (this.cancelling) {
+        this.busy = false;
         onEvent({ type: "run-cancel", ms: msOf() });
         return;
       }
       const message = err && err.message ? err.message : String(err);
       console.error("[antigravity send]", message);
+      this.busy = false;
       onEvent({ type: "run-error", text: message, ms: msOf() });
     } finally {
       this.busy = false;
@@ -352,6 +354,41 @@ class AntigravityAgent {
 
       let lineBuf = "";
       let errOut = "";
+      let settled = false;
+      let settleTimer = null;
+
+      // ponytail: on Windows, grandchildren spawned by agy inherit stdout/stderr pipes
+      // and can hold `close` open indefinitely after `result`. Settle shortly after finish.
+      const settle = (code, signal) => {
+        if (settled) return;
+        settled = true;
+        if (settleTimer) clearTimeout(settleTimer);
+        this.proc = null;
+        emitLine(lineBuf);
+        lineBuf = "";
+        try {
+          if (proc.stdout) proc.stdout.destroy();
+          if (proc.stderr) proc.stderr.destroy();
+          proc.kill();
+        } catch {}
+        if (this.cancelling) {
+          logger.warn("antigravity", "Processo agy cancelado pelo usuário.");
+          this.busy = false;
+          onEvent({ type: "run-cancel", ms: msOf() });
+          resolve();
+          return;
+        }
+        if (code !== 0 && code !== null) {
+          logger.error("antigravity", `Processo agy saiu com código de erro ${code}${signal ? " (" + signal + ")" : ""}.`, { stderr: errOut.trim() });
+        }
+        if (!acc.finished) {
+          const errText = errOut.trim() || HUNG_RUN;
+          logger.error("antigravity", "O modelo parou inesperadamente sem concluir a resposta.", { exitCode: code, stderr: errOut.trim(), receivedChars: (acc.turnText || "").length });
+          this.busy = false;
+          onEvent({ type: "run-error", text: errText, ms: msOf() });
+        }
+        resolve();
+      };
 
       const emitLine = (line) => {
         const trimmed = String(line || "").trim();
@@ -364,13 +401,19 @@ class AntigravityAgent {
         }
         for (const event of mapAgyEvent(ev, acc)) {
           if (this.cancelling && (event.type === "run-end" || event.type === "run-error")) continue;
-          if (event.type === "run-end" || event.type === "run-error") event.ms = msOf();
+          if (event.type === "run-end" || event.type === "run-error") {
+            event.ms = msOf();
+            this.busy = false;
+          }
           if (event.type === "usage" || event.type === "run-end") this.lastUsage = event.usage || this.lastUsage;
           onEvent(event);
         }
         if (acc.conversationId) {
           this.agentId = acc.conversationId;
           this.resumeId = acc.conversationId;
+        }
+        if (acc.finished && !settleTimer && !settled) {
+          settleTimer = setTimeout(() => settle(0, null), 300);
         }
       };
 
@@ -386,31 +429,15 @@ class AntigravityAgent {
       });
 
       proc.on("error", (err) => {
+        if (settled) return;
+        settled = true;
+        if (settleTimer) clearTimeout(settleTimer);
         this.proc = null;
         logger.error("antigravity", `Falha ao iniciar processo agy: ${err.message}`, { code: err.code, stack: err.stack });
         reject(err);
       });
 
-      proc.on("close", (code, signal) => {
-        this.proc = null;
-        emitLine(lineBuf);
-        lineBuf = "";
-        if (this.cancelling) {
-          logger.warn("antigravity", "Processo agy cancelado pelo usuário.");
-          onEvent({ type: "run-cancel", ms: msOf() });
-          resolve();
-          return;
-        }
-        if (code !== 0 && code !== null) {
-          logger.error("antigravity", `Processo agy saiu com código de erro ${code}${signal ? " (" + signal + ")" : ""}.`, { stderr: errOut.trim() });
-        }
-        if (!acc.finished) {
-          const errText = errOut.trim() || HUNG_RUN;
-          logger.error("antigravity", "O modelo parou inesperadamente sem concluir a resposta.", { exitCode: code, stderr: errOut.trim(), receivedChars: (acc.turnText || "").length });
-          onEvent({ type: "run-error", text: errText, ms: msOf() });
-        }
-        resolve();
-      });
+      proc.on("close", settle);
     });
   }
 
@@ -453,6 +480,7 @@ class AntigravityAgent {
       while (true) {
         if (this.cancelling) {
           await reader.cancel();
+          this.busy = false;
           onEvent({ type: "run-cancel", ms: msOf() });
           return;
         }
@@ -490,6 +518,7 @@ class AntigravityAgent {
         }
       }
 
+      this.busy = false;
       onEvent({ type: "run-end", status: "finished", usage: this.lastUsage, ms: msOf() });
     } finally {
       reader.releaseLock();

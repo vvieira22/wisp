@@ -1,7 +1,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
-const { mapOpenCodeJsonl, mapOpenCodeJson, mapOpenCodeBus, normalizeProvider, resolveOpenCodeModel, mergeKeys, parseOpenCodeModels, openCodeRunOpts, thinkingOn } = require("./opencode-providers.js");
+const { mapOpenCodeJsonl, mapOpenCodeJson, mapOpenCodeBus, normalizeProvider, resolveOpenCodeModel, mergeKeys, parseOpenCodeModels, openCodeRunOpts, thinkingOn, providerEnv, opencodeModelsArgs } = require("./opencode-providers.js");
 
 const fixture = [
   '{"type":"step_start","timestamp":1000,"sessionID":"ses_abc","part":{"type":"step-start"}}',
@@ -35,6 +35,13 @@ assert.equal(events[6].usage.reasoningTokens, 1);
 assert.equal(events[6].type, "usage");
 assert.equal(events[7].type, "run-end");
 assert.equal(events[7].status, "finished");
+assert.deepEqual(
+  mapOpenCodeJson(
+    { type: "step_finish", sessionID: "ses_abc", part: { type: "step-finish", reason: "stop" } },
+    acc,
+  ),
+  [],
+);
 
 const err = mapOpenCodeJsonl([
   '{"type":"step_start","sessionID":"ses_x","part":{}}',
@@ -71,10 +78,11 @@ assert.deepEqual(
   listed.map((m) => m.id),
   ["deepseek/deepseek-v4.5-flash", "deepseek/deepseek-v4-flash"],
 );
-assert.equal(listed[0].displayName, "V4.5 Flash");
+assert.equal(listed[0].displayName, "deepseek/deepseek-v4.5-flash");
 assert.equal(listed[0].parameters[0].id, "thinking");
 assert.ok(!listed.some((m) => m.id === "deepseek/deepseek-v4-pro"));
 assert.equal(parseOpenCodeModels("", "deepseek").length, 0);
+assert.equal(parseOpenCodeModels("deepseek/deepseek-flash\n", "deepseek")[0].displayName, "deepseek/deepseek-flash");
 const thinkToggle = effortChoices(listed[0]);
 assert.equal(thinkToggle.kind, "toggle");
 assert.equal(thinkToggle.paramId, "thinking");
@@ -84,6 +92,9 @@ const { agentForMode, OpenCodeAgent } = require("../../electron/agent-opencode.j
 assert.equal(agentForMode("ask"), "plan");
 assert.equal(agentForMode("plan"), "plan");
 assert.equal(agentForMode("agent"), "build");
+const agentOcSrc = require("node:fs").readFileSync(require("node:path").join(__dirname, "../../electron/agent-opencode.js"), "utf8");
+assert.match(agentOcSrc, /opencodeModelsArgs\(provider,\s*true\)/);
+assert.match(agentOcSrc, /providerEnv\(provider,\s*key/);
 {
   const oc = new OpenCodeAgent();
   oc.bind("ses_x", [{ role: "user", text: "oi" }, { role: "tool", text: "⚙ bash" }]);
@@ -125,6 +136,52 @@ assert.deepEqual(openCodeRunOpts("deepseek/deepseek-v4-flash", [{ id: "thinking"
 assert.deepEqual(openCodeRunOpts("zai/glm-4.7", []), { thinking: false, variant: "" });
 assert.equal(effortChoices(parseOpenCodeModels("moonshotai/kimi-k2\n", "moonshotai")[0]).kind, "none");
 assert.equal(parseOpenCodeModels("zai/glm-4.7\n", "zai")[0].parameters[0].id, "thinking");
+const zaiEnv = providerEnv("zai", "sk-glm", { PATH: "/bin" });
+assert.equal(zaiEnv.ZAI_API_KEY, "sk-glm");
+assert.equal(zaiEnv.ZHIPU_API_KEY, "sk-glm");
+assert.equal(zaiEnv.PATH, "/bin");
+const dsEnv = providerEnv("deepseek", "sk-ds", {});
+assert.equal(dsEnv.DEEPSEEK_API_KEY, "sk-ds");
+assert.equal(dsEnv.ZHIPU_API_KEY, undefined);
+assert.deepEqual(opencodeModelsArgs("deepseek", true), ["models", "deepseek", "--refresh", "--verbose"]);
+assert.deepEqual(opencodeModelsArgs("deepseek", false, false), ["models", "deepseek"]);
+assert.deepEqual(opencodeModelsArgs("deepseek", true, false), ["models", "deepseek", "--refresh"]);
+const verbose = parseOpenCodeModels(
+  [
+    "deepseek/deepseek-flash",
+    '{',
+    '  "id": "deepseek-flash",',
+    '  "providerID": "deepseek",',
+    '  "name": "DeepSeek V4.1 Flash 1017",',
+    '  "variants": { "low": { "reasoningEffort": "low" }, "high": { "reasoningEffort": "high" }, "max": { "reasoningEffort": "max" } }',
+    "}",
+    "deepseek/deepseek-v4-pro",
+    "{",
+    '  "name": "DeepSeek V4 Pro"',
+    "}",
+  ].join("\n"),
+  "deepseek",
+);
+assert.deepEqual(verbose.map((m) => m.displayName), ["DeepSeek V4.1 Flash 1017", "DeepSeek V4 Pro"]);
+assert.deepEqual(verbose.map((m) => m.id), ["deepseek/deepseek-flash", "deepseek/deepseek-v4-pro"]);
+const levels = effortChoices(verbose[0]);
+assert.equal(levels.kind, "variant");
+assert.deepEqual(levels.items.map((item) => item.label), ["None", "Low", "High", "Max"]);
+assert.equal(levels.items[0].isDefault, true);
+assert.deepEqual(verbose[0].variants.map((v) => v.params[0].value), ["none", "low", "high", "max"]);
+assert.deepEqual(openCodeRunOpts("deepseek/deepseek-flash", verbose[0].variants[2].params), {
+  thinking: true,
+  variant: "high",
+});
+assert.deepEqual(openCodeRunOpts("deepseek/deepseek-flash", verbose[0].variants[0].params), {
+  thinking: false,
+  variant: "none",
+});
+assert.deepEqual(openCodeRunOpts("zai/glm-4.7", []), { thinking: false, variant: "" });
+assert.deepEqual(
+  parseOpenCodeModels("Models cache refreshed\nzai/glm-5.3\nzai/glm-5.3-flash\n", "zai").map((m) => m.id),
+  ["zai/glm-5.3", "zai/glm-5.3-flash"],
+);
 
 const { Script } = require("node:vm");
 const fs = require("node:fs");

@@ -58,6 +58,24 @@ assert.equal(alphaStateAfterNew.items.length, 3);
 const betaStateAfterNew = chats.publicState(store, new Set(), "C:\\projects\\beta");
 assert.equal(betaStateAfterNew.items.length, 1);
 
+// 4b. reopening the store lands on the chat (and model) the user left open
+{
+  const reopen = chats.normalize(
+    JSON.parse(
+      JSON.stringify({
+        currentId: "c2",
+        items: [
+          { id: "c1", cwd: "C:\\projects\\alpha", title: "Alpha 1", model: "deepseek/deepseek-flash" },
+          { id: "c2", cwd: "C:\\projects\\alpha", title: "Alpha 2", model: "deepseek/deepseek-v4-pro", messages: [{ role: "user", text: "oi" }] },
+        ],
+      }),
+    ),
+  );
+  const restored = chats.current(reopen, "C:\\projects\\alpha");
+  assert.equal(restored.id, "c2");
+  assert.equal(restored.model, "deepseek/deepseek-v4-pro");
+}
+
 // 5. deleteChat directly by ID
 const deleted = chats.deleteChat(store, "c2", "en", "C:\\projects\\alpha");
 assert.equal(deleted.id, "c2");
@@ -71,5 +89,30 @@ const betaAfterDel = chats.publicState(store, new Set(), "C:\\projects\\beta");
 // Since c3 was the only chat in beta, a fresh chat is created automatically
 assert.equal(betaAfterDel.items.length, 1);
 assert.notEqual(betaAfterDel.currentId, "c3");
+
+// 6. knownProjects aggregates busy counts across multiple engine stores
+{
+  const s1 = chats.normalize({
+    currentId: "a1",
+    items: [{ id: "a1", cwd: "C:\\projects\\alpha", title: "A1", at: 100 }],
+  });
+  const s2 = chats.normalize({
+    currentId: "b1",
+    items: [
+      { id: "b1", cwd: "c:/projects/alpha/", title: "A2", at: 200 },
+      { id: "b2", cwd: "C:\\projects\\delta", title: "D1", at: 150 },
+    ],
+  });
+  const stateMulti = chats.publicState(s1, new Set(["a1", "b1", "b2"]), "C:\\projects\\delta", "pt-BR", {
+    stores: [s1, s2],
+    busyByEngine: { cursor: 1, antigravity: 2, opencode: 0 },
+  });
+  assert.deepEqual(stateMulti.busyByEngine, { cursor: 1, antigravity: 2, opencode: 0 });
+  assert.equal(stateMulti.projects.length, 2);
+  assert.equal(chats.sameCwd(stateMulti.projects[0].cwd, "C:\\projects\\delta"), true);
+  assert.equal(stateMulti.projects[0].busy, 1);
+  assert.equal(chats.sameCwd(stateMulti.projects[1].cwd, "C:\\projects\\alpha"), true);
+  assert.equal(stateMulti.projects[1].busy, 2);
+}
 
 console.log("chats.check: ok");
