@@ -13,6 +13,8 @@ const {
   mapOpenCodeJson,
   openCodeRunOpts,
   parseOpenCodeModels,
+  providerEnv,
+  opencodeModelsArgs,
 } = require("../src/lib/opencode-providers");
 const { normalizeReply } = require("../src/lib/permission");
 const { globalLogger: logger } = require("../src/lib/logs");
@@ -87,9 +89,9 @@ function freePort() {
   });
 }
 
-function listModels(bin, provider, env) {
+function runModelsCmd(bin, args, provider, env) {
   return new Promise((resolve) => {
-    const p = spawnOpenCode(bin, ["models", provider], {
+    const p = spawnOpenCode(bin, args, {
       env,
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -109,6 +111,23 @@ function listModels(bin, provider, env) {
       resolve({ models: [], error: hint || `opencode models ${provider} não listou nada` });
     });
   });
+}
+
+async function listModels(bin, provider, env) {
+  // Try verbose first so each model carries the catalog display name; fall back
+  // to plain ids on CLIs that do not know `--verbose`.
+  const attempts = [
+    opencodeModelsArgs(provider, true),
+    opencodeModelsArgs(provider, true, false),
+    opencodeModelsArgs(provider, false, false),
+  ];
+  let last = { models: [], error: "" };
+  for (const args of attempts) {
+    const result = await runModelsCmd(bin, args, provider, env);
+    if (result.models.length) return result;
+    last = result;
+  }
+  return last;
 }
 
 class OpenCodeAgent {
@@ -150,7 +169,7 @@ class OpenCodeAgent {
         cliPath: bin,
       };
     }
-    const env = Object.assign({}, process.env, { [envName(provider)]: key });
+    const env = providerEnv(provider, key, process.env);
     const listed = await listModels(bin, provider, env);
     if (!listed.models.length) {
       return {
@@ -191,11 +210,13 @@ class OpenCodeAgent {
       await this._run(cfg, prompt, onEvent, msOf);
     } catch (err) {
       if (this.cancelling) {
+        this.busy = false;
         onEvent({ type: "run-cancel", ms: msOf() });
         return;
       }
       const message = err && err.message ? err.message : String(err);
       console.error("[opencode send]", message);
+      this.busy = false;
       onEvent({ type: "run-error", text: message, ms: msOf() });
     } finally {
       this.busy = false;
@@ -233,7 +254,7 @@ class OpenCodeAgent {
     if (this.resumeId) args.push("--session", this.resumeId);
     args.push(prompt);
 
-    const env = Object.assign({}, process.env, { [envName(provider)]: key });
+    const env = providerEnv(provider, key, process.env);
 
     return new Promise((resolve, reject) => {
       const proc = spawnOpenCode(bin, args, {
@@ -254,6 +275,54 @@ class OpenCodeAgent {
       };
       let lineBuf = "";
       let errOut = "";
+      let settled = false;
+      let settleTimer = null;
+
+      // ponytail: `--port` server or spawned Windows grandchildren can hold stdio pipes
+      // open after `step_finish(stop)`. Settle shortly after finish so `send()` never hangs.
+      const settle = (code) => {
+        if (settled) return;
+        settled = true;
+        if (settleTimer) clearTimeout(settleTimer);
+        this.proc = null;
+        if (lineBuf.trim()) {
+          try {
+            emitMapped(JSON.parse(lineBuf.trim()));
+          } catch {
+            /* ignore */
+          }
+          lineBuf = "";
+        }
+        try {
+          if (proc.stdout) proc.stdout.destroy();
+          if (proc.stderr) proc.stderr.destroy();
+          proc.kill();
+        } catch {}
+        if (this.cancelling) {
+          logger.warn("opencode", "Processo opencode cancelado pelo usuário.");
+          this.busy = false;
+          onEvent({ type: "run-cancel", ms: msOf() });
+          resolve();
+          return;
+        }
+        if (code !== 0 && code !== null && !acc.turnText && !acc.finished) {
+          const errText = errOut.trim() || `opencode saiu com código ${code}`;
+          logger.error("opencode", `OpenCode encerrou com erro (código ${code}): ${errText}`, { stderr: errOut.trim() });
+          reject(new Error(errText));
+          return;
+        }
+        if (!acc.finished) {
+          this.busy = false;
+          if (this.pendingPermission || acc.pendingPermission) {
+            logger.warn("opencode", "OpenCode parou esperando permissão.");
+            onEvent({ type: "run-error", text: "O OpenCode parou esperando permissão.", ms: msOf() });
+          } else {
+            logger.error("opencode", `OpenCode parou inesperadamente sem concluir a resposta (código ${code}).`, { stderr: errOut.trim() });
+            onEvent({ type: "run-end", status: "finished", usage: this.lastUsage, ms: msOf() });
+          }
+        }
+        resolve();
+      };
 
       const emitMapped = (ev) => {
         for (const event of mapOpenCodeJson(ev, acc)) {
@@ -271,7 +340,10 @@ class OpenCodeAgent {
             this.pendingPermission = event;
           }
           if (event.type === "permission-resolved") this.pendingPermission = null;
-          if (event.type === "run-end" || event.type === "run-error") event.ms = msOf();
+          if (event.type === "run-end" || event.type === "run-error") {
+            event.ms = msOf();
+            this.busy = false;
+          }
           if (event.type === "usage" || event.type === "run-end") {
             this.lastUsage = event.usage || this.lastUsage;
           }
@@ -280,6 +352,9 @@ class OpenCodeAgent {
         if (acc.sessionId) {
           this.agentId = acc.sessionId;
           this.resumeId = acc.sessionId;
+        }
+        if (acc.finished && !settleTimer && !settled) {
+          settleTimer = setTimeout(() => settle(0), 300);
         }
       };
 
@@ -303,43 +378,15 @@ class OpenCodeAgent {
       });
 
       proc.on("error", (err) => {
+        if (settled) return;
+        settled = true;
+        if (settleTimer) clearTimeout(settleTimer);
         this.proc = null;
         logger.error("opencode", `Falha ao iniciar processo opencode: ${err.message}`, { code: err.code, stack: err.stack });
         reject(err);
       });
 
-      proc.on("close", (code) => {
-        this.proc = null;
-        if (lineBuf.trim()) {
-          try {
-            emitMapped(JSON.parse(lineBuf.trim()));
-          } catch {
-            /* ignore */
-          }
-        }
-        if (this.cancelling) {
-          logger.warn("opencode", "Processo opencode cancelado pelo usuário.");
-          onEvent({ type: "run-cancel", ms: msOf() });
-          resolve();
-          return;
-        }
-        if (code !== 0 && !acc.turnText && !acc.finished) {
-          const errText = errOut.trim() || `opencode saiu com código ${code}`;
-          logger.error("opencode", `OpenCode encerrou com erro (código ${code}): ${errText}`, { stderr: errOut.trim() });
-          reject(new Error(errText));
-          return;
-        }
-        if (!acc.finished) {
-          if (this.pendingPermission || acc.pendingPermission) {
-            logger.warn("opencode", "OpenCode parou esperando permissão.");
-            onEvent({ type: "run-error", text: "O OpenCode parou esperando permissão.", ms: msOf() });
-          } else {
-            logger.error("opencode", `OpenCode parou inesperadamente sem concluir a resposta (código ${code}).`, { stderr: errOut.trim() });
-            onEvent({ type: "run-end", status: "finished", usage: this.lastUsage, ms: msOf() });
-          }
-        }
-        resolve();
-      });
+      proc.on("close", settle);
     });
   }
 

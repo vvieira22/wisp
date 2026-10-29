@@ -16,13 +16,24 @@
           </button>
           <p class="name" data-for="chat" data-i18n="appTitle">Wisp</p>
           <p class="name" data-for="account" data-i18n="account">Account</p>
+          <span id="mobile-status-pill" class="mobile-only mobile-status-pill" data-state="ready" role="status" data-i18n="mobileStatusReady">Ready</span>
         </div>
         <div class="engine-tabs">
-          <button type="button" class="engine-tab active" data-engine="cursor" data-i18n="engineCursor">Cursor</button>
-          <button type="button" class="engine-tab" data-engine="antigravity" data-i18n="engineAntigravity">Antigravity</button>
-          <button type="button" class="engine-tab" data-engine="opencode" data-i18n="engineOpenCode">OpenCode</button>
+          <button type="button" class="engine-tab active" data-engine="cursor">
+            <span class="engine-tab-label" data-i18n="engineCursor">Cursor</span>
+            <span class="process-count-badge engine-tab-badge" hidden></span>
+          </button>
+          <button type="button" class="engine-tab" data-engine="antigravity">
+            <span class="engine-tab-label" data-i18n="engineAntigravity">Antigravity</span>
+            <span class="process-count-badge engine-tab-badge" hidden></span>
+          </button>
+          <button type="button" class="engine-tab" data-engine="opencode">
+            <span class="engine-tab-label" data-i18n="engineOpenCode">OpenCode</span>
+            <span class="process-count-badge engine-tab-badge" hidden></span>
+          </button>
         </div>
         <div class="tools">
+          <button id="mobile-pc-btn" type="button" class="mobile-only mobile-pc-btn" aria-pressed="false" title="Show or hide Wisp on the PC" data-i18n="mobilePcShow">PC screen</button>
           <button id="gear" type="button" class="icon-btn" data-for="chat" title="Settings" aria-label="Settings" data-i18n-title="settings" data-i18n-aria-label="settings">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="12" cy="8" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8" />
@@ -39,9 +50,17 @@
 
       <div id="page-chat">
         <p id="compat-banner" class="compat-banner" hidden role="status"></p>
+        <div id="task-toast" class="task-toast" hidden role="status">
+          <span id="task-toast-text" class="task-toast-text"></span>
+          <button type="button" id="task-toast-open" class="task-toast-btn" data-i18n="toastOpenBtn">Open</button>
+          <button type="button" id="task-toast-close" class="task-toast-close" aria-label="Close">×</button>
+        </div>
         <div class="session">
           <button id="folder" type="button" title="Choose project folder" data-i18n-title="chooseProjectFolder">
-            <span class="field-label" data-i18n="project">Project</span>
+            <span class="session-chat-label-row">
+              <span class="field-label" data-i18n="project">Project</span>
+              <span id="folder-busy-badge" class="process-count-badge" hidden></span>
+            </span>
             <span class="field-value" data-i18n="chooseFolder">choose folder</span>
           </button>
           <div class="session-chat">
@@ -98,10 +117,12 @@
             rows="1"
             autocomplete="off"
             spellcheck="false"
-            placeholder="Type here, or / for a skill"
+            placeholder="Type here, / for a skill, @ for a file"
             data-i18n-placeholder="inputPlaceholder"
           ></textarea>
           <div class="composer-bar">
+            <button type="button" id="attach-btn" class="mobile-only attach-btn" title="Attach files" aria-label="Attach files" data-i18n-title="attachFiles" data-i18n-aria-label="attachFiles">+</button>
+            <input id="attach-input" type="file" multiple hidden />
             <select id="mode" class="pick" title="Mode" data-i18n-title="mode">
               <option value="ask" selected data-i18n="modeAsk">Ask</option>
               <option value="plan" data-i18n="modePlan">Plan</option>
@@ -148,6 +169,14 @@
                 </tr>
               </thead>
               <tbody id="compat-rows"></tbody>
+            <div id="compat-update-ask" class="clear-ask compat-update-ask" hidden>
+              <span id="compat-update-ask-text"></span>
+              <div class="compat-update-ask-actions">
+                <button type="button" id="compat-update-yes" data-i18n="compatUpdateConfirmBtn">Update anyway</button>
+                <button type="button" id="compat-update-no" data-i18n="cancel">Cancel</button>
+              </div>
+            </div>
+            <p id="compat-update-status" class="hint setup-status" hidden></p>
             </table>
             <button type="button" id="compat-refresh" class="setup-check" data-i18n="compatRefresh">Check versions</button>
           </div>
@@ -161,6 +190,55 @@
                 <option value="pt-BR" data-i18n="langPtBr">Português (Brasil)</option>
               </select>
             </label>
+          </div>
+
+          <div id="lan-block" class="account-block lan-block">
+            <p class="field-label" data-i18n="lanTitle">Mobile (LAN)</p>
+            <div class="lan-row">
+              <span class="lan-row-label">
+                <strong data-i18n="lanEnable">Access from phone</strong>
+                <span data-i18n="lanEnableHint">Serves Wisp on your Wi-Fi. Allow Wisp in the Windows Firewall (private network) when asked.</span>
+              </span>
+              <button type="button" id="lan-enabled" class="lan-switch" role="switch" aria-checked="false" aria-label="Access from phone" data-i18n-aria-label="lanEnable"></button>
+            </div>
+            <div class="lan-row">
+              <span class="lan-row-label">
+                <strong data-i18n="lanHideDesktop">Invisible PC mode</strong>
+                <span data-i18n="lanHideDesktopHint">Hides Wisp windows on the PC while you use the phone.</span>
+              </span>
+              <button type="button" id="lan-hide-desktop" class="lan-switch" role="switch" aria-checked="false" aria-label="Invisible PC mode" data-i18n-aria-label="lanHideDesktop"></button>
+            </div>
+            <div class="lan-row">
+              <span class="lan-row-label">
+                <strong data-i18n="lanHttps">HTTPS (install as app)</strong>
+                <span data-i18n="lanHttpsHint">Required for Android to offer the app install. Install the certificate once.</span>
+              </span>
+              <button type="button" id="lan-https" class="lan-switch" role="switch" aria-checked="false" aria-label="HTTPS" data-i18n-aria-label="lanHttps"></button>
+            </div>
+            <p id="lan-https-warn" class="lan-error" hidden data-i18n="lanHttpsUnavailable">HTTPS unavailable: could not generate the local certificate on this computer.</p>
+            <div id="lan-cert-block" class="lan-cert-block" hidden>
+              <p class="field-label" data-i18n="lanCertTitle">Install on your phone</p>
+              <p class="hint" data-i18n="lanCertHint">Scan the QR below and follow the Android or iPhone steps.</p>
+              <div id="lan-ca-qr" class="lan-qr" hidden></div>
+              <p id="lan-ca-url" class="lan-url"></p>
+              <div class="lan-actions">
+                <button type="button" id="lan-ca-copy" data-i18n="lanCertCopy">Copy tutorial link</button>
+              </div>
+              <p class="hint" data-i18n="lanAppHint">Scan the QR below and choose “Install app” in the browser menu. The installed app uses this address; if the PC's IP changes, scan the QR again (or reserve a fixed IP).</p>
+            </div>
+            <div id="lan-qr" class="lan-qr" hidden></div>
+            <p id="lan-url" class="lan-url"></p>
+            <div class="lan-actions">
+              <button type="button" id="lan-copy" data-i18n="lanCopy">Copy link</button>
+              <button type="button" id="lan-regen" data-i18n="lanRegenerate">New token</button>
+              <button type="button" id="lan-disconnect" class="lan-disconnect" hidden data-i18n="lanDisconnect">Disconnect</button>
+            </div>
+            <p id="lan-clients" class="lan-clients" data-state="off" role="status" aria-live="polite">
+              <span id="lan-client-dot" class="lan-dot" aria-hidden="true"></span>
+              <span id="lan-clients-text" class="lan-clients-text"></span>
+            </p>
+            <p id="lan-install-hint" class="hint lan-install-hint" hidden data-i18n="lanInstallHttpHint">This page is open over HTTP. To install as an app, turn on HTTPS on the PC, install the certificate once, then open the HTTPS link.</p>
+            <a id="lan-install-link" class="lan-install-link" href="/install" hidden data-i18n="lanInstallOpen">Install app on phone</a>
           </div>
 
           <div id="account-cursor-box">
@@ -222,7 +300,7 @@
           <p id="who" class="hint"></p>
           <p id="status" class="hint" data-i18n="probeStatusDefault">Upon saving, tests the connection and fetches available models.</p>
           <button type="submit" id="probe" data-i18n="saveAndTest">Save and test</button>
-          <div class="account-block">
+          <div class="account-block desktop-only">
             <p class="field-label" data-i18n="mascot">Mascot</p>
             <button id="riv" type="button" class="workspace" title="Change bundled mascot.riv for another .riv" data-i18n-title="mascotChangeTitle">
               <span class="workspace-copy">
@@ -307,6 +385,25 @@
           </div>
         </div>
       </div>
+
+
+      <div id="folder-modal" class="mobile-sheet" hidden>
+        <button type="button" id="folder-modal-backdrop" class="mobile-sheet-backdrop" aria-label="Close" data-i18n-aria-label="cancel"></button>
+        <div class="mobile-sheet-card" role="dialog" aria-modal="true" aria-labelledby="folder-modal-title">
+          <div class="mobile-sheet-head">
+            <strong id="folder-modal-title" data-i18n="folderPickerTitle">Choose a folder</strong>
+            <button type="button" id="folder-modal-close" class="mobile-sheet-close" aria-label="Close" data-i18n-aria-label="cancel">×</button>
+          </div>
+          <p class="folder-section-label" data-i18n="folderRecent">Recent projects</p>
+          <div id="folder-recent-list" class="folder-recents"></div>
+          <p class="folder-section-label" data-i18n="folderQuickRoots">Quick access</p>
+          <div id="folder-roots" class="folder-roots"></div>
+          <input id="folder-search" type="search" autocomplete="off" spellcheck="false" placeholder="Search folders" data-i18n-placeholder="folderSearchPlaceholder" />
+          <div id="folder-crumbs" class="folder-crumbs"></div>
+          <div id="folder-list"></div>
+          <button type="button" id="folder-select-current" class="folder-select-current" data-i18n="folderSelectCurrent">Select this folder</button>
+        </div>
+      </div>
     </div>
     <script src="lib/i18n.js"></script>
     <script src="lib/models.js"></script>
@@ -316,6 +413,7 @@
     <script src="lib/permission.js"></script>
     <script src="lib/markdown.js"></script>
     <script src="lib/attachments.js"></script>
+    <script src="lib/mentions.js"></script>
     <script src="lib/logs.js"></script>
     <script src="lib/queue.js"></script>
     <script src="chat.js"></script>

@@ -124,6 +124,15 @@ Your API keys and credentials are never saved in plain text. Wisp implements a m
 - **Smart window docking** — Chat panel snaps seamlessly beside the pet, adapting across multiple screens and positions.
 - **Context meter** — Real-time token tracking relative to the active model's limits.
 
+### Mobile (LAN / PWA)
+
+Control the Wisp running on your PC from a phone on the same Wi-Fi — nothing to install.
+
+- Enable the LAN server in Settings (or the tray menu) and scan the QR code shown there.
+- The phone opens the same chats as a full-screen PWA; add it to the home screen to install.
+- The agent keeps running on the PC even if the phone disconnects, and the desktop pet can be hidden (tray-only) while you drive it from the phone.
+- Default port is `4777`, access is token-protected, and files attached on the phone are uploaded temporarily to the PC (25 MB per file, auto-cleaned).
+
 ### The mascot
 
 <div align="center">
@@ -176,7 +185,7 @@ Versions in [`compat.json`](compat.json) are what this Wisp release was built an
 
 | Component | Tested version |
 | :--- | :--- |
-| Wisp | 1.1.1 |
+| Wisp | 1.2.0 |
 | @cursor/sdk | 1.0.31 |
 | Electron | 44.3.0 |
 | Antigravity CLI (`agy`) | 1.2.7 |
