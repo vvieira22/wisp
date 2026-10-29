@@ -416,6 +416,7 @@ function applyRunEvent(store, chatId, event) {
       role: "permission",
       text: String(event.title || event.detail || "Permissão pendente"),
       permissionId: String(event.permissionId || ""),
+      sessionId: String(event.sessionId || ""),
       live: true,
     });
   } else if (type === "permission-resolved") {
@@ -443,13 +444,51 @@ function applyRunEvent(store, chatId, event) {
   return chat;
 }
 
-function publicState(store, busyIds, cwd, lang = "en") {
+function knownProjects(stores, busyIds, currentCwd) {
+  const list = Array.isArray(stores) ? stores : [stores];
+  const busy = busyIds instanceof Set ? busyIds : new Set(busyIds || []);
+  const byKey = new Map();
+  const add = (cwd, at = 0, isBusy = false) => {
+    const clean = String(cwd || "").trim();
+    const key = normCwd(clean);
+    if (!key) return;
+    const prev = byKey.get(key);
+    if (!prev) {
+      byKey.set(key, { cwd: clean, key, at: Number(at) || 0, busy: isBusy ? 1 : 0 });
+    } else {
+      if ((Number(at) || 0) > prev.at) {
+        prev.at = Number(at) || 0;
+        prev.cwd = clean;
+      }
+      if (isBusy) prev.busy += 1;
+    }
+  };
+  if (currentCwd) add(currentCwd, Date.now(), false);
+  for (const store of list) {
+    if (!store || !Array.isArray(store.items)) continue;
+    for (const chat of store.items) {
+      if (!chat || !chat.cwd) continue;
+      add(chat.cwd, chat.at, busy.has(chat.id));
+    }
+  }
+  return [...byKey.values()].sort((a, b) => {
+    if (sameCwd(a.cwd, currentCwd)) return -1;
+    if (sameCwd(b.cwd, currentCwd)) return 1;
+    if (b.busy !== a.busy) return b.busy - a.busy;
+    return b.at - a.at;
+  });
+}
+
+function publicState(store, busyIds, cwd, lang = "en", extra) {
   const busy = busyIds instanceof Set ? busyIds : new Set(busyIds || []);
   const cur = current(store, cwd, lang);
   const list = cwd !== undefined ? itemsForCwd(store, cwd) : store.items;
-  return {
+  const stores = extra && Array.isArray(extra.stores) ? extra.stores : [store];
+  const out = {
     currentId: cur.id,
     busyCount: busy.size,
+    busyByEngine: (extra && extra.busyByEngine) || { cursor: 0, antigravity: 0, opencode: 0 },
+    projects: knownProjects(stores, busy, cwd),
     items: list.map((chat) => ({
       id: chat.id,
       title:
@@ -462,6 +501,7 @@ function publicState(store, busyIds, cwd, lang = "en") {
     })),
     current: Object.assign({}, cur, { busy: busy.has(cur.id) }),
   };
+  return out;
 }
 
 const api = {
@@ -487,6 +527,7 @@ const api = {
   patch,
   appendUser,
   applyRunEvent,
+  knownProjects,
   publicState,
   blank,
   lastUsage,

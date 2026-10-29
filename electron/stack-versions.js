@@ -3,8 +3,8 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawn } = require("node:child_process");
-const { app } = require("electron");
-const { normalizeVersion } = require("../src/lib/compat");
+const { app, shell } = require("electron");
+const { normalizeVersion, updatePlanFor } = require("../src/lib/compat");
 const { findOpenCodeBin } = require("./agent-opencode");
 const { findAgyBin } = require("./agent-antigravity");
 
@@ -97,6 +97,94 @@ function cliNeeds(opts) {
   return { agy: false, opencode: false };
 }
 
+async function fetchLatestField(url, field, timeoutMs = 5000) {
+  try {
+    const res = await fetch(url, {
+      headers: { accept: "application/json", "user-agent": "wisp" },
+      signal: typeof AbortSignal !== "undefined" && AbortSignal.timeout ? AbortSignal.timeout(timeoutMs) : undefined,
+    });
+    if (!res.ok) return "";
+    const data = await res.json();
+    return normalizeVersion(data && data[field] ? String(data[field]) : "");
+  } catch {
+    return "";
+  }
+}
+
+async function fetchLatestVersions(timeoutMs = 5000) {
+  const [wisp, cursorSdk, electron, opencode] = await Promise.all([
+    fetchLatestField("https://api.github.com/repos/vvieira22/wisp/releases/latest", "tag_name", timeoutMs),
+    fetchLatestField("https://registry.npmjs.org/@cursor/sdk/latest", "version", timeoutMs),
+    fetchLatestField("https://registry.npmjs.org/electron/latest", "version", timeoutMs),
+    fetchLatestField("https://registry.npmjs.org/opencode-ai/latest", "version", timeoutMs),
+  ]);
+  return { wisp, cursorSdk, electron, agy: "", opencode };
+}
+
+function runUpdateCmd(bin, args, cwd, timeoutMs = 120000) {
+  return new Promise((resolve) => {
+    if (!bin) return resolve({ ok: false, error: "binário ausente" });
+    const isCmd = process.platform === "win32" && /\.(cmd|bat)$/i.test(bin);
+    const child = spawn(bin, args || [], { cwd, windowsHide: true, shell: isCmd });
+    let out = "";
+    let err = "";
+    let settled = false;
+    const done = (res) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(res);
+    };
+    const timer = setTimeout(() => {
+      try {
+        child.kill();
+      } catch {
+        /* ignore */
+      }
+      done({ ok: false, error: "tempo esgotado ao atualizar componente" });
+    }, timeoutMs);
+    child.stdout.on("data", (d) => (out += d.toString()));
+    child.stderr.on("data", (d) => (err += d.toString()));
+    child.on("error", (e) => done({ ok: false, error: e.message || String(e) }));
+    child.on("close", (code) => {
+      const combined = `${out}\n${err}`.trim();
+      if (code === 0) done({ ok: true, output: combined });
+      else done({ ok: false, error: combined || `${path.basename(bin)} saiu com código ${code}` });
+    });
+  });
+}
+
+async function updateComponent(id) {
+  const rootDir = path.join(__dirname, "..");
+  const plan = updatePlanFor(id, {
+    opencodeBin: findOpenCodeBin(),
+    agyBin: findAgyBin(),
+    packaged: !!(app && app.isPackaged),
+    hasGit: fs.existsSync(path.join(rootDir, ".git")),
+    platform: process.platform,
+  });
+  if (!plan) {
+    return { ok: false, id, error: "Atualização automática indisponível para este componente." };
+  }
+  if (plan.openUrl && !plan.bin) {
+    if (shell && typeof shell.openExternal === "function") await shell.openExternal(plan.openUrl);
+    return { ok: true, id, openedUrl: plan.openUrl };
+  }
+  let res = await runUpdateCmd(plan.bin, plan.args, rootDir);
+  if (!res.ok && plan.fallback) {
+    res = await runUpdateCmd(plan.fallback.bin, plan.fallback.args, rootDir);
+  }
+  if (!res.ok && plan.openUrl) {
+    if (shell && typeof shell.openExternal === "function") await shell.openExternal(plan.openUrl);
+    return { ok: true, id, openedUrl: plan.openUrl };
+  }
+  if (res.ok && plan.postArgs) {
+    const postBin = id === "opencode" ? findOpenCodeBin() || plan.bin : plan.bin;
+    await runUpdateCmd(postBin, plan.postArgs, rootDir, 20000);
+  }
+  return Object.assign({ id }, res);
+}
+
 /**
  * @param {{ cli?: 'none'|'auto'|'all', engine?: string, antigravityProvider?: string }} opts
  */
@@ -108,6 +196,7 @@ async function collectInstalledVersions(opts) {
   const scanned = { agy: false, opencode: false };
   let agy = "";
   let opencode = "";
+  let latest = {};
 
   const tasks = [];
   if (needs.agy) {
@@ -122,6 +211,11 @@ async function collectInstalledVersions(opts) {
       opencode = v;
     }));
   }
+  if (opts && opts.cli === "all") {
+    tasks.push(fetchLatestVersions().then((l) => {
+      latest = l;
+    }));
+  }
   if (tasks.length) await Promise.all(tasks);
 
   return {
@@ -133,12 +227,15 @@ async function collectInstalledVersions(opts) {
       opencode: ocBin || "",
     },
     scanned,
+    latest,
   };
 }
 
 module.exports = {
   collectBundledVersions,
   collectInstalledVersions,
+  fetchLatestVersions,
+  updateComponent,
   cliVersion,
   cursorSdkVersion,
   cliNeeds,

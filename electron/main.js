@@ -45,7 +45,7 @@ function ensureRipgrep() {
 }
 ensureRipgrep();
 
-const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage, screen, protocol, safeStorage } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage, screen, protocol, safeStorage, Notification } = require("electron");
 const { setSafeStorage } = require("../src/lib/crypto");
 if (safeStorage) setSafeStorage(safeStorage);
 const { WispAgent, loadConfig, saveConfig, pickDefault, resolveModel, formatMeter, meterTitle, resolveCwd, sameCwd, prewarmWorkspace, dropPrewarm } = require("./agent");
@@ -73,16 +73,67 @@ const {
   applyRunEvent,
 } = require("../src/lib/chats");
 const { listSkills, attachSkill } = require("../src/lib/skills");
+const { listFiles, attachFiles } = require("../src/lib/files");
+const { listFolders } = require("../src/lib/folders");
+const { qrSvg } = require("../src/lib/qr");
+const {
+  generateLanToken,
+  listLanAddresses,
+  pruneMobileUploads,
+  createLanServer,
+} = require("../src/lib/lan");
+const { ensureTls } = require("../src/lib/tls");
 const { globalLogger: logger } = require("../src/lib/logs");
+
+const rpcHandlers = {};
+let lanServer = null;
+let fallbackLanToken = "";
+
+function mobileUploadDir() {
+  return path.join(os.tmpdir(), "wisp-mobile-uploads");
+}
+
+let tlsState = null;
+let activeTlsIps = "";
+
+function tlsDir() {
+  return path.join(app.getPath("userData"), "tls");
+}
+
+function refreshTls() {
+  if (!rawCfg().lan.https) {
+    tlsState = null;
+    return tlsState;
+  }
+  tlsState = ensureTls(tlsDir(), listLanAddresses());
+  if (!tlsState.ok) {
+    logger.warn("system", `HTTPS indisponível: ${tlsState.error}`);
+  }
+  return tlsState;
+}
+
+function sendToClients(channel, ...args) {
+  if (chatWin && !chatWin.isDestroyed()) {
+    chatWin.webContents.send(channel, ...args);
+  }
+  if (lanServer) {
+    lanServer.broadcast(channel, ...args);
+  }
+}
+
+function handleRpc(channel, fn) {
+  rpcHandlers[channel] = (...args) => fn(null, ...args);
+  ipcMain.handle(channel, (event, ...args) => fn(event, ...args));
+}
 const { buildCompatReport } = require("../src/lib/compat");
-const { collectInstalledVersions, collectBundledVersions } = require("./stack-versions");
+const { collectInstalledVersions, collectBundledVersions, updateComponent } = require("./stack-versions");
 
 const COMPAT_CLI_CACHE_MS = 120000;
 let compatCliCache = null;
 let compatCliCacheAt = 0;
 
 function compatCtx() {
-  return { engine: currentEngine, antigravityProvider: cfg().provider };
+  return { engine: currentEngine, antigravityProvider: cfg().provider, packaged: !!(app && app.isPackaged) };
 }
 
 function mergeCliCache(installed, needs) {
@@ -95,6 +146,9 @@ function mergeCliCache(installed, needs) {
   }
   if (!needs.opencode && compatCliCache.scanned && compatCliCache.scanned.opencode) {
     out.scanned = Object.assign({}, out.scanned, { opencode: true });
+  }
+  if (compatCliCache.latest && (!out.latest || !Object.keys(out.latest).length)) {
+    out.latest = compatCliCache.latest;
   }
   return out;
 }
@@ -154,9 +208,7 @@ function pushCompatReport(opts) {
         `Stack fora do testado no Wisp ${report.wisp}. Erros e falhas são mais prováveis — veja Configurações → Stack testado.`
       );
     }
-    if (chatWin && !chatWin.isDestroyed()) {
-      chatWin.webContents.send("compat:report", report);
-    }
+    sendToClients("compat:report", report);
     return report;
   });
 }
@@ -209,67 +261,118 @@ function normalizeEngine(value) {
   return "cursor";
 }
 
-function getSessions() {
+function getSessions(engine = currentEngine) {
   if (!currentEngine) rawCfg();
-  if (currentEngine === "antigravity") return sessionsAntigravity;
-  if (currentEngine === "opencode") return sessionsOpenCode;
+  const eng = normalizeEngine(engine || currentEngine);
+  if (eng === "antigravity") return sessionsAntigravity;
+  if (eng === "opencode") return sessionsOpenCode;
   return sessionsCursor;
 }
 
-function makeAgent() {
-  if (currentEngine === "antigravity") return new AntigravityAgent();
-  if (currentEngine === "opencode") return new OpenCodeAgent();
+function makeAgent(engine = currentEngine) {
+  const eng = normalizeEngine(engine || currentEngine);
+  if (eng === "antigravity") return new AntigravityAgent();
+  if (eng === "opencode") return new OpenCodeAgent();
   return new WispAgent();
 }
 
 const configFile = () => path.join(app.getPath("userData"), "config.json");
-const chatsFile = () => {
+const chatsFile = (engine = currentEngine) => {
   if (!currentEngine) rawCfg();
+  const eng = normalizeEngine(engine || currentEngine);
   const name =
-    currentEngine === "antigravity"
+    eng === "antigravity"
       ? "chats-antigravity.json"
-      : currentEngine === "opencode"
+      : eng === "opencode"
         ? "chats-opencode.json"
         : "chats.json";
   return path.join(app.getPath("userData"), name);
 };
 
+// ponytail: keep one store per engine in memory so switching tabs mid-run
+// never discards background streams or overwrites the active engine's store.
+const chatsByEngine = { cursor: null, antigravity: null, opencode: null };
 let chats = { currentId: "", items: [] };
 
-function loadChats() {
-  try {
-    chats = normalize(JSON.parse(fs.readFileSync(chatsFile(), "utf8")));
-  } catch {
-    chats = normalize(null);
+function storeFor(engine = currentEngine) {
+  if (!currentEngine) rawCfg();
+  const eng = normalizeEngine(engine || currentEngine);
+  if (!chatsByEngine[eng]) {
+    try {
+      chatsByEngine[eng] = normalize(JSON.parse(fs.readFileSync(chatsFile(eng), "utf8")));
+    } catch {
+      chatsByEngine[eng] = normalize(null);
+    }
   }
+  if (eng === currentEngine) chats = chatsByEngine[eng];
+  return chatsByEngine[eng];
 }
 
-function saveChats() {
-  fs.mkdirSync(path.dirname(chatsFile()), { recursive: true });
-  fs.writeFileSync(chatsFile(), JSON.stringify(chats, null, 2), "utf8");
+function loadChats(engine = currentEngine) {
+  if (!currentEngine) rawCfg();
+  const eng = normalizeEngine(engine || currentEngine);
+  const store = storeFor(eng);
+  if (eng === currentEngine) chats = store;
+  return store;
 }
 
-function session(chatId) {
-  const id = chatId || current(chats).id;
-  const sMap = getSessions();
+function saveChats(engine = currentEngine) {
+  const eng = normalizeEngine(engine || currentEngine);
+  const store = chatsByEngine[eng] || (eng === currentEngine ? chats : null);
+  if (!store) return;
+  fs.mkdirSync(path.dirname(chatsFile(eng)), { recursive: true });
+  fs.writeFileSync(chatsFile(eng), JSON.stringify(store, null, 2), "utf8");
+}
+
+function session(chatId, engine = currentEngine) {
+  const eng = normalizeEngine(engine || currentEngine);
+  const store = storeFor(eng);
+  const id = chatId || current(store).id;
+  const sMap = getSessions(eng);
   if (!sMap.has(id)) {
-    sMap.set(id, makeAgent());
+    sMap.set(id, makeAgent(eng));
   }
   return sMap.get(id);
 }
 
 function busySet(startingChatId, endingChatId) {
   const ids = new Set();
-  for (const [id, sess] of getSessions()) {
-    if (sess.busy && id !== endingChatId) ids.add(id);
+  for (const sMap of [sessionsCursor, sessionsAntigravity, sessionsOpenCode]) {
+    for (const [id, sess] of sMap) {
+      if (sess.busy && id !== endingChatId) ids.add(id);
+    }
   }
   if (startingChatId) ids.add(startingChatId);
   if (endingChatId) ids.delete(endingChatId);
   return ids;
 }
 
-async function dropSession(chatId) {
-  const sMap = getSessions();
+function busyCountsByEngine(activeIds = busySet()) {
+  const counts = { cursor: 0, antigravity: 0, opencode: 0 };
+  for (const [eng, sMap] of [
+    ["cursor", sessionsCursor],
+    ["antigravity", sessionsAntigravity],
+    ["opencode", sessionsOpenCode],
+  ]) {
+    const seen = new Set();
+    for (const id of sMap.keys()) {
+      if (activeIds.has(id)) {
+        seen.add(id);
+        counts[eng] += 1;
+      }
+    }
+    for (const id of activeIds) {
+      if (!seen.has(id) && storeFor(eng).items.some((item) => item.id === id)) {
+        seen.add(id);
+        counts[eng] += 1;
+      }
+    }
+  }
+  return counts;
+}
+
+async function dropSession(chatId, engine = currentEngine) {
+  const sMap = getSessions(engine);
   const sess = sMap.get(chatId);
   sMap.delete(chatId);
   if (sess) await sess.close();
@@ -311,10 +414,27 @@ function publicSkills() {
   }));
 }
 
-function chatState() {
+function publicFiles() {
+  let cwd = "";
+  try {
+    if (cfg().cwd) cwd = resolveCwd(cfg().cwd);
+  } catch {
+    cwd = "";
+  }
+  return listFiles(cwd);
+}
+
+function allStores() {
+  return ["cursor", "antigravity", "opencode"].map((eng) => storeFor(eng));
+}
+
+function chatState(activeIds = busySet()) {
   const c = cfg();
   const lang = (c && c.lang) || "en";
-  return publicState(chats, busySet(), c.cwd, lang);
+  return publicState(chats, activeIds, c.cwd, lang, {
+    busyByEngine: busyCountsByEngine(activeIds),
+    stores: allStores(),
+  });
 }
 
 function stashChat(payload) {
@@ -322,7 +442,12 @@ function stashChat(payload) {
   const c = cfg();
   const chat = current(chats, c.cwd);
   const sess = getSessions().get(chat.id);
-  if (!(sess && sess.busy) && payload && Array.isArray(payload.messages)) {
+  if (
+    !(sess && sess.busy) &&
+    payload &&
+    Array.isArray(payload.messages) &&
+    payload.messages.length >= (chat.messages ? chat.messages.length : 0)
+  ) {
     putMessages(chats, payload.messages, payload.usageLabel, c.cwd);
   }
   if (sess && sess.agentId) chat.agentId = sess.agentId;
@@ -345,9 +470,10 @@ function bundledRiv() {
   return path.join(__dirname, "../src/mascot.riv");
 }
 
-function activeBlock(full) {
-  if (currentEngine === "antigravity") return full.antigravity;
-  if (currentEngine === "opencode") return full.opencode;
+function activeBlock(full, engine = currentEngine) {
+  const eng = normalizeEngine(engine || currentEngine);
+  if (eng === "antigravity") return full.antigravity;
+  if (eng === "opencode") return full.opencode;
   return full.cursor;
 }
 
@@ -394,12 +520,27 @@ function rawCfg() {
     }
   );
 
+  const lanRaw = fileData.lan && typeof fileData.lan === "object" ? fileData.lan : {};
+  if (!lanRaw.token && !fallbackLanToken) fallbackLanToken = generateLanToken();
+  const lanCfg = {
+    enabled: Boolean(lanRaw.enabled),
+    port: Number.isFinite(Number(lanRaw.port)) && Number(lanRaw.port) > 0 ? Math.round(Number(lanRaw.port)) : 4777,
+    httpsPort:
+      Number.isFinite(Number(lanRaw.httpsPort)) && Number(lanRaw.httpsPort) > 0
+        ? Math.round(Number(lanRaw.httpsPort))
+        : 4778,
+    https: lanRaw.https === true,
+    token: String(lanRaw.token || "").trim() || fallbackLanToken,
+    desktopHidden: Boolean(lanRaw.desktopHidden),
+  };
+
   return {
     engine: currentEngine,
     lang: normalizeLang(fileData.lang),
     cursor: cursorCfg,
     antigravity: antigravityCfg,
     opencode: opencodeCfg,
+    lan: lanCfg,
     riv: String(fileData.riv || "").trim(),
   };
 }
@@ -434,19 +575,23 @@ function writeCfg(next) {
     if (k === "riv") full.riv = v;
     else if (k === "engine") full.engine = v;
     else if (k === "lang") full.lang = normalizeLang(v);
-    else if (k === "cursor" || k === "antigravity" || k === "opencode" || k === "fullConfig" || k === "mascot") continue;
+    else if (k === "lan" && v && typeof v === "object") {
+      full.lan = Object.assign({}, full.lan || {}, v);
+    } else if (k === "cursor" || k === "antigravity" || k === "opencode" || k === "fullConfig" || k === "mascot") continue;
     else target[k] = v;
   }
   saveConfig(configFile(), full);
 }
 
-function cfg() {
+function cfg(engine = currentEngine) {
   const full = rawCfg();
-  const active = activeBlock(full);
+  const eng = normalizeEngine(engine || currentEngine);
+  const active = activeBlock(full, eng);
   const out = Object.assign({}, active, {
-    engine: currentEngine,
+    engine: eng,
     lang: full.lang || "en",
     riv: full.riv,
+    lan: full.lan,
     fullConfig: full,
   });
   out.mascot = mascotHit(out);
@@ -478,7 +623,7 @@ function broadcastPet(next, meta) {
   petState = next;
   const payload = Object.assign({ busyCount: busySet().size }, meta);
   if (petWin && !petWin.isDestroyed()) petWin.webContents.send("pet:state", next, payload);
-  if (chatWin && !chatWin.isDestroyed()) chatWin.webContents.send("pet:state", next, payload);
+  sendToClients("pet:state", next, payload);
 }
 
 function usageView(chat, usage) {
@@ -494,35 +639,123 @@ function usageView(chat, usage) {
 }
 
 function tellUsage(chat, usage) {
-  if (!chatWin || chatWin.isDestroyed()) return;
-  chatWin.webContents.send("account:update", usageView(chat, usage));
+  sendToClients("account:update", usageView(chat, usage));
 }
 
-function applyEvent(chatId, event) {
-  const id = chatId || current(chats).id;
+function jumpToChat(target) {
+  if (!target || typeof target !== "object") return { engine: currentEngine, config: cfg(), chats: chatState() };
+  const targetEngine = target.engine ? normalizeEngine(target.engine) : currentEngine;
+  const engineChanged = targetEngine !== currentEngine;
+  if (engineChanged) {
+    currentEngine = targetEngine;
+    writeCfg({ engine: currentEngine });
+  }
+  loadChats(currentEngine);
+  if (target.cwd) {
+    try {
+      const nextCwd = resolveCwd(target.cwd);
+      writeCfg({ cwd: nextCwd });
+      switchProjectCwd(nextCwd);
+    } catch {}
+  }
+  if (target.chatId) {
+    open(chats, target.chatId);
+    const opened = findChat(chats, target.chatId);
+    if (opened && opened.cwd && !sameCwd(cfg().cwd, opened.cwd)) {
+      writeCfg({ cwd: opened.cwd });
+    }
+    saveChats(currentEngine);
+  }
+  tellPetMascot();
+  const activeChat = current(chats, cfg().cwd);
+  tellUsage(activeChat, activeChat.usage);
+  const state = chatState();
+  const payload = { engine: currentEngine, config: cfg(), chats: state };
+  if (engineChanged) {
+    sendToClients("engine:changed", payload);
+    pushCompatReport({ cli: "auto", force: true }).catch(() => {});
+  } else {
+    sendToClients("chats:update", state);
+  }
+  return payload;
+}
+
+function notifyTaskEvent(eng, chat, chatCwd, event) {
+  try {
+    if (rawCfg().lan.desktopHidden && lanServer && lanServer.clientCount() > 0) return;
+    if (!Notification || typeof Notification.isSupported !== "function" || !Notification.isSupported()) return;
+    const lang = (cfg() && cfg().lang) || "en";
+    const engineName = eng === "antigravity" ? "Antigravity" : eng === "opencode" ? "OpenCode" : "Cursor";
+    const projName = chatCwd ? path.basename(chatCwd.replace(/[\\/]+$/, "")) || chatCwd : "Wisp";
+    const chatTitle = (chat && chat.title) || t("newChat", null, lang);
+    const bodyKey =
+      event.type === "run-error"
+        ? "notifyErrorBody"
+        : event.type === "permission-request"
+          ? "notifyPermissionBody"
+          : "notifyDoneBody";
+    const n = new Notification({
+      title: t("notifyDoneTitle", { engine: engineName, project: projName }, lang),
+      body: t(bodyKey, { chat: chatTitle }, lang),
+      icon: appIcon(),
+    });
+    n.on("click", () => {
+      jumpToChat({ engine: eng, cwd: chatCwd, chatId: chat && chat.id });
+      showChat(true);
+    });
+    n.show();
+  } catch {}
+}
+
+function applyEvent(chatId, event, engine = currentEngine) {
+  const eng = normalizeEngine(engine || currentEngine);
+  const store = storeFor(eng);
+  const id = chatId || current(store).id;
   const isStart = event.type === "run-start";
   const isEnd = event.type === "run-end" || event.type === "run-error" || event.type === "run-cancel";
-  const activeIds = isStart ? busySet(id, null) : isEnd ? busySet(null, id) : busySet(id, null);
+  if (isEnd && getSessions(eng).has(id)) getSessions(eng).get(id).busy = false;
+  const activeIds = isStart ? busySet(id, null) : isEnd ? busySet(null, id) : busySet();
   const busyCount = activeIds.size;
-  const tagged = Object.assign({ chatId: id, busyCount }, event);
-  const chat = findChat(chats, id);
-  applyRunEvent(chats, id, tagged);
+  const chat = findChat(store, id);
+  const chatCwd = (chat && chat.cwd) || cfg(eng).cwd || "";
+  const stateNow = chatState(activeIds);
+  const tagged = Object.assign(
+    {
+      chatId: id,
+      engine: eng,
+      cwd: chatCwd,
+      chatTitle: (chat && chat.title) || "",
+      busyCount,
+      busyByEngine: stateNow.busyByEngine,
+      projects: stateNow.projects,
+    },
+    event,
+  );
+  applyRunEvent(store, id, tagged);
   if (chat && (event.type === "run-end" || event.type === "usage")) {
     const usage = event.usage || chat.usage;
     tagged.usageLabel = formatMeter(usage, chat.messages, chat.model);
     chat.usageLabel = tagged.usageLabel;
   }
-  const focused = id === current(chats).id;
+  const focused = eng === currentEngine && id === current(chats, cfg().cwd).id;
   if (event.type === "run-start") {
-    logger.info(currentEngine, `Iniciou resposta (modelo: ${(chat && chat.model) || cfg().model})`, { chatId: id });
+    logger.info(eng, `Iniciou resposta (modelo: ${(chat && chat.model) || cfg(eng).model})`, { chatId: id });
   } else if (event.type === "run-error") {
-    logger.error(currentEngine, `Modelo parou com erro: ${event.text || "falhou"}`, { chatId: id, model: chat && chat.model, error: event.text });
+    logger.error(eng, `Modelo parou com erro: ${event.text || "falhou"}`, { chatId: id, model: chat && chat.model, error: event.text });
   } else if (event.type === "run-cancel") {
-    logger.warn(currentEngine, "Resposta cancelada pelo usuário", { chatId: id });
+    logger.warn(eng, "Resposta cancelada pelo usuário", { chatId: id });
   } else if (event.type === "run-end") {
-    logger.info(currentEngine, `Resposta finalizada com sucesso (${event.ms ? event.ms + "ms" : ""})`, { chatId: id, usage: event.usage });
+    logger.info(eng, `Resposta finalizada com sucesso (${event.ms ? event.ms + "ms" : ""})`, { chatId: id, usage: event.usage });
   } else if (event.type === "session-gap") {
-    logger.warn(currentEngine, `Aviso de sessão: ${event.text}`);
+    logger.warn(eng, `Aviso de sessão: ${event.text}`);
+  }
+
+  const winFocused = Boolean(chatOpen && chatWin && !chatWin.isDestroyed() && chatWin.isFocused());
+  if (
+    (event.type === "run-end" || event.type === "run-error" || event.type === "permission-request") &&
+    !(focused && winFocused)
+  ) {
+    notifyTaskEvent(eng, chat, chatCwd, event);
   }
 
   // ponytail: track busy processes count across all chats; when it drops to 0 on run-end, notify
@@ -531,21 +764,20 @@ function applyEvent(chatId, event) {
   broadcastPet(next, { busyCount });
 
   if (petWin && !petWin.isDestroyed()) {
-    if (focused || !activeIds.has(current(chats).id)) {
+    if (focused || !activeIds.has(current(chats).id) || isEnd || event.type === "permission-request") {
       petWin.webContents.send("chat:event", tagged);
     }
   }
-  if (chatWin && !chatWin.isDestroyed()) {
-    chatWin.webContents.send("chat:event", tagged);
-    if (focused && (event.type === "run-end" || event.type === "usage")) {
-      tellUsage(chat, event.usage || (getSessions().get(id) && getSessions().get(id).lastUsage));
-    }
-    if (isStart || isEnd) {
-      chatWin.webContents.send("chats:update", chatState());
-    }
+  sendToClients("chat:event", tagged);
+  if (focused && (event.type === "run-end" || event.type === "usage")) {
+    tellUsage(chat, event.usage || (getSessions(eng).get(id) && getSessions(eng).get(id).lastUsage));
+  }
+  if (isStart || isEnd) sendToClients("chats:update", chatState(activeIds));
+  if (isEnd && busyCount === 0) {
+    pruneMobileUploads(mobileUploadDir(), { busyCount: 0, maxAgeMs: 0 });
   }
   if (event.type === "run-end" || event.type === "run-error" || event.type === "run-cancel" || event.type === "run-start" || event.type === "permission-request" || event.type === "permission-resolved") {
-    saveChats();
+    saveChats(eng);
   }
 }
 
@@ -621,9 +853,7 @@ async function nativeDialog(opts) {
 }
 
 logger.onEntry((entry) => {
-  if (chatWin && !chatWin.isDestroyed()) {
-    chatWin.webContents.send("logs:entry", entry);
-  }
+  sendToClients("logs:entry", entry);
 });
 
 process.on("uncaughtException", (err) => {
@@ -825,6 +1055,12 @@ function placeChat() {
 
 function showChat(focus = true) {
   if (!chatWin) return;
+  if (rawCfg().lan.desktopHidden) {
+    writeCfg({ lan: { desktopHidden: false } });
+    if (petWin && !petWin.isDestroyed()) petWin.show();
+    updateTrayMenu();
+    pushLanStatus();
+  }
   placeChat();
   chatWin.show();
   pinOverlay(true);
@@ -840,6 +1076,170 @@ function hideChat() {
   chatOpen = false;
   tellPetChat(false);
   tellPetFace();
+}
+
+function setDesktopVisibility(visible, openChatOnRestore = false) {
+  const show = Boolean(visible);
+  writeCfg({ lan: { desktopHidden: !show } });
+  if (!show) {
+    hideChat();
+    if (petWin && !petWin.isDestroyed()) petWin.hide();
+  } else {
+    if (petWin && !petWin.isDestroyed()) {
+      petWin.show();
+      pinOverlay(true);
+    }
+    if (openChatOnRestore) showChat(true);
+  }
+  updateTrayMenu();
+  return pushLanStatus();
+}
+
+function lanStatusPayload() {
+  const full = rawCfg();
+  const lanCfg = full.lan;
+  const running = Boolean(lanServer && lanServer.isRunning());
+  const httpPort = running ? lanServer.port() : lanCfg.port || 4777;
+  const httpsPort = running ? lanServer.httpsPort() : 0;
+  const secure = Boolean(running && httpsPort && lanCfg.https && tlsState && tlsState.ok);
+  const scheme = secure ? "https" : "http";
+  const port = secure ? httpsPort : httpPort;
+  const addrs = listLanAddresses();
+  const urls = addrs.map((ip) => `${scheme}://${ip}:${port}/?token=${lanCfg.token}`);
+  const displayUrls = addrs.map((ip) => `${scheme}://${ip}:${port}`);
+  const caUrls = addrs.map((ip) => `http://${ip}:${httpPort}/ca.crt`);
+  const installUrls = addrs.map((ip) => `http://${ip}:${httpPort}/install?token=${lanCfg.token}`);
+  const primaryUrl = urls[0] || `${scheme}://127.0.0.1:${port}/?token=${lanCfg.token}`;
+  const caUrl = caUrls[0] || "";
+  const installUrl = installUrls[0] || "";
+  let qr = "";
+  let caQr = "";
+  let installQr = "";
+  try {
+    qr = qrSvg(primaryUrl);
+  } catch {}
+  try {
+    if (caUrl && lanCfg.https) caQr = qrSvg(caUrl);
+  } catch {}
+  try {
+    if (installUrl && lanCfg.https) installQr = qrSvg(installUrl);
+  } catch {}
+  return {
+    enabled: Boolean(lanCfg.enabled),
+    running,
+    https: secure,
+    httpsConfigured: Boolean(lanCfg.https),
+    httpsAvailable: Boolean(tlsState && tlsState.ok),
+    port,
+    httpPort,
+    httpsPort: secure ? httpsPort : 0,
+    urls: displayUrls,
+    pairUrls: urls,
+    primaryUrl,
+    displayUrl: displayUrls[0] || `${scheme}://127.0.0.1:${port}`,
+    qrSvg: qr,
+    caUrl,
+    caUrls,
+    caQrSvg: caQr,
+    installUrl,
+    installUrls,
+    installQrSvg: installQr,
+    clients: lanServer ? lanServer.clientCount() : 0,
+    desktopHidden: Boolean(lanCfg.desktopHidden),
+  };
+}
+
+function pushLanStatus() {
+  const status = lanStatusPayload();
+  sendToClients("lan:status", status);
+  return status;
+}
+
+function installInfoPayload(req) {
+  const lanCfg = rawCfg().lan;
+  const running = Boolean(lanServer && lanServer.isRunning());
+  const httpPort = running ? lanServer.port() : lanCfg.port || 4777;
+  const httpsPort = running ? lanServer.httpsPort() : 0;
+  const secure = Boolean(running && httpsPort && lanCfg.https && tlsState && tlsState.ok);
+  const reqHost = req && req.headers && req.headers.host ? String(req.headers.host) : "";
+  const hostIp = /^[0-9a-zA-Z.:-]+$/.test(reqHost) ? reqHost.split(":")[0] : "";
+  const ip = hostIp || listLanAddresses()[0] || "127.0.0.1";
+  return {
+    enabled: Boolean(lanCfg.enabled),
+    httpsConfigured: Boolean(lanCfg.https),
+    httpsAvailable: Boolean(tlsState && tlsState.ok),
+    https: secure,
+    ip,
+    httpUrl: `http://${ip}:${httpPort}/`,
+    httpsUrl: `https://${ip}:${httpsPort || lanCfg.httpsPort || 4778}/`,
+    caUrl: `http://${ip}:${httpPort}/ca.crt`,
+  };
+}
+
+async function syncLanServer() {
+  if (!lanServer) {
+    lanServer = createLanServer({
+      getToken: () => rawCfg().lan.token,
+      staticDir: path.join(__dirname, "../src"),
+      uploadDir: mobileUploadDir(),
+      handlers: rpcHandlers,
+      getTls: () => (tlsState && tlsState.ok ? { key: tlsState.key, cert: tlsState.cert } : null),
+      getCaPem: () => (tlsState && tlsState.ok ? tlsState.caPem : ""),
+      getInstallInfo: installInfoPayload,
+      onClientChange: () => {
+        pushLanStatus();
+      },
+    });
+  }
+  const lanCfg = rawCfg().lan;
+  if (!lanCfg.enabled) {
+    if (lanServer.isRunning()) {
+      await lanServer.stop();
+      logger.info("system", "Servidor Mobile LAN desativado");
+    }
+    return pushLanStatus();
+  }
+
+  if (lanCfg.https) refreshTls();
+  else tlsState = null;
+  const wantSecure = Boolean(lanCfg.https && tlsState && tlsState.ok);
+  const securePort = lanCfg.httpsPort || 4778;
+  const secureIps = wantSecure ? tlsState.ips.join(",") : "";
+
+  if (!lanServer.isRunning()) {
+    const info = await lanServer.start(lanCfg.port || 4777, wantSecure ? securePort : 0);
+    activeTlsIps = info && info.httpsPort ? secureIps : "";
+    if (info && info.port && info.port !== lanCfg.port) writeCfg({ lan: { port: info.port } });
+    if (info && info.httpsPort && info.httpsPort !== lanCfg.httpsPort) {
+      writeCfg({ lan: { httpsPort: info.httpsPort } });
+    }
+    logger.info(
+      "system",
+      info && info.httpsPort
+        ? `Servidor Mobile LAN ativo (http ${info.port} / https ${info.httpsPort})`
+        : `Servidor Mobile LAN ativo na porta ${info.port}`,
+    );
+  } else {
+    const runningSecure = lanServer.httpsPort();
+    if (!wantSecure && runningSecure) {
+      await lanServer.stopSecure();
+      activeTlsIps = "";
+      logger.info("system", "Servidor HTTPS Mobile desativado");
+    } else if (wantSecure && (runningSecure !== securePort || activeTlsIps !== secureIps)) {
+      if (runningSecure) await lanServer.stopSecure();
+      const info = await lanServer.startSecure(securePort);
+      activeTlsIps = info && info.httpsPort ? secureIps : "";
+      if (info && info.httpsPort && info.httpsPort !== lanCfg.httpsPort) {
+        writeCfg({ lan: { httpsPort: info.httpsPort } });
+      }
+      logger.info("system", `Servidor HTTPS Mobile ativo na porta ${info.httpsPort}`);
+    }
+  }
+
+  if (lanCfg.https && tlsState && !tlsState.ok) {
+    logger.warn("system", `HTTPS indisponível: ${tlsState.error}`);
+  }
+  return pushLanStatus();
 }
 
 async function resetSession(payload) {
@@ -874,23 +1274,40 @@ async function clearSession() {
   await dropSession(chat.id);
   clearCurrent(chats, lang, c.cwd);
   saveChats();
+  pruneMobileUploads(mobileUploadDir(), { busyCount: busySet().size, maxAgeMs: 0 });
   applyEvent(chat.id, { type: "session-reset" });
   tellUsage(chat, null);
   return chatState();
 }
 
 function toggleChat() {
+  if (rawCfg().lan.desktopHidden) {
+    setDesktopVisibility(true, true);
+    return;
+  }
   if (chatOpen) hideChat();
   else showChat(true);
 }
 
 function updateTrayMenu() {
   if (!tray) return;
-  const lang = (cfg() && cfg().lang) || "en";
+  const full = rawCfg();
+  const lang = full.lang || "en";
+  const hidden = Boolean(full.lan && full.lan.desktopHidden);
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: t("trayOpenChat", null, lang), click: () => showChat(true) },
       { label: t("trayHideChat", null, lang), click: hideChat },
+      {
+        label: hidden
+          ? lang === "pt-BR"
+            ? "Mostrar Wisp no Desktop"
+            : "Show Wisp on Desktop"
+          : lang === "pt-BR"
+            ? "Modo Invisível (Só Bandeja / Mobile)"
+            : "Invisible Mode (Tray / Mobile Only)",
+        click: () => setDesktopVisibility(hidden, hidden),
+      },
       { label: t("trayNewChat", null, lang), click: () => resetSession().catch((err) => console.error(err)) },
       { label: t("trayPickMascot", null, lang), click: () => pickMascot().catch((err) => console.error(err)) },
       { label: t("trayDefaultMascot", null, lang), click: () => clearMascot() },
@@ -912,6 +1329,7 @@ function createTray() {
 }
 
 app.whenReady().then(() => {
+  pruneMobileUploads(mobileUploadDir(), { forceAll: true });
   protocol.registerFileProtocol("wisp", (request, callback) => {
     try {
       // ponytail: rivSrc now uses a dummy host "x" + pathname; extract via URL
@@ -926,11 +1344,23 @@ app.whenReady().then(() => {
     }
   });
   if (safeStorage) setSafeStorage(safeStorage);
-  rawCfg();
+  const bootCfg = rawCfg();
   loadChats();
   createPet();
   createChat();
   createTray();
+  if (bootCfg.lan && bootCfg.lan.desktopHidden) {
+    setDesktopVisibility(false, false);
+  }
+  syncLanServer().catch((err) => console.error("[lan]", err));
+  // ponytail: no cross-platform "LAN IP changed" event; a 30s poll refreshes
+  // the HTTPS leaf/QR when DHCP moves the PC to a new address.
+  setInterval(() => {
+    if (!rawCfg().lan.enabled || !rawCfg().lan.https || !activeTlsIps) return;
+    if (listLanAddresses().join(",") !== activeTlsIps) {
+      syncLanServer().catch((err) => console.error("[lan]", err));
+    }
+  }, 30000);
   prewarmWorkspace(cfg()).catch((err) => console.error(err));
   // ponytail: opencode/agy --version can take seconds each; never block cold start on both CLIs.
   pushCompatReport({ cli: "none" }).catch((err) => console.error("[compat]", err));
@@ -946,18 +1376,33 @@ app.whenReady().then(() => {
 
 app.on("window-all-closed", () => {});
 app.on("before-quit", async () => {
+  pruneMobileUploads(mobileUploadDir(), { forceAll: true });
+  if (lanServer) await lanServer.stop();
   await dropPrewarm();
   await closeAllSessions();
 });
 
-ipcMain.handle("compat:report", async (_event, opts) => {
+handleRpc("compat:report", async (_event, opts) => {
   const installed = await installedForCompat(Object.assign({ cli: "all", force: true }, opts || {}));
   return buildCompatReport(installed, compatCtx());
 });
 
-ipcMain.handle("engine:get", () => currentEngine);
+handleRpc("compat:update", async (_event, id) => {
+  const compId = String(id || "").trim();
+  logger.info("compat", `Atualizando componente ${compId}…`);
+  const res = await updateComponent(compId);
+  if (res.ok) {
+    logger.info("compat", `Componente ${compId} atualizado com sucesso.`);
+  } else {
+    logger.error("compat", `Falha ao atualizar ${compId}: ${res.error || "erro desconhecido"}`);
+  }
+  const report = await pushCompatReport({ cli: "all", force: true });
+  return Object.assign({}, res, { report });
+});
 
-ipcMain.handle("engine:set", async (_event, targetEngine) => {
+handleRpc("engine:get", () => currentEngine);
+
+handleRpc("engine:set", async (_event, targetEngine) => {
   const eng = normalizeEngine(targetEngine);
   if (currentEngine === eng) return { engine: currentEngine, config: cfg(), chats: chatState() };
   currentEngine = eng;
@@ -968,16 +1413,14 @@ ipcMain.handle("engine:set", async (_event, targetEngine) => {
   tellPetMascot();
   tellUsage(current(chats));
   const payload = { engine: currentEngine, config: cfg(), chats: chatState() };
-  if (chatWin && !chatWin.isDestroyed()) {
-    chatWin.webContents.send("engine:changed", payload);
-    pushCompatReport({ cli: "auto", force: true }).catch(() => {});
-  }
+  sendToClients("engine:changed", payload);
+  pushCompatReport({ cli: "auto", force: true }).catch(() => {});
   return payload;
 });
 
-ipcMain.handle("config:get", () => cfg());
+handleRpc("config:get", () => cfg());
 
-ipcMain.handle("config:set", async (_event, partial) => {
+handleRpc("config:set", async (_event, partial) => {
   const prev = cfg();
   const next = Object.assign(prev, partial || {});
   if (partial && partial.cwd) {
@@ -992,20 +1435,50 @@ ipcMain.handle("config:set", async (_event, partial) => {
   if (partial && partial.cwd && !sameCwd(prev.cwd, next.cwd)) {
     switchProjectCwd(next.cwd);
     tellUsage(current(chats, next.cwd));
-    if (chatWin && !chatWin.isDestroyed()) {
-      chatWin.webContents.send("chats:update", chatState());
-    }
+    sendToClients("chats:update", chatState());
   }
   if (partial && partial.lang) {
     updateTrayMenu();
     if (petWin && !petWin.isDestroyed()) petWin.webContents.send("config:lang", next.lang);
-    if (chatWin && !chatWin.isDestroyed()) chatWin.webContents.send("config:lang", next.lang);
+    sendToClients("config:lang", next.lang);
   }
   tellUsage(current(chats, cfg().cwd));
   return cfg();
 });
 
-ipcMain.handle("account:probe", async (_event, payload) => {
+handleRpc("folders:list", (_event, dir) => {
+  return listFolders(dir, { currentCwd: cfg().cwd, homeDir: os.homedir() });
+});
+
+handleRpc("lan:status", () => lanStatusPayload());
+
+handleRpc("lan:set", async (_event, partial) => {
+  const next = partial && typeof partial === "object" ? partial : {};
+  const before = rawCfg().lan;
+  writeCfg({ lan: next });
+  const after = rawCfg().lan;
+  const needsRestart =
+    lanServer && lanServer.isRunning() && (!after.enabled || after.port !== before.port);
+  if (needsRestart) await lanServer.stop();
+  return syncLanServer();
+});
+
+handleRpc("lan:regenerate-token", () => {
+  writeCfg({ lan: { token: generateLanToken() } });
+  logger.info("system", "Token de acesso Mobile regenerado");
+  return pushLanStatus();
+});
+
+handleRpc("lan:disconnect", () => {
+  writeCfg({ lan: { token: generateLanToken() } });
+  if (lanServer) lanServer.dropClients();
+  logger.info("system", "Celulares desconectados do Wisp Mobile");
+  return pushLanStatus();
+});
+
+handleRpc("desktop:visibility", (_event, visible) => setDesktopVisibility(visible, Boolean(visible)));
+
+handleRpc("account:probe", async (_event, payload) => {
   if (currentEngine === "antigravity") {
     const agAgent = new AntigravityAgent();
     const provider = (payload && typeof payload === "object" && payload.provider) || cfg().provider || "cli";
@@ -1123,69 +1596,99 @@ ipcMain.handle("pet:preview", (_event, state) => {
   return { state: petState, states: STATES };
 });
 
-ipcMain.handle("chat:cancel", async (_event, chatId) => {
-  const id = chatId || current(chats).id;
-  const sMap = getSessions();
+handleRpc("chats:jump", (_event, target) => jumpToChat(target));
+
+handleRpc("chat:cancel", async (_event, chatId, targetEngine) => {
+  const eng = normalizeEngine(targetEngine || currentEngine);
+  const store = storeFor(eng);
+  const id = chatId || current(store).id;
+  const sMap = getSessions(eng);
   const sess = sMap.get(id);
   if (sess) await sess.cancel();
 });
 
-ipcMain.handle("chat:permission:respond", async (_event, payload, chatId) => {
-  const id = chatId || current(chats).id;
-  const sess = getSessions().get(id);
+handleRpc("chat:permission:respond", async (_event, payload, chatId, targetEngine) => {
   const body = payload && typeof payload === "object" ? payload : {};
+  const eng = normalizeEngine(targetEngine || body.engine || currentEngine);
+  const store = storeFor(eng);
+  const id = chatId || current(store).id;
+  const sess = getSessions(eng).get(id);
   if (sess && typeof sess.respondPermission === "function") {
     try {
       const ok = await sess.respondPermission(body);
-      applyEvent(id, {
-        type: "permission-resolved",
-        permissionId: body.permissionId || "",
-        response: body.response || "",
-      });
+      applyEvent(
+        id,
+        {
+          type: "permission-resolved",
+          permissionId: body.permissionId || "",
+          response: body.response || "",
+        },
+        eng,
+      );
       if (ok === false) {
-        applyEvent(id, {
-          type: "session-gap",
-          text: "Este provedor não aceita aprovação interativa. Nega ou espera o turno acabar.",
-        });
+        applyEvent(
+          id,
+          {
+            type: "session-gap",
+            text: "Este provedor não aceita aprovação interativa. Nega ou espera o turno acabar.",
+          },
+          eng,
+        );
       }
       return ok !== false;
     } catch (err) {
-      applyEvent(id, {
-        type: "session-gap",
-        text: (err && err.message) || "Não deu pra responder a permissão.",
-      });
+      applyEvent(
+        id,
+        {
+          type: "session-gap",
+          text: (err && err.message) || "Não deu pra responder a permissão.",
+        },
+        eng,
+      );
       return false;
     }
   }
-  applyEvent(id, {
-    type: "permission-resolved",
-    permissionId: body.permissionId || "",
-    response: body.response || "",
-  });
-  applyEvent(id, {
-    type: "session-gap",
-    text: "Este provedor não aceita aprovação interativa. Nega ou espera o turno acabar.",
-  });
+  applyEvent(
+    id,
+    {
+      type: "permission-resolved",
+      permissionId: body.permissionId || "",
+      response: body.response || "",
+    },
+    eng,
+  );
+  applyEvent(
+    id,
+    {
+      type: "session-gap",
+      text: "Este provedor não aceita aprovação interativa. Nega ou espera o turno acabar.",
+    },
+    eng,
+  );
   return false;
 });
 
-ipcMain.handle("chat:send", async (_event, text, chatId) => {
-  const c = cfg();
-  const cwd = resolveCwd(c.cwd);
-  if (!chats.items.length) loadChats();
-  const chat = findChat(chats, chatId);
+handleRpc("chat:send", async (_event, text, chatId, targetEngine) => {
+  const runEngine = normalizeEngine(targetEngine || currentEngine);
+  const c = cfg(runEngine);
+  const store = storeFor(runEngine);
+  const chat = findChat(store, chatId);
+  // ponytail: lock cwd to chat.cwd so background queue drains in the chat's own project
+  const cwd = resolveCwd((chat && chat.cwd) || c.cwd);
+  if (chat && !chat.cwd && cwd) chat.cwd = cwd;
   if (!chat.model) chat.model = c.model;
-  chat.model = resolveModel(chat.model, null, currentEngine);
+  chat.model = resolveModel(chat.model, null, runEngine);
   if (!chat.params || !chat.params.length) chat.params = Array.isArray(c.params) ? c.params.slice() : [];
   if (!chat.mode) chat.mode = "ask";
-  appendUser(chats, text, chat.id);
-  saveChats();
-  const sess = session(chat.id);
+  appendUser(store, text, chat.id);
+  saveChats(runEngine);
+  const sess = session(chat.id, runEngine);
   const resumeId = sameCwd(chat.cwd, cwd) ? chat.agentId : "";
   sess.bind(resumeId, chat.messages);
-  let prompt = /^\/[a-z0-9]/i.test(String(text || "").trim())
-    ? attachSkill(text, listSkills(cwd, os.homedir()))
-    : String(text || "");
+  const raw = String(text || "");
+  let prompt = raw;
+  if (/(?:^|\s)\/[a-z0-9]/i.test(raw)) prompt = attachSkill(raw, listSkills(cwd, os.homedir()));
+  if (/(?:^|\s)@\S/.test(raw)) prompt = attachFiles(raw, cwd, (c && c.lang) || "en", prompt);
   const runCfg = Object.assign({}, c, {
     apiKey: c.apiKey,
     cwd,
@@ -1193,14 +1696,14 @@ ipcMain.handle("chat:send", async (_event, text, chatId) => {
     params: chat.params,
     mode: chat.mode,
   });
-  logger.info(currentEngine, `Enviando mensagem para o modelo ${chat.model}`, { chatId: chat.id, cwd });
+  logger.info(runEngine, `Enviando mensagem para o modelo ${chat.model}`, { chatId: chat.id, cwd });
   let terminal = null;
   try {
     await sess.send(
       runCfg,
       prompt,
       (event) => {
-        applyEvent(chat.id, event);
+        applyEvent(chat.id, event, runEngine);
         if (event.type === "run-end" || event.type === "run-cancel" || event.type === "run-error") {
           terminal = event.type;
         }
@@ -1208,48 +1711,54 @@ ipcMain.handle("chat:send", async (_event, text, chatId) => {
     );
   } catch (err) {
     const msg = err && err.message ? err.message : String(err);
-    logger.error(currentEngine, `Falha durante execução do modelo: ${msg}`, { stack: err && err.stack, model: chat.model });
-    if (terminal !== "run-error") applyEvent(chat.id, { type: "run-error", text: msg });
+    logger.error(runEngine, `Falha durante execução do modelo: ${msg}`, { stack: err && err.stack, model: chat.model });
+    if (terminal !== "run-error") applyEvent(chat.id, { type: "run-error", text: msg }, runEngine);
     return { terminal: terminal || "run-error" };
+  }
+  if (!terminal) {
+    applyEvent(chat.id, { type: "run-end", status: "finished" }, runEngine);
+    terminal = "run-end";
   }
   chat.agentId = sess.agentId || "";
   chat.cwd = sess.cwd || cwd;
-  saveChats();
+  saveChats(runEngine);
+  sendToClients("chats:update", chatState());
   return { terminal };
 });
 
-ipcMain.handle("logs:get", (_event, filter) => {
+handleRpc("logs:get", (_event, filter) => {
   return {
     logs: filter ? logger.filter(filter) : logger.getAll(),
     summary: logger.summary(),
   };
 });
 
-ipcMain.handle("logs:clear", () => {
+handleRpc("logs:clear", () => {
   logger.clear();
   return { logs: [], summary: logger.summary() };
 });
 
-ipcMain.handle("logs:add", (_event, entry) => {
+handleRpc("logs:add", (_event, entry) => {
   return logger.add(entry);
 });
 
-ipcMain.handle("skills:list", () => publicSkills());
+handleRpc("skills:list", () => publicSkills());
+handleRpc("files:list", () => publicFiles());
 
-ipcMain.handle("chat:reset", (_event, payload) => resetSession(payload));
-ipcMain.handle("chat:clear", () => clearSession());
+handleRpc("chat:reset", (_event, payload) => resetSession(payload));
+handleRpc("chat:clear", () => clearSession());
 
-ipcMain.handle("chats:list", () => {
+handleRpc("chats:list", () => {
   if (!chats.items.length) loadChats();
   return chatState();
 });
 
-ipcMain.handle("chats:save", (_event, payload) => {
+handleRpc("chats:save", (_event, payload) => {
   stashChat(payload);
   return chatState();
 });
 
-ipcMain.handle("chats:open", async (_event, id, payload) => {
+handleRpc("chats:open", async (_event, id, payload) => {
   stashChat(payload);
   open(chats, id);
   saveChats();
@@ -1264,23 +1773,22 @@ ipcMain.handle("chats:open", async (_event, id, payload) => {
   return chatState();
 });
 
-ipcMain.handle("chats:delete", async (_event, id) => {
+handleRpc("chats:delete", async (_event, id) => {
   if (!chats.items.length) loadChats();
   const c = cfg();
   const lang = (c && c.lang) || "en";
   await dropSession(id);
   deleteChat(chats, id, lang, c.cwd);
   saveChats();
+  pruneMobileUploads(mobileUploadDir(), { busyCount: busySet().size, maxAgeMs: 0 });
   const chat = current(chats, c.cwd, lang);
   tellUsage(chat, chat.usage);
   const state = chatState();
-  if (chatWin && !chatWin.isDestroyed()) {
-    chatWin.webContents.send("chats:update", state);
-  }
+  sendToClients("chats:update", state);
   return state;
 });
 
-ipcMain.handle("chats:patch", (_event, partial) => {
+handleRpc("chats:patch", (_event, partial) => {
   if (!chats.items.length) loadChats();
   const chat = patch(chats, partial, current(chats, cfg().cwd).id);
   if (partial && partial.model) {
@@ -1297,7 +1805,7 @@ ipcMain.handle("chats:patch", (_event, partial) => {
   return chatState();
 });
 
-ipcMain.handle("chats:rename", (_event, title) => {
+handleRpc("chats:rename", (_event, title) => {
   if (!chats.items.length) loadChats();
   rename(chats, title, cfg().cwd);
   saveChats();

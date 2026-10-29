@@ -1,6 +1,7 @@
 "use strict";
 
 const http = require("node:http");
+const https = require("node:https");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const os = require("node:os");
@@ -17,6 +18,21 @@ const MIME_TYPES = {
   ".svg": "image/svg+xml",
   ".riv": "application/octet-stream",
 };
+
+// ponytail: the manifest is fetched without the pairing cookie during the
+// installability check, so these metadata files must not be auth-gated.
+const PUBLIC_PATHS = new Set([
+  "/manifest.json",
+  "/sw.js",
+  "/icon.png",
+  "/icon-192.png",
+  "/icon-512.png",
+  "/icon-512-maskable.png",
+  "/ca.crt",
+  "/install",
+  "/install.html",
+  "/api/install",
+]);
 
 function generateLanToken() {
   return crypto.randomBytes(24).toString("hex");
@@ -110,8 +126,10 @@ function injectMobileHtml(html) {
   const headInject = [
     '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />',
     '<meta name="theme-color" content="#16141c" />',
+    '<meta name="mobile-web-app-capable" content="yes" />',
     '<meta name="apple-mobile-web-app-capable" content="yes" />',
     '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />',
+    '<link rel="apple-touch-icon" href="icon-512.png" />',
     '<link rel="manifest" href="manifest.json" />',
     '<link rel="stylesheet" href="mobile.css" />',
   ].join("\n    ");
@@ -177,9 +195,14 @@ function createLanServer(opts) {
   const staticDir = path.resolve(o.staticDir || path.join(__dirname, ".."));
   const uploadDir = path.resolve(o.uploadDir || path.join(os.tmpdir(), "wisp-mobile-uploads"));
   const onClientChange = typeof o.onClientChange === "function" ? o.onClientChange : null;
+  const getTls = typeof o.getTls === "function" ? o.getTls : () => null;
+  const getCaPem = typeof o.getCaPem === "function" ? o.getCaPem : () => "";
+  const getInstallInfo = typeof o.getInstallInfo === "function" ? o.getInstallInfo : () => ({});
 
-  let server = null;
+  let httpServer = null;
+  let httpsServer = null;
   let activePort = 0;
+  let activeSecurePort = 0;
   const sseClients = new Set();
   const sockets = new Set();
 
@@ -228,7 +251,7 @@ function createLanServer(opts) {
         return;
       }
       res.writeHead(302, {
-        "Set-Cookie": `wisp_token=${encodeURIComponent(expectedToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000`,
+        "Set-Cookie": `wisp_token=${encodeURIComponent(expectedToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
         Location: urlObj.pathname || "/",
         "Cache-Control": "no-store",
       });
@@ -236,7 +259,7 @@ function createLanServer(opts) {
       return;
     }
 
-    if (!authed) {
+    if (!authed && !PUBLIC_PATHS.has(urlObj.pathname)) {
       if (urlObj.pathname.startsWith("/api/")) {
         sendJson(res, 401, { ok: false, error: "Unauthorized" });
       } else {
@@ -245,6 +268,11 @@ function createLanServer(opts) {
           "<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Wisp Mobile</title><style>body{background:#16141c;color:#f3e6c4;font-family:system-ui,sans-serif;display:grid;place-items:center;height:100dvh;margin:0;padding:24px;text-align:center}.card{max-width:340px;padding:24px;border:1px solid rgba(243,230,196,.16);border-radius:16px;background:rgba(255,255,255,.03)}h1{font-size:20px;margin:0 0 8px;color:#d89a4a}p{font-size:14px;line-height:1.5;color:#b4ab97;margin:0}</style></head><body><div class='card'><h1>Wisp Mobile</h1><p>Escaneie o QR Code nas Configurações do Wisp no seu computador para autenticar este dispositivo.</p></div></body></html>",
         );
       }
+      return;
+    }
+
+    if (req.method === "GET" && urlObj.pathname === "/api/install") {
+      sendJson(res, 200, Object.assign({ ok: true }, getInstallInfo(req)));
       return;
     }
 
@@ -338,6 +366,23 @@ function createLanServer(opts) {
       return;
     }
 
+    // Local CA download: the phone installs this once to trust the HTTPS server.
+    if (urlObj.pathname === "/ca.crt") {
+      const pem = String(getCaPem() || "");
+      if (!pem) {
+        res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+        res.end("Certificate not available");
+        return;
+      }
+      res.writeHead(200, {
+        "Content-Type": "application/x-x509-ca-cert",
+        "Content-Disposition": 'attachment; filename="wisp-ca.crt"',
+        "Cache-Control": "no-store",
+      });
+      res.end(pem);
+      return;
+    }
+
     // Static files under staticDir
     const rawPath = decodeURIComponent(urlObj.pathname || "/");
     if (rawPath.includes("\0") || rawPath.split("/").includes("..")) {
@@ -345,7 +390,12 @@ function createLanServer(opts) {
       res.end("Forbidden");
       return;
     }
-    const relPath = rawPath === "/" || rawPath === "/index.html" ? "chat.html" : rawPath.replace(/^\/+/, "");
+    const relPath =
+      rawPath === "/" || rawPath === "/index.html"
+        ? "chat.html"
+        : rawPath === "/install"
+          ? "install.html"
+          : rawPath.replace(/^\/+/, "");
     const targetFile = path.resolve(staticDir, relPath);
     const relCheck = path.relative(staticDir, targetFile);
     if (relCheck.startsWith("..") || path.isAbsolute(relCheck)) {
@@ -363,6 +413,12 @@ function createLanServer(opts) {
     const ext = path.extname(targetFile).toLowerCase();
     const mime = MIME_TYPES[ext] || "application/octet-stream";
     if (path.basename(targetFile) === "chat.html") {
+      const installInfo = getInstallInfo(req) || {};
+      if (!(req.socket && req.socket.encrypted) && installInfo.https && !urlObj.searchParams.has("web")) {
+        res.writeHead(302, { Location: "/install", "Cache-Control": "no-store" });
+        res.end();
+        return;
+      }
       const html = injectMobileHtml(fs.readFileSync(targetFile, "utf8"));
       res.writeHead(200, { "Content-Type": mime, "Cache-Control": "no-cache" });
       res.end(html);
@@ -385,52 +441,110 @@ function createLanServer(opts) {
     }
   }
 
-  function start(port = 4777) {
-    if (server) {
-      const addrs = listLanAddresses();
-      return Promise.resolve({
-        port: activePort,
-        urls: addrs.map((ip) => `http://${ip}:${activePort}`),
-      });
-    }
-    return new Promise((resolve, reject) => {
-      const srv = http.createServer((req, res) => {
-        handleRequest(req, res).catch((err) => {
-          sendJson(res, 500, { ok: false, error: (err && err.message) || "Server error" });
-        });
-      });
-      srv.on("connection", (socket) => {
-        sockets.add(socket);
-        socket.on("close", () => sockets.delete(socket));
-      });
-      const tryListen = (p, allowFallback) => {
-        srv.once("error", (err) => {
-          if (allowFallback && err && err.code === "EADDRINUSE") {
-            tryListen(0, false);
-          } else {
-            reject(err);
-          }
-        });
-        srv.listen(p, "0.0.0.0", () => {
-          server = srv;
-          const addr = srv.address();
-          activePort = (addr && typeof addr === "object" && addr.port) || p;
-          const addrs = listLanAddresses();
-          resolve({
-            port: activePort,
-            urls: addrs.map((ip) => `http://${ip}:${activePort}`),
-          });
-        });
-      };
-      tryListen(Number.isFinite(port) ? port : 4777, port !== 0);
+  function requestListener(req, res) {
+    handleRequest(req, res).catch((err) => {
+      sendJson(res, 500, { ok: false, error: (err && err.message) || "Server error" });
     });
   }
 
+  function trackSockets(srv) {
+    srv.on("connection", (socket) => {
+      sockets.add(socket);
+      socket.on("close", () => sockets.delete(socket));
+    });
+  }
+
+  function listenServer(srv, port, allowFallback) {
+    return new Promise((resolve, reject) => {
+      const onError = (err) => {
+        srv.removeListener("listening", onListening);
+        if (allowFallback && err && err.code === "EADDRINUSE") {
+          resolve(listenServer(srv, 0, false));
+        } else {
+          reject(err);
+        }
+      };
+      const onListening = () => {
+        srv.removeListener("error", onError);
+        const addr = srv.address();
+        resolve((addr && typeof addr === "object" && addr.port) || port);
+      };
+      srv.once("error", onError);
+      srv.once("listening", onListening);
+      srv.listen(port, "0.0.0.0");
+    });
+  }
+
+  function info() {
+    const addrs = listLanAddresses();
+    return {
+      port: activePort,
+      httpsPort: activeSecurePort,
+      urls: addrs.map((ip) => `http://${ip}:${activePort}`),
+      secureUrls: activeSecurePort ? addrs.map((ip) => `https://${ip}:${activeSecurePort}`) : [],
+    };
+  }
+
+  async function startSecure(securePort = 4778) {
+    if (httpsServer) return info();
+    const tls = getTls();
+    if (!tls || !tls.key || !tls.cert) return info();
+    try {
+      const secure = https.createServer({ key: tls.key, cert: tls.cert }, requestListener);
+      trackSockets(secure);
+      activeSecurePort = await listenServer(secure, Number.isFinite(securePort) ? securePort : 4778, true);
+      httpsServer = secure;
+    } catch {
+      activeSecurePort = 0;
+      httpsServer = null;
+    }
+    return info();
+  }
+
+  function stopSecure() {
+    if (!httpsServer) return Promise.resolve();
+    const srv = httpsServer;
+    httpsServer = null;
+    activeSecurePort = 0;
+    if (typeof srv.closeAllConnections === "function") {
+      try {
+        srv.closeAllConnections();
+      } catch {}
+    }
+    return new Promise((resolve) => srv.close(() => resolve()));
+  }
+
+  async function start(port = 4777, securePort = 0) {
+    if (httpServer) return info();
+    const wantedPort = Number.isFinite(port) ? port : 4777;
+    const srv = http.createServer(requestListener);
+    trackSockets(srv);
+    activePort = await listenServer(srv, wantedPort, port !== 0);
+    httpServer = srv;
+
+    const wantedSecure = Number.isFinite(securePort) ? securePort : 0;
+    if (wantedSecure > 0) await startSecure(wantedSecure);
+    return info();
+  }
+
+  function dropClients() {
+    for (const client of sseClients) {
+      clearInterval(client.timer);
+      try {
+        client.res.end();
+      } catch {}
+    }
+    sseClients.clear();
+    notifyClients();
+  }
+
   function stop() {
-    if (!server) return Promise.resolve();
-    const srv = server;
-    server = null;
+    const servers = [httpServer, httpsServer].filter(Boolean);
+    if (!servers.length) return Promise.resolve();
+    httpServer = null;
+    httpsServer = null;
     activePort = 0;
+    activeSecurePort = 0;
     for (const client of sseClients) {
       clearInterval(client.timer);
       try {
@@ -445,18 +559,20 @@ function createLanServer(opts) {
     }
     sockets.clear();
     notifyClients();
-    return new Promise((resolve) => {
-      srv.close(() => resolve());
-    });
+    return Promise.all(servers.map((srv) => new Promise((resolve) => srv.close(() => resolve())))).then(() => {});
   }
 
   return {
     start,
+    startSecure,
+    stopSecure,
     stop,
+    dropClients,
     broadcast,
     clientCount: () => sseClients.size,
-    isRunning: () => Boolean(server),
+    isRunning: () => Boolean(httpServer || httpsServer),
     port: () => activePort,
+    httpsPort: () => activeSecurePort,
   };
 }
 

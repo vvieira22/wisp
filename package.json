@@ -11,7 +11,7 @@
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
-    "check": "node src/lib/usage.check.js && node src/lib/pet-state.check.js && node src/lib/markdown.check.js && node src/lib/opencode-providers.check.js && node src/lib/attachments.check.js && node src/lib/logs.check.js && node src/lib/crypto.check.js && node src/lib/i18n.check.js && node src/lib/compat.check.js && node src/lib/chats.check.js && node src/lib/queue.check.js && node src/lib/chat.ui.check.js && node src/lib/files.check.js && node src/lib/folders.check.js && node src/lib/lan.check.js",
+    "check": "node src/lib/usage.check.js && node src/lib/pet-state.check.js && node src/lib/markdown.check.js && node src/lib/opencode-providers.check.js && node src/lib/attachments.check.js && node src/lib/logs.check.js && node src/lib/crypto.check.js && node src/lib/i18n.check.js && node src/lib/compat.check.js && node src/lib/chats.check.js && node src/lib/queue.check.js && node src/lib/chat.ui.check.js && node src/lib/files.check.js && node src/lib/folders.check.js && node src/lib/tls.check.js && node src/lib/lan.check.js && node src/lib/mobile-bridge.check.js",
     "compat:release-notes": "node scripts/compat-release-notes.js",
     "release:notes": "node scripts/generate-release-notes.js",
     "pack": "electron-builder --dir",
@@ -46,7 +46,15 @@
       "!**/*.pyc",
       "!src/mascot.preview.gif",
       "!src/mascot.gif",
-      "!assets/**"
+      "!assets/**",
+      "!dist/**",
+      "!.superpowers/**",
+      "!.claude/**",
+      "!.github/**",
+      "!docs/**",
+      "!scripts/**",
+      "!src/lib/*.check.js",
+      "!AGENTS.md"
     ],
     "asarUnpack": [
       "node_modules/@cursor/sdk-*/**"

@@ -19,11 +19,13 @@ contextBridge.exposeInMainWorld("wisp", {
   pickMascot: () => ipcRenderer.invoke("mascot:pick"),
   clearMascot: () => ipcRenderer.invoke("mascot:clear"),
   loadMascot: () => ipcRenderer.invoke("mascot:get"),
-  send: (text, chatId) => ipcRenderer.invoke("chat:send", text, chatId),
-  cancel: (chatId) => ipcRenderer.invoke("chat:cancel", chatId),
-  respondPermission: (payload, chatId) => ipcRenderer.invoke("chat:permission:respond", payload, chatId),
+  send: (text, chatId, engine) => ipcRenderer.invoke("chat:send", text, chatId, engine),
+  cancel: (chatId, engine) => ipcRenderer.invoke("chat:cancel", chatId, engine),
+  respondPermission: (payload, chatId, engine) => ipcRenderer.invoke("chat:permission:respond", payload, chatId, engine),
+  jumpChat: (target) => ipcRenderer.invoke("chats:jump", target),
   probe: (apiKey) => ipcRenderer.invoke("account:probe", apiKey),
   compatReport: (opts) => ipcRenderer.invoke("compat:report", opts),
+  updateComponent: (id) => ipcRenderer.invoke("compat:update", id),
   onCompat: (cb) => {
     const fn = (_event, payload) => cb(payload);
     ipcRenderer.on("compat:report", fn);
@@ -44,6 +46,18 @@ contextBridge.exposeInMainWorld("wisp", {
     return () => ipcRenderer.removeListener("chats:update", fn);
   },
   listSkills: () => ipcRenderer.invoke("skills:list"),
+  listFiles: () => ipcRenderer.invoke("files:list"),
+  listFolders: (dir) => ipcRenderer.invoke("folders:list", dir),
+  getLanStatus: () => ipcRenderer.invoke("lan:status"),
+  setLanConfig: (partial) => ipcRenderer.invoke("lan:set", partial),
+  regenerateLanToken: () => ipcRenderer.invoke("lan:regenerate-token"),
+  disconnectLan: () => ipcRenderer.invoke("lan:disconnect"),
+  setDesktopVisible: (visible) => ipcRenderer.invoke("desktop:visibility", visible),
+  onLanStatus: (cb) => {
+    const fn = (_event, payload) => cb(payload);
+    ipcRenderer.on("lan:status", fn);
+    return () => ipcRenderer.removeListener("lan:status", fn);
+  },
   petPointer: (payload) => ipcRenderer.send("pet:pointer", payload),
   petLayout: (payload) => ipcRenderer.send("pet:layout", payload),
   setPetMouse: (ignore) => ipcRenderer.send("pet:mouse", ignore),

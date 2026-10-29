@@ -44,7 +44,7 @@ function bubbleCopy({ live, tool, runActive, lang = "en", busyCount = 0 } = {}) 
       line: snippet(live, !runActive),
     };
   }
-  if (tool) return { kind: "tool", eyebrow: isPt ? `Trabalhando${countSuffix}` : `Working${countSuffix}`, line: String(tool) };
+  if (tool && runActive) return { kind: "tool", eyebrow: isPt ? `Trabalhando${countSuffix}` : `Working${countSuffix}`, line: String(tool) };
   if (runActive) return { kind: "working", eyebrow: isPt ? `Trabalhando${countSuffix}` : `Working${countSuffix}`, line: "" };
   return { kind: "done", eyebrow: isPt ? "Pronto" : "Done", line: "" };
 }

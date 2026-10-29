@@ -72,10 +72,33 @@ try {
         return { terminal: "run-end" };
       },
     },
+    getInstallInfo: () => ({ httpsConfigured: false, httpUrl: "http://127.0.0.1:1/", httpsUrl: "", caUrl: "" }),
   });
   try {
     const info = await srv.start(0);
     assert.ok(info.port > 0);
+    assert.equal(info.httpsPort, 0, "no TLS configured -> HTTP only");
+
+    // PWA metadata is public (manifest/worker/icons) but the app itself is not.
+    const pubManifest = await fetch(`http://127.0.0.1:${info.port}/manifest.json`);
+    assert.equal(pubManifest.status, 200);
+    assert.equal((await pubManifest.json()).display, "standalone");
+    const pubSw = await fetch(`http://127.0.0.1:${info.port}/sw.js`);
+    assert.equal(pubSw.status, 200);
+    for (const icon of ["/icon-192.png", "/icon-512.png", "/icon-512-maskable.png"]) {
+      const res = await fetch(`http://127.0.0.1:${info.port}${icon}`);
+      assert.equal(res.status, 200, `${icon} must be public`);
+    }
+    const lockedPage = await fetch(`http://127.0.0.1:${info.port}/`);
+    assert.equal(lockedPage.status, 401);
+
+    // Install tutorial is public and reads the current LAN status.
+    const installPage = await fetch(`http://127.0.0.1:${info.port}/install`);
+    assert.equal(installPage.status, 200);
+    assert.match(await installPage.text(), /\/api\/install/);
+    const installInfo = await fetch(`http://127.0.0.1:${info.port}/api/install`);
+    assert.equal(installInfo.status, 200);
+    assert.equal((await installInfo.json()).httpsConfigured, false);
 
     // Unauthenticated RPC -> 401
     const unauth = await fetch(`http://127.0.0.1:${info.port}/api/rpc`, {
@@ -97,6 +120,18 @@ try {
     assert.equal(authRes.status, 200);
     const body = await authRes.json();
     assert.equal(body.result, "cursor");
+
+    // Connected phone can be dropped explicitly (desktop "Disconnect" button)
+    const sse = await fetch(`http://127.0.0.1:${info.port}/api/events`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const reader = sse.body.getReader();
+    await reader.read();
+    assert.equal(srv.clientCount(), 1);
+    srv.dropClients();
+    assert.equal(srv.clientCount(), 0);
+    const closed = await reader.read();
+    assert.equal(closed.done, true);
 
     // Path traversal attempt -> 403/404
     const trav = await fetch(`http://127.0.0.1:${info.port}/../package.json`, {

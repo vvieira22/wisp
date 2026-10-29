@@ -33,6 +33,14 @@ const DICTIONARIES = {
     compatComponentAgy: "Antigravity CLI (agy)",
     compatComponentOpenCode: "OpenCode CLI",
     compatChatBanner: "Untested stack for this engine — errors are more likely. Open Settings → Tested stack.",
+    compatUpdateBtn: "Update",
+    compatUpdateTo: "Update → {version}",
+    compatUpdateConfirmText:
+      "Updating {name}{target} may cause compatibility issues (tested version: {tested}). Update anyway?",
+    compatUpdateConfirmBtn: "Update anyway",
+    compatUpdating: "Updating {name}…",
+    compatUpdateOk: "{name} updated successfully.",
+    compatUpdateFailed: "Failed to update {name}: {error}",
 
     // Project & Chats
     project: "Project",
@@ -50,6 +58,12 @@ const DICTIONARIES = {
     no: "No",
     yes: "Yes",
     busyMark: " (busy)",
+    chooseOtherFolder: "Choose another folder…",
+    notifyDoneTitle: "{engine} · {project}",
+    notifyDoneBody: "{chat} finished",
+    notifyErrorBody: "{chat} failed",
+    notifyPermissionBody: "{chat} awaits permission",
+    toastOpenBtn: "Open",
 
     // Empty Log
     emptyTitle: "No messages yet",
@@ -72,7 +86,7 @@ const DICTIONARIES = {
     deny: "Deny",
 
     // Composer
-    inputPlaceholder: "Type here, or / for a skill",
+    inputPlaceholder: "Type here, / for a skill, @ for a file",
     mode: "Mode",
     modeAsk: "Ask",
     modePlan: "Plan",
@@ -98,6 +112,47 @@ const DICTIONARIES = {
     languageSystem: "System Language",
     langEn: "English",
     langPtBr: "Português (Brasil)",
+
+    // Settings - Mobile (LAN)
+    lanTitle: "Mobile (LAN)",
+    lanEnable: "Access from phone",
+    lanEnableHint: "Serves Wisp on your Wi-Fi. Allow Wisp in the Windows Firewall (private network) when asked.",
+    lanHideDesktop: "Invisible PC mode",
+    lanHideDesktopHint: "Hides Wisp windows on the PC while you use the phone.",
+    lanCopy: "Copy link",
+    lanRegenerate: "New token",
+    lanCopied: "Copied!",
+    lanQrHint: "Scan with your phone camera.",
+    lanClients: "{count} device(s) connected",
+    lanNoClients: "No phone connected",
+    lanDisconnect: "Disconnect",
+    lanHttps: "HTTPS (install as app)",
+    lanHttpsHint: "Required for Android to offer the app install. Install the certificate once.",
+    lanHttpsUnavailable: "HTTPS unavailable: could not generate the local certificate on this computer.",
+    lanCertTitle: "Install on your phone",
+    lanCertHint: "Scan the QR below and follow the Android or iPhone steps.",
+    lanCertCopy: "Copy tutorial link",
+    lanAppTitle: "2. Open Wisp and install",
+    lanAppHint: "Scan the QR below and choose “Install app” in the browser menu. The installed app uses this address; if the PC's IP changes, scan the QR again (or reserve a fixed IP).",
+    lanInstallHttpHint: "This page is open over HTTP. To install as an app, turn on HTTPS on the PC, install the certificate once, then open the HTTPS link.",
+    lanInstallHttpsReady: "Wisp is on HTTPS. Tap “Install app on phone” to open the tutorial.",
+    lanInstallOpen: "Install app on phone",
+    mobileStatusReady: "Ready",
+    mobileStatusThinking: "Thinking…",
+    mobileStatusDone: "Done",
+    mobileStatusError: "Error",
+    mobilePcShow: "PC screen",
+    mobilePcHide: "Show on PC",
+    attachFiles: "Attach files",
+    folderPickerTitle: "Choose a folder",
+    folderRecent: "Recent projects",
+    folderQuickRoots: "Quick access",
+    folderSearchPlaceholder: "Search folders",
+    folderSelectCurrent: "Select this folder",
+    folderSelectNamed: "Select this folder ({name})",
+    folderLoading: "Loading…",
+    folderEmpty: "No subfolders here.",
+    folderError: "Could not read this folder.",
 
     // Settings - Cursor
     cursorLead: "The key stays on this computer. Wisp uses it to communicate with Cursor.",
@@ -193,6 +248,7 @@ const DICTIONARIES = {
     // Skills
     nothingWithName: "nothing with that name",
     noSkillsInFolders: "no skills in these folders",
+    noFilesInFolder: "no files in this folder",
     skillSourceProject: "project",
     skillSourceUser: "user",
 
@@ -276,6 +332,14 @@ const DICTIONARIES = {
     compatComponentOpenCode: "CLI OpenCode",
     compatChatBanner:
       "Stack fora do testado para este motor — erros são mais prováveis. Abra Configurações → Stack testado.",
+    compatUpdateBtn: "Atualizar",
+    compatUpdateTo: "Atualizar → {version}",
+    compatUpdateConfirmText:
+      "Atualizar {name}{target} pode causar problemas de compatibilidade (versão testada: {tested}). Deseja atualizar mesmo assim?",
+    compatUpdateConfirmBtn: "Atualizar mesmo assim",
+    compatUpdating: "Atualizando {name}…",
+    compatUpdateOk: "{name} atualizado com sucesso.",
+    compatUpdateFailed: "Falha ao atualizar {name}: {error}",
 
     // Project & Chats
     project: "Projeto",
@@ -293,6 +357,12 @@ const DICTIONARIES = {
     no: "Não",
     yes: "Sim",
     busyMark: " (ocupada)",
+    chooseOtherFolder: "Escolher outra pasta…",
+    notifyDoneTitle: "{engine} · {project}",
+    notifyDoneBody: "{chat} concluído",
+    notifyErrorBody: "{chat} falhou",
+    notifyPermissionBody: "{chat} pede permissão",
+    toastOpenBtn: "Abrir",
 
     // Empty Log
     emptyTitle: "Nenhuma mensagem ainda",
@@ -315,7 +385,7 @@ const DICTIONARIES = {
     deny: "Negar",
 
     // Composer
-    inputPlaceholder: "Escreve aqui, ou / pra uma skill",
+    inputPlaceholder: "Escreve aqui, / pra uma skill, @ pra um arquivo",
     mode: "Modo",
     modeAsk: "Perguntar",
     modePlan: "Plano",
@@ -341,6 +411,47 @@ const DICTIONARIES = {
     languageSystem: "Idioma do Sistema",
     langEn: "English",
     langPtBr: "Português (Brasil)",
+
+    // Settings - Mobile (LAN)
+    lanTitle: "Celular (LAN)",
+    lanEnable: "Acessar pelo celular",
+    lanEnableHint: "Publica o Wisp no seu Wi-Fi. Permita o Wisp no Firewall do Windows (rede privada) quando ele perguntar.",
+    lanHideDesktop: "Modo invisível no PC",
+    lanHideDesktopHint: "Esconde as janelas do Wisp no PC enquanto você usa o celular.",
+    lanCopy: "Copiar link",
+    lanRegenerate: "Novo token",
+    lanCopied: "Copiado!",
+    lanQrHint: "Escaneie com a câmera do celular.",
+    lanClients: "{count} dispositivo(s) conectado(s)",
+    lanNoClients: "Nenhum celular conectado",
+    lanDisconnect: "Desconectar",
+    lanHttps: "HTTPS (instalar como app)",
+    lanHttpsHint: "Necessário para o Android oferecer a instalação do app. Instale o certificado uma vez.",
+    lanHttpsUnavailable: "HTTPS indisponível: não foi possível gerar o certificado local neste computador.",
+    lanCertTitle: "Instalação no celular",
+    lanCertHint: "Escaneie o QR abaixo e siga o passo a passo para Android e iPhone.",
+    lanCertCopy: "Copiar link do tutorial",
+    lanAppTitle: "2. Abra o Wisp e instale",
+    lanAppHint: "Escaneie o QR abaixo e escolha “Instalar app” no menu do navegador. O app instalado usa este endereço; se o IP do PC mudar, escaneie o QR de novo (ou reserve um IP fixo).",
+    lanInstallHttpHint: "Esta página está em HTTP. Para instalar como app, ligue o HTTPS no PC, instale o certificado uma vez e abra o link HTTPS.",
+    lanInstallHttpsReady: "O Wisp está em HTTPS. Toque em “Instalar app no celular” para abrir o tutorial.",
+    lanInstallOpen: "Instalar app no celular",
+    mobileStatusReady: "Pronto",
+    mobileStatusThinking: "Pensando…",
+    mobileStatusDone: "Concluído",
+    mobileStatusError: "Erro",
+    mobilePcShow: "Tela do PC",
+    mobilePcHide: "Mostrar no PC",
+    attachFiles: "Anexar arquivos",
+    folderPickerTitle: "Escolher pasta",
+    folderRecent: "Projetos recentes",
+    folderQuickRoots: "Acesso rápido",
+    folderSearchPlaceholder: "Buscar pastas",
+    folderSelectCurrent: "Selecionar esta pasta",
+    folderSelectNamed: "Selecionar esta pasta ({name})",
+    folderLoading: "Carregando…",
+    folderEmpty: "Nenhuma subpasta aqui.",
+    folderError: "Não deu pra ler esta pasta.",
 
     // Settings - Cursor
     cursorLead: "A chave fica neste computador. O Wisp usa ela pra falar com o Cursor.",
@@ -436,6 +547,7 @@ const DICTIONARIES = {
     // Skills
     nothingWithName: "nada com esse nome",
     noSkillsInFolders: "nenhuma skill nestas pastas",
+    noFilesInFolder: "nenhum arquivo nesta pasta",
     skillSourceProject: "projeto",
     skillSourceUser: "user",
 

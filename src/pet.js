@@ -338,6 +338,9 @@ window.wisp.onChat((event) => {
   if (event.type === "run-end" || event.type === "run-cancel") {
     runActive = busyCount > 0;
     unread = event.type === "run-end" && !compact;
+    if (event.type === "run-end" && runActive && !compact) {
+      pushFeed(`✓ ${event.chatTitle || (isPt() ? "Pronto" : "Done")}`, "done");
+    }
     if (compact || event.type === "run-cancel" || !runActive) {
       live = "";
       tool = "";

@@ -33,6 +33,74 @@ function versionsMatch(installed, tested) {
   return a === b;
 }
 
+function parseSemver(text) {
+  const norm = normalizeVersion(text);
+  const m = norm.match(/^(\d+)\.(\d+)\.(\d+)(?:-([\w.-]+))?/);
+  if (!m) return null;
+  return {
+    major: Number(m[1]),
+    minor: Number(m[2]),
+    patch: Number(m[3]),
+    pre: m[4] || "",
+  };
+}
+
+function isNewerVersion(candidate, current) {
+  const a = parseSemver(candidate);
+  const b = parseSemver(current);
+  if (!a) return false;
+  if (!b) return true;
+  if (a.major !== b.major) return a.major > b.major;
+  if (a.minor !== b.minor) return a.minor > b.minor;
+  if (a.patch !== b.patch) return a.patch > b.patch;
+  if (!a.pre && b.pre) return true;
+  if (a.pre && !b.pre) return false;
+  return a.pre > b.pre;
+}
+
+const WISP_RELEASES_URL = "https://github.com/vvieira22/wisp/releases/latest";
+
+function updatePlanFor(id, ctx) {
+  const opts = ctx || {};
+  const isWin = (opts.platform || process.platform) === "win32";
+  const npmBin = isWin ? "npm.cmd" : "npm";
+  if (id === "opencode") {
+    const fallback = { bin: npmBin, args: ["i", "-g", "opencode-ai@latest"] };
+    if (opts.opencodeBin) {
+      return {
+        bin: opts.opencodeBin,
+        args: ["upgrade"],
+        fallback,
+        postArgs: ["models", "--refresh"],
+      };
+    }
+    return fallback;
+  }
+  if (id === "agy") {
+    if (!opts.agyBin) return null;
+    return { bin: opts.agyBin, args: ["update"] };
+  }
+  if (id === "cursorSdk") {
+    if (opts.packaged) return null;
+    return { bin: npmBin, args: ["i", "@cursor/sdk@latest"] };
+  }
+  if (id === "electron") {
+    if (opts.packaged) return null;
+    return { bin: npmBin, args: ["i", "-D", "electron@latest"] };
+  }
+  if (id === "wisp") {
+    if (!opts.packaged && opts.hasGit) {
+      return {
+        bin: "git",
+        args: ["pull", "--ff-only"],
+        openUrl: WISP_RELEASES_URL,
+      };
+    }
+    return { openUrl: WISP_RELEASES_URL };
+  }
+  return null;
+}
+
 function engineUsesAgy(engine, antigravityProvider) {
   return engine === "antigravity" && String(antigravityProvider || "cli") === "cli";
 }
@@ -68,18 +136,33 @@ function buildCompatReport(installed, ctx) {
   const manifest = loadManifest();
   const tested = manifest.tested || {};
   const scanned = (installed && installed.scanned) || {};
+  const latestMap = (installed && installed.latest) || {};
+  const packaged = !!(ctx && ctx.packaged);
   const rows = COMPONENT_ORDER.filter((id) => tested[id] != null).map((id) => {
     const want = String(tested[id]);
     const yours = installed && installed[id] != null ? String(installed[id]) : "";
     const pending =
       (id === "agy" || id === "opencode") && !scanned[id] && !normalizeVersion(yours);
     const status = rowStatus(yours, want, pending);
+    const bundled = BUNDLED_COMPONENTS.has(id);
+    const normYours = normalizeVersion(yours);
+    const latest = normalizeVersion(latestMap[id] || "");
+    const lockedInAsar = bundled && packaged && id !== "wisp";
+    const canUpdate =
+      !lockedInAsar &&
+      (latest
+        ? normYours
+          ? isNewerVersion(latest, normYours)
+          : !bundled && !pending
+        : id === "agy" && !!normYours);
     return {
       id,
       tested: want,
-      installed: normalizeVersion(yours) || yours,
+      installed: normYours || yours,
+      latest,
+      canUpdate,
       status,
-      bundled: BUNDLED_COMPONENTS.has(id),
+      bundled,
       applies: componentApplies(id, ctx),
       blocksEngine: componentBlocksEngine(id, ctx),
     };
@@ -125,6 +208,8 @@ module.exports = {
   loadManifest,
   normalizeVersion,
   versionsMatch,
+  isNewerVersion,
+  updatePlanFor,
   buildCompatReport,
   releaseNotesMarkdown,
 };

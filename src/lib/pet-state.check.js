@@ -162,6 +162,8 @@ assert.equal(BUBBLE.h, 108);
 
 assert.deepEqual(bubbleCopy({ runActive: true }), { kind: "working", eyebrow: "Working", line: "" });
 assert.equal(bubbleCopy({ runActive: true, tool: "read pet.js" }).line, "read pet.js");
+assert.equal(bubbleCopy({ runActive: false, tool: "read pet.js" }).kind, "done");
+assert.equal(bubbleCopy({ runActive: false, tool: "read pet.js", lang: "pt-BR" }).eyebrow, "Pronto");
 assert.equal(bubbleCopy({ runActive: true, live: "hello world" }).eyebrow, "Writing");
 assert.equal(bubbleCopy({ live: "hello", runActive: false }).eyebrow, "Done");
 assert.deepEqual(bubbleCopy({ runActive: true, lang: "pt-BR" }), { kind: "working", eyebrow: "Trabalhando", line: "" });
@@ -584,6 +586,25 @@ assert.ok(!JSON.stringify(geminiContents([{ role: "tool", text: "read" }, { role
   assert.equal(ended[0].type, "run-error");
   assert.equal(ended[0].text, HUNG_RUN);
   assert.equal(hung.finished, true);
+  assert.deepEqual(
+    mapAgyEvent({ event: "result", result: { conversation_id: "same", status: "SUCCESS", response: "late" } }, hung),
+    [],
+  );
+  const wisp = new WispAgent();
+  wisp.ensure = async () => ({
+    send: async () => ({
+      async *stream() {
+        yield { type: "assistant", message: { content: [{ type: "text", text: "done" }] } };
+      },
+      wait: async () => ({ status: "finished" }),
+    }),
+  });
+  let busyAtEnd = true;
+  wisp.send({ cwd: __dirname, apiKey: "k" }, "oi", (ev) => {
+    if (ev.type === "run-end") busyAtEnd = wisp.busy;
+  }).then(() => {
+    assert.equal(busyAtEnd, false, "WispAgent must clear busy before emitting run-end");
+  });
 }
 
 const gap = chats.emptyStore();
@@ -647,10 +668,15 @@ try {
   assert.ok(list.some((s) => s.name === "local"));
   assert.equal(skills.slashSkill("/dup faz isto").name, "dup");
   assert.equal(skills.slashSkill("/dup faz isto").rest, "faz isto");
+  assert.equal(skills.slashSkill("olha /dup agora").rest, "olha agora");
+  assert.equal(skills.slashSkill("https://example.com/dup"), null);
   const attached = skills.attachSkill("/dup hello", list);
   assert.ok(attached.includes("body dup"));
   assert.ok(attached.includes("Pedido:"));
   assert.ok(attached.includes("hello"));
+  const mid = skills.attachSkill("olha /dup agora", list);
+  assert.ok(mid.includes("body dup"));
+  assert.ok(mid.includes("olha agora"));
 } finally {
   fs.rmSync(proj, { recursive: true, force: true });
   fs.rmSync(home, { recursive: true, force: true });
