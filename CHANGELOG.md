@@ -5,6 +5,14 @@ All notable changes to the Wisp project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-10-29
+
+### Added
+- **Wisp Mobile (LAN / PWA)**:
+  - Control the desktop Wisp from a phone on the same network, with no app to install: scan the QR code to pair.
+  - Runs as a full-screen PWA with touch-friendly controls, a remote folder picker, and file attachments from the phone.
+  - Turns keep running on the PC if the phone disconnects, and the desktop pet can be hidden in tray-only mode while driving it from the phone.
+
 ## [1.1.1] - 2026-10-17
 
 ### Fixed
