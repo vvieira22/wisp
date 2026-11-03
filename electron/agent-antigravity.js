@@ -110,7 +110,17 @@ function agyPrintArgs(cfg, resumeId, prompt) {
     "--model",
     agyModel(cfg),
   ];
-  if (cfg && cfg.cwd) args.push("--add-dir", String(cfg.cwd));
+  const added = new Set();
+  const addDir = (dir) => {
+    const value = String(dir || "").trim();
+    if (!value) return;
+    const key = process.platform === "win32" ? value.toLowerCase() : value;
+    if (added.has(key)) return;
+    added.add(key);
+    args.push("--add-dir", value);
+  };
+  if (cfg && cfg.cwd) addDir(cfg.cwd);
+  for (const dir of (cfg && Array.isArray(cfg.dirs) ? cfg.dirs : [])) addDir(dir);
   if (resumeId) args.push("--conversation", String(resumeId));
   args.push("--print", String(prompt || ""));
   return args;

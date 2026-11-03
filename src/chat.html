@@ -56,13 +56,24 @@
           <button type="button" id="task-toast-close" class="task-toast-close" aria-label="Close">×</button>
         </div>
         <div class="session">
-          <button id="folder" type="button" title="Choose project folder" data-i18n-title="chooseProjectFolder">
-            <span class="session-chat-label-row">
+          <div class="workspace-block">
+            <div class="session-chat-label-row">
               <span class="field-label" data-i18n="project">Project</span>
               <span id="folder-busy-badge" class="process-count-badge" hidden></span>
-            </span>
-            <span class="field-value" data-i18n="chooseFolder">choose folder</span>
-          </button>
+            </div>
+            <div class="workspace-bar">
+              <div id="workspace-list" class="workspace-list">
+                <div class="workspace-item" data-primary="true">
+                  <button id="folder" type="button" title="Choose project folder" data-i18n-title="chooseProjectFolder">
+                    <span class="field-value" data-i18n="chooseFolder">choose folder</span>
+                  </button>
+                  <button id="workspace-remove-primary" type="button" class="workspace-remove" title="Remove workspace" data-i18n-title="removeWorkspace" aria-label="Remove workspace" data-i18n-aria-label="removeWorkspace" hidden>&times;</button>
+                </div>
+                <div id="workspace-extras" class="workspace-extras"></div>
+              </div>
+              <button id="workspace-add" type="button" class="workspace-add" title="Add workspace" data-i18n-title="addWorkspace" aria-label="Add workspace" data-i18n-aria-label="addWorkspace">+</button>
+            </div>
+          </div>
           <div class="session-chat">
             <div class="session-chat-label-row">
               <span class="field-label" id="chats-label" data-i18n="chat">Chat</span>

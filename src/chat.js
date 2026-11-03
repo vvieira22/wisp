@@ -16,6 +16,9 @@ const log = document.getElementById("log");
 const input = document.getElementById("input");
 const folderBtn = document.getElementById("folder");
 const folderValue = folderBtn.querySelector(".field-value");
+const workspaceExtras = document.getElementById("workspace-extras");
+const workspaceAdd = document.getElementById("workspace-add");
+const workspaceRemovePrimary = document.getElementById("workspace-remove-primary");
 const rivBtn = document.getElementById("riv");
 const rivValue = rivBtn.querySelector(".field-value");
 const rivClear = document.getElementById("riv-clear");
@@ -757,6 +760,7 @@ if (lanDisconnectBtn) {
 
 let folderState = null;
 let folderQuery = "";
+let folderAppend = false;
 
 function folderChip(label, sub, onPick) {
   const chip = document.createElement("button");
@@ -895,26 +899,51 @@ async function loadFolder(dir) {
   paintFolderModal();
 }
 
-function openFolderModal() {
+function openFolderModal(opts) {
   if (!folderModal) return;
+  folderAppend = Boolean(opts && opts.append);
   paintFolderRecents();
   folderModal.hidden = false;
   void loadFolder(config.cwd || null);
 }
 
 function closeFolderModal() {
+  folderAppend = false;
   if (folderModal) folderModal.hidden = true;
 }
 
-async function selectFolder(targetCwd) {
-  if (!targetCwd) return;
-  config = await window.wisp.setConfig({ cwd: targetCwd });
+async function applyWorkspaceConfig(targetCwd, targetDirs) {
+  config = await window.wisp.setConfig({
+    cwd: targetCwd || "",
+    dirs: Array.isArray(targetDirs) ? targetDirs : [],
+  });
   if (window.wisp && typeof window.wisp.listChats === "function") applyState(await window.wisp.listChats());
   paintFolder();
   paintRiv();
   warned = false;
   loadComposerLists();
   closeFolderModal();
+}
+
+async function selectFolder(targetCwd) {
+  if (!targetCwd) return;
+  const dirs = Array.isArray(config.dirs) ? config.dirs : [];
+  if (folderAppend && config.cwd) {
+    const key = normFolderKey(targetCwd);
+    const exists = normFolderKey(config.cwd) === key || dirs.some((dir) => normFolderKey(dir) === key);
+    if (exists) {
+      closeFolderModal();
+      return;
+    }
+    if (dirs.length + 1 >= 5) {
+      addMsg("system", t("folderLimitNotice", { max: 5 }, currentLang));
+      closeFolderModal();
+      return;
+    }
+    await applyWorkspaceConfig(config.cwd, [...dirs, targetCwd]);
+    return;
+  }
+  await applyWorkspaceConfig(targetCwd, []);
 }
 
 if (folderModalClose) folderModalClose.addEventListener("click", closeFolderModal);
@@ -928,6 +957,19 @@ if (folderSearch) {
   folderSearch.addEventListener("input", () => {
     folderQuery = folderSearch.value || "";
     paintFolderRows();
+  });
+}
+if (workspaceRemovePrimary) {
+  workspaceRemovePrimary.addEventListener("click", () => {
+    const dirs = Array.isArray(config.dirs) ? config.dirs : [];
+    if (!config.cwd) return;
+    void applyWorkspaceConfig(dirs.length ? dirs[0] : "", dirs.slice(1));
+  });
+}
+if (workspaceAdd) {
+  workspaceAdd.addEventListener("click", () => {
+    if (isMobileClient) openFolderModal({ append: true });
+    else void pickNativeFolder({ append: true });
   });
 }
 if (attachBtn && attachInput) {
@@ -1083,9 +1125,42 @@ function renderLogsList(logs) {
   }
 }
 
+function paintWorkspaceExtras(dirs) {
+  if (!workspaceExtras) return;
+  workspaceExtras.replaceChildren();
+  dirs.forEach((dir, index) => {
+    const item = document.createElement("div");
+    item.className = "workspace-item";
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "workspace-chip";
+    chip.title = dir;
+    const name = document.createElement("span");
+    name.className = "field-value";
+    name.textContent = folderName(dir);
+    chip.appendChild(name);
+    chip.addEventListener("click", () => void applyWorkspaceConfig(dir, dirs.filter((_, i) => i !== index)));
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "workspace-remove";
+    remove.textContent = "\u00d7";
+    remove.title = t("removeWorkspace", null, currentLang);
+    remove.setAttribute("aria-label", remove.title);
+    remove.addEventListener("click", () => {
+      void applyWorkspaceConfig(config.cwd, dirs.filter((_, i) => i !== index));
+    });
+    item.append(chip, remove);
+    workspaceExtras.appendChild(item);
+  });
+}
+
 function paintFolder() {
+  const dirs = Array.isArray(config.dirs) ? config.dirs : [];
   folderValue.textContent = config.cwd ? folderName(config.cwd) : t("chooseFolder", null, currentLang);
   folderBtn.title = config.cwd || t("chooseProjectFolder", null, currentLang);
+  paintWorkspaceExtras(dirs);
+  if (workspaceRemovePrimary) workspaceRemovePrimary.hidden = !config.cwd;
+  if (workspaceAdd) workspaceAdd.disabled = Boolean(config.cwd) && dirs.length + 1 >= 5;
   const curKey = normFolderKey(config.cwd);
   if (curKey) projectAlertByKey.delete(curKey);
   let bgBusy = 0;
@@ -2484,15 +2559,17 @@ projectMenu.hidden = true;
 projectMenu.setAttribute("role", "listbox");
 if (panel) panel.appendChild(projectMenu);
 
-async function pickNativeFolder() {
+async function pickNativeFolder(opts) {
+  const append = Boolean(opts && opts.append);
   if (isMobileClient) {
-    openFolderModal();
+    openFolderModal({ append });
     return;
   }
-  const res = await window.wisp.pickFolder();
+  const res = await window.wisp.pickFolder({ append });
   config = (res && res.config) || res || config;
   if (res && res.chats) applyState(res.chats);
   else if (window.wisp && typeof window.wisp.listChats === "function") applyState(await window.wisp.listChats());
+  if (res && res.truncated) addMsg("system", t("folderLimitNotice", { max: res.limit || 5 }, currentLang));
   paintFolder();
   paintRiv();
   warned = false;
