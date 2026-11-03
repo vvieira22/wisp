@@ -86,8 +86,18 @@ const { ensureTls } = require("../src/lib/tls");
 const { globalLogger: logger } = require("../src/lib/logs");
 
 const rpcHandlers = {};
+const MAX_WORKSPACES = 5;
 let lanServer = null;
 let fallbackLanToken = "";
+
+function cleanDirs(dirs) {
+  const out = [];
+  for (const dir of Array.isArray(dirs) ? dirs : []) {
+    const value = String(dir || "").trim();
+    if (value && !out.some((seen) => sameCwd(seen, value))) out.push(value);
+  }
+  return out.slice(0, MAX_WORKSPACES - 1);
+}
 
 function mobileUploadDir() {
   return path.join(os.tmpdir(), "wisp-mobile-uploads");
@@ -482,22 +492,25 @@ function rawCfg() {
   const engine = normalizeEngine(fileData.engine);
   if (!currentEngine) currentEngine = engine;
 
-  const cursorDefaults = { apiKey: "", cwd: "", model: "composer-2.5", params: [] };
+  const cursorDefaults = { apiKey: "", cwd: "", dirs: [], model: "composer-2.5", params: [] };
   const cursorMigrate = {
     apiKey: fileData.apiKey || "",
     cwd: fileData.cwd || "",
+    dirs: Array.isArray(fileData.dirs) ? fileData.dirs : [],
     model: fileData.model || "composer-2.5",
     params: Array.isArray(fileData.params) ? fileData.params : [],
   };
   const cursorCfg = Object.assign(cursorDefaults, cursorMigrate, fileData.cursor || {});
+  cursorCfg.dirs = cleanDirs(cursorCfg.dirs);
   if (cursorCfg.model && (cursorCfg.model.startsWith("gemini") || cursorCfg.model.startsWith("gpt-oss"))) {
     cursorCfg.model = "composer-2.5";
   }
 
   const antigravityCfg = Object.assign(
-    { provider: "cli", geminiApiKey: "", cwd: cursorCfg.cwd || "", model: "gemini-3.8-flash-high", params: [] },
+    { provider: "cli", geminiApiKey: "", cwd: cursorCfg.cwd || "", dirs: [], model: "gemini-3.8-flash-high", params: [] },
     fileData.antigravity || {}
   );
+  antigravityCfg.dirs = cleanDirs(antigravityCfg.dirs);
   if (antigravityCfg.model && (antigravityCfg.model.startsWith("composer") || antigravityCfg.model === "auto")) {
     antigravityCfg.model = "gemini-3.8-flash-high";
   }
@@ -507,6 +520,7 @@ function rawCfg() {
   const opencodeCfg = Object.assign(
     {
       cwd: cursorCfg.cwd || "",
+      dirs: [],
       provider: "deepseek",
       keys: mergeKeys(null),
       model: "",
@@ -519,6 +533,7 @@ function rawCfg() {
       model: resolveOpenCodeModel(opencodeRaw.model, opencodeProvider),
     }
   );
+  opencodeCfg.dirs = cleanDirs(opencodeCfg.dirs);
 
   const lanRaw = fileData.lan && typeof fileData.lan === "object" ? fileData.lan : {};
   if (!lanRaw.token && !fallbackLanToken) fallbackLanToken = generateLanToken();
@@ -1429,7 +1444,9 @@ handleRpc("config:set", async (_event, partial) => {
     } catch {
       next.cwd = String(partial.cwd || "").trim();
     }
+    if (partial.dirs === undefined) next.dirs = [];
   }
+  if (partial && partial.dirs !== undefined) next.dirs = cleanDirs(partial.dirs);
   writeCfg(next);
   if (partial && (partial.cwd || partial.riv !== undefined)) tellPetMascot();
   if (partial && partial.cwd && !sameCwd(prev.cwd, next.cwd)) {
@@ -1560,25 +1577,41 @@ handleRpc("account:probe", async (_event, payload) => {
   }
 });
 
-ipcMain.handle("config:pick-folder", async () => {
+ipcMain.handle("config:pick-folder", async (_event, opts) => {
+  const append = Boolean(opts && opts.append);
   const lang = (cfg() && cfg().lang) || "en";
   const result = await nativeDialog({
     title: t("dialogPickFolder", null, lang),
-    properties: ["openDirectory"],
+    properties: ["openDirectory", "multiSelections"],
   });
-  if (result.canceled || !result.filePaths[0]) return { config: cfg(), chats: chatState() };
-  const cwd = resolveCwd(result.filePaths[0]);
-  const next = { cwd };
-  writeCfg(next);
-  switchProjectCwd(cwd);
+  const picked = result.canceled ? [] : result.filePaths || [];
+  if (!picked.length) return { config: cfg(), chats: chatState() };
+  const unique = [];
+  for (const raw of picked) {
+    try {
+      const cwd = resolveCwd(raw);
+      if (!unique.some((c) => sameCwd(c, cwd))) unique.push(cwd);
+    } catch {}
+  }
+  const before = cfg();
+  const existing = append && before.cwd ? [before.cwd, ...cleanDirs(before.dirs)] : [];
+  const merged = [];
+  for (const cwd of existing.concat(unique)) {
+    if (!merged.some((seen) => sameCwd(seen, cwd))) merged.push(cwd);
+  }
+  const cwds = merged.slice(0, MAX_WORKSPACES);
+  if (!cwds.length) return { config: cfg(), chats: chatState() };
+  const active = append && before.cwd ? before.cwd : cwds[0];
+  writeCfg({ cwd: active, dirs: cwds.filter((cwd) => !sameCwd(cwd, active)) });
+  switchProjectCwd(active);
   tellPetMascot();
-  tellUsage(current(chats, cwd));
+  tellUsage(current(chats, active));
   prewarmWorkspace(cfg()).catch((err) => console.error(err));
   const state = chatState();
   if (chatWin && !chatWin.isDestroyed()) {
     chatWin.webContents.send("chats:update", state);
   }
-  return { config: cfg(), chats: state };
+  return { config: cfg(), chats: state, limit: MAX_WORKSPACES, truncated: merged.length > MAX_WORKSPACES };
 });
 
 ipcMain.handle("mascot:get", () => mascotPayload());
@@ -1692,6 +1725,7 @@ handleRpc("chat:send", async (_event, text, chatId, targetEngine) => {
   const runCfg = Object.assign({}, c, {
     apiKey: c.apiKey,
     cwd,
+    dirs: sameCwd(cwd, c.cwd) ? c.dirs : [],
     model: chat.model,
     params: chat.params,
     mode: chat.mode,

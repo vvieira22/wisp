@@ -47,6 +47,8 @@ const DICTIONARIES = {
     chooseFolder: "choose folder",
     noFolder: "no folder",
     chooseProjectFolder: "Choose project folder",
+    addWorkspace: "Add workspace",
+    removeWorkspace: "Remove workspace",
     chat: "Chat",
     newChat: "New chat",
     chatName: "Chat name",
@@ -284,6 +286,7 @@ const DICTIONARIES = {
     // Native Dialogs
     dialogPickFolder: "Project folder",
     dialogPickMascot: "Rive Mascot",
+    folderLimitNotice: "Wisp uses the first {max} folders. Up to {max} workspaces at a time.",
 
     // Meter / Usage
     meterLastTurn: "Last turn",
@@ -346,6 +349,8 @@ const DICTIONARIES = {
     chooseFolder: "escolher pasta",
     noFolder: "sem pasta",
     chooseProjectFolder: "Escolhe a pasta do projeto",
+    addWorkspace: "Adicionar workspace",
+    removeWorkspace: "Remover workspace",
     chat: "Conversa",
     newChat: "Nova conversa",
     chatName: "Nome da conversa",
@@ -583,6 +588,7 @@ const DICTIONARIES = {
     // Native Dialogs
     dialogPickFolder: "Pasta do projeto",
     dialogPickMascot: "Mascote Rive",
+    folderLimitNotice: "O Wisp usa as {max} primeiras pastas. Até {max} workspaces por vez.",
 
     // Meter / Usage
     meterLastTurn: "Último turno",

@@ -78,6 +78,18 @@ assert.match(
 );
 assert.match(mainSrc, /createLanServer/, "main.js must wire createLanServer for mobile access");
 assert.match(mainSrc, /pruneMobileUploads/, "main.js must prune temporary mobile uploads automatically");
+assert.match(mainSrc, /MAX_WORKSPACES = 5/, "main.js must cap workspaces at 5");
+assert.match(mainSrc, /"openDirectory", "multiSelections"/, "project picker must allow multiple folders");
+assert.match(mainSrc, /merged\.slice\(0, MAX_WORKSPACES\)/, "project picker must honor the 5 workspace cap");
+assert.match(mainSrc, /cwds\.filter\(\(cwd\) => !sameCwd\(cwd, active\)\)/, "project picker must keep extra folders in the same agent context");
+assert.match(mainSrc, /opts && opts\.append/, "project picker must support appending a workspace");
+assert.doesNotMatch(mainSrc, /const current = cfg\(\)/, "config:pick-folder must not shadow the chats current() helper");
+assert.match(mainSrc, /tellUsage\(current\(chats, active\)\)/, "config:pick-folder must call the chats current() helper");
+assert.match(html, /id="workspace-list"/, "chat.html must render the workspace context bar");
+assert.match(html, /id="workspace-extras"/, "chat.html must render extra workspace chips");
+assert.match(html, /id="workspace-add"/, "chat.html must offer a add workspace button");
+assert.match(html, /id="workspace-remove-primary"/, "chat.html must let the primary workspace be removed");
+assert.match(chat, /folderLimitNotice/, "chat.js must warn when the folder picker hits the workspace cap");
 assert.match(mainSrc, /"folders:list"/, "main.js must expose folders:list handler");
 assert.match(mainSrc, /"lan:status"/, "main.js must expose lan:status handler");
 assert.match(mainSrc, /"lan:set"/, "main.js must expose lan:set handler");
@@ -92,6 +104,7 @@ assert.match(preloadSrc, /listFolders:/, "preload.js must expose listFolders");
 assert.match(preloadSrc, /getLanStatus:/, "preload.js must expose getLanStatus");
 assert.match(preloadSrc, /setLanConfig:/, "preload.js must expose setLanConfig");
 assert.match(preloadSrc, /setDesktopVisible:/, "preload.js must expose setDesktopVisible");
+assert.match(preloadSrc, /pickFolder: \(opts\)/, "preload.js must forward picker options");
 
 const mobileBridge = fs.readFileSync(path.join(__dirname, "../mobile-bridge.js"), "utf8");
 new Script(mobileBridge, { filename: "mobile-bridge.js" });

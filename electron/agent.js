@@ -148,6 +148,23 @@ function resolveCwd(cwd) {
   return resolved;
 }
 
+function extraDirs(cwd, dirs) {
+  const out = [];
+  for (const dir of Array.isArray(dirs) ? dirs : []) {
+    try {
+      const resolved = resolveCwd(dir);
+      if (!sameCwd(resolved, cwd) && !out.some((seen) => sameCwd(seen, resolved))) out.push(resolved);
+    } catch {}
+  }
+  return out;
+}
+
+function sameDirs(a, b) {
+  const left = a || [];
+  const right = b || [];
+  return left.length === right.length && left.every((dir, i) => sameCwd(dir, right[i]));
+}
+
 function workspacePrompt(_cwd, text) {
   return String(text || "");
 }
@@ -184,12 +201,14 @@ function withTimeout(promise, ms, message) {
   return Promise.race([Promise.resolve(promise), timeout]).finally(() => clearTimeout(timer));
 }
 
-function localOpts(cwd) {
-  return {
+function localOpts(cwd, dirs) {
+  const opts = {
     cwd,
     settingSources: ["project"],
     workspaceScanCacheTtlMs: 600000,
   };
+  if (dirs && dirs.length) opts.dirs = dirs;
+  return opts;
 }
 
 let prewarmRelease = null;
@@ -216,7 +235,8 @@ async function prewarmWorkspace(cfg) {
     return;
   }
   if (!key || !cwd) return;
-  const stamp = key + "\0" + cwd;
+  const dirs = extraDirs(cwd, cfg && cfg.dirs);
+  const stamp = key + "\0" + cwd + "\0" + dirs.join("\0");
   if (stamp === prewarmKey && prewarmRelease) return;
   await dropPrewarm();
   try {
@@ -225,7 +245,7 @@ async function prewarmWorkspace(cfg) {
     prewarmRelease = await platform.prewarmLocalWorkspace({
       apiKey: key,
       model: { id: resolveModel(cfg.model) },
-      local: localOpts(cwd),
+      local: localOpts(cwd, dirs),
     });
     prewarmKey = stamp;
   } catch (err) {
@@ -239,6 +259,7 @@ class WispAgent {
     this.busy = false;
     this.key = "";
     this.cwd = "";
+    this.dirs = [];
     this.model = "composer-2.5";
     this.params = [];
     this.lastUsage = null;
@@ -295,6 +316,7 @@ class WispAgent {
   async ensure(cfg) {
     const key = (cfg.apiKey || process.env.CURSOR_API_KEY || "").trim();
     const cwd = resolveCwd(cfg.cwd);
+    const dirs = extraDirs(cwd, cfg.dirs);
     const model = resolveModel(cfg.model);
     const params = Array.isArray(cfg.params) ? cfg.params : [];
     const mode = normalizeMode(cfg.mode);
@@ -305,6 +327,7 @@ class WispAgent {
       this.agent &&
       this.key === key &&
       sameCwd(this.cwd, cwd) &&
+      sameDirs(this.dirs, dirs) &&
       this.model === model &&
       paramsEqual(this.params, params) &&
       this.mode === mode &&
@@ -319,7 +342,7 @@ class WispAgent {
         apiKey: key,
         model: params.length ? { id: model, params } : { id: model },
         name: path.basename(cwd) || "wisp",
-        local: localOpts(cwd),
+        local: localOpts(cwd, dirs),
       },
       agentOpts(mode),
     );
@@ -343,6 +366,7 @@ class WispAgent {
     this.resumeId = this.agentId;
     this.key = key;
     this.cwd = cwd;
+    this.dirs = dirs;
     this.model = model;
     this.params = params;
     this.mode = mode;
@@ -511,6 +535,7 @@ class WispAgent {
     await this.dropAgent();
     this.key = "";
     this.cwd = "";
+    this.dirs = [];
     this.model = "";
     this.params = [];
     this.mode = "";
@@ -569,7 +594,9 @@ module.exports = {
   effortChoices,
   paramsEqual,
   sameCwd,
+  sameDirs,
   resolveCwd,
+  extraDirs,
   workspacePrompt,
   isAgentBusy,
   sendOpts,

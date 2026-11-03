@@ -72,6 +72,47 @@ function providerLabel(providerId) {
   return hit ? hit.label : providerId;
 }
 
+function referenceAlias(dir, used) {
+  const base = path.basename(dir).replace(/[/\\\s`,]/g, "-") || "workspace";
+  let alias = base;
+  let n = 2;
+  while (used.has(alias)) alias = `${base}-${n++}`;
+  used.add(alias);
+  return alias;
+}
+
+function normPath(dir) {
+  const resolved = path.resolve(String(dir || "").trim());
+  return process.platform === "win32" ? resolved.toLowerCase() : resolved;
+}
+
+function withReferenceEnv(env, dirs) {
+  const extras = (Array.isArray(dirs) ? dirs : []).map((dir) => String(dir || "").trim()).filter(Boolean);
+  if (!extras.length) return env;
+  let content = {};
+  try {
+    const parsed = JSON.parse(env.OPENCODE_CONFIG_CONTENT || "{}");
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) content = parsed;
+  } catch {}
+  const existing = content.references;
+  const refs = existing && typeof existing === "object" && !Array.isArray(existing) ? existing : {};
+  const used = new Set(Object.keys(refs));
+  const covered = new Set(
+    Object.values(refs)
+      .map((ref) => (ref && typeof ref === "object" ? ref.path : ""))
+      .filter(Boolean)
+      .map(normPath)
+  );
+  for (const dir of extras) {
+    const key = normPath(dir);
+    if (covered.has(key)) continue;
+    covered.add(key);
+    refs[referenceAlias(dir, used)] = { path: dir, description: `Wisp workspace: ${path.basename(dir)}` };
+  }
+  env.OPENCODE_CONFIG_CONTENT = JSON.stringify(Object.assign({}, content, { references: refs }));
+  return env;
+}
+
 function spawnOpenCode(bin, args, opts) {
   const isCmd = process.platform === "win32" && /\.(cmd|bat)$/i.test(bin);
   return spawn(bin, args, Object.assign({ windowsHide: true, shell: isCmd }, opts));
@@ -254,7 +295,7 @@ class OpenCodeAgent {
     if (this.resumeId) args.push("--session", this.resumeId);
     args.push(prompt);
 
-    const env = providerEnv(provider, key, process.env);
+    const env = withReferenceEnv(providerEnv(provider, key, process.env), cfg && cfg.dirs);
 
     return new Promise((resolve, reject) => {
       const proc = spawnOpenCode(bin, args, {
@@ -441,6 +482,7 @@ module.exports = {
   OpenCodeAgent,
   findOpenCodeBin,
   agentForMode,
+  withReferenceEnv,
   OPENCODE_PROVIDERS,
   normalizeProvider,
   mergeKeys,

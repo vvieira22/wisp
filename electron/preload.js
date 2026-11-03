@@ -15,7 +15,7 @@ contextBridge.exposeInMainWorld("wisp", {
   setEngine: (engine) => ipcRenderer.invoke("engine:set", engine),
   getConfig: () => ipcRenderer.invoke("config:get"),
   setConfig: (partial) => ipcRenderer.invoke("config:set", partial),
-  pickFolder: () => ipcRenderer.invoke("config:pick-folder"),
+  pickFolder: (opts) => ipcRenderer.invoke("config:pick-folder", opts),
   pickMascot: () => ipcRenderer.invoke("mascot:pick"),
   clearMascot: () => ipcRenderer.invoke("mascot:clear"),
   loadMascot: () => ipcRenderer.invoke("mascot:get"),
